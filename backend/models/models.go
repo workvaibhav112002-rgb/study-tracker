@@ -1,0 +1,57 @@
+package models
+
+type Project struct {
+	ID                  int64  `json:"id"`
+	Name                string `json:"name"`
+	Color               string `json:"color"`
+	Description         string `json:"description"`
+	TargetMinutesPerDay int    `json:"target_minutes_per_day"`
+	CreatedAt           string `json:"created_at"`
+	TotalMinutes        int    `json:"total_minutes,omitempty"`
+}
+
+type Session struct {
+	ID              int64  `json:"id"`
+	ProjectID       int64  `json:"project_id"`
+	ProjectName     string `json:"project_name,omitempty"`
+	ProjectColor    string `json:"project_color,omitempty"`
+	StartTime       string `json:"start_time"`
+	EndTime         string `json:"end_time"`
+	DurationSeconds int    `json:"duration_seconds"`
+	SessionType     string `json:"session_type"` // 'pomodoro' | 'custom' | 'manual'
+	FocusRating     int    `json:"focus_rating"` // 1 - 5
+	Notes           string `json:"notes"`
+	CreatedAt       string `json:"created_at"`
+}
+
+type Settings struct {
+	WorkDuration       int  `json:"work_duration"`        // in minutes
+	ShortBreakDuration int  `json:"short_break_duration"`  // in minutes
+	LongBreakDuration  int  `json:"long_break_duration"`   // in minutes
+	LongBreakInterval  int  `json:"long_break_interval"`   // default 4
+	AutoStartBreaks    bool `json:"auto_start_breaks"`
+	SoundEnabled       bool `json:"sound_enabled"`
+}
+
+type ProjectStat struct {
+	ProjectID    int64  `json:"project_id"`
+	Name         string `json:"name"`
+	Color        string `json:"color"`
+	TotalSeconds int    `json:"total_seconds"`
+	SessionCount int    `json:"session_count"`
+}
+
+type DailyStat struct {
+	Date    string `json:"date"` // YYYY-MM-DD
+	Minutes int    `json:"minutes"`
+}
+
+type DashboardStats struct {
+	TodayMinutes       int           `json:"today_minutes"`
+	WeeklyMinutes      int           `json:"weekly_minutes"`
+	TotalMinutes       int           `json:"total_minutes"`
+	CurrentStreakDays  int           `json:"current_streak_days"`
+	CompletedPomodoros int           `json:"completed_pomodoros"`
+	ProjectStats       []ProjectStat `json:"project_stats"`
+	DailyTrend         []DailyStat   `json:"daily_trend"`
+}
