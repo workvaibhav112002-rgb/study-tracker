@@ -21,6 +21,15 @@ export interface Project {
   total_minutes?: number
 }
 
+export interface ProjectInput {
+  name: string
+  color: string
+  description: string
+  target_minutes_per_day: number
+}
+
+export type SessionType = 'pomodoro' | 'custom' | 'manual'
+
 export interface Session {
   id: number
   user_id?: number
@@ -30,10 +39,20 @@ export interface Session {
   start_time: string
   end_time: string
   duration_seconds: number
-  session_type: 'pomodoro' | 'custom' | 'manual'
+  session_type: SessionType
   focus_rating: number
   notes: string
   created_at?: string
+}
+
+export interface SessionInput {
+  project_id: number
+  start_time: string
+  end_time: string
+  duration_seconds: number
+  session_type: SessionType
+  focus_rating: number
+  notes: string
 }
 
 export interface Settings {
@@ -44,6 +63,23 @@ export interface Settings {
   auto_start_breaks: boolean
   sound_enabled: boolean
 }
+
+export const DEFAULT_SETTINGS: Settings = {
+  work_duration: 25,
+  short_break_duration: 5,
+  long_break_duration: 15,
+  long_break_interval: 4,
+  auto_start_breaks: false,
+  sound_enabled: true,
+}
+
+/** Server-side limits, mirrored for form validation. */
+export const SETTINGS_LIMITS = {
+  work_duration: { min: 1, max: 180 },
+  short_break_duration: { min: 1, max: 60 },
+  long_break_duration: { min: 1, max: 120 },
+  long_break_interval: { min: 1, max: 12 },
+} as const
 
 export interface ProjectStat {
   project_id: number
@@ -70,8 +106,10 @@ export interface DashboardStats {
 
 export type TimerMode = 'work' | 'short_break' | 'long_break'
 
+export type FeedbackType = 'feature' | 'bug' | 'praise' | 'general'
+
 export interface FeedbackSubmission {
-  type: 'feature' | 'bug' | 'praise' | 'general'
+  type: FeedbackType
   message: string
   email?: string
 }

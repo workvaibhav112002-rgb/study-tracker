@@ -9,7 +9,7 @@ class AudioService {
       this.ctx = new AudioCtx()
     }
     if (this.ctx.state === 'suspended') {
-      this.ctx.resume()
+      void this.ctx.resume()
     }
     return this.ctx
   }
@@ -92,8 +92,8 @@ class AudioService {
 
       osc.start(now)
       osc.stop(now + 0.06)
-    } catch (e) {
-      // Ignore
+    } catch {
+      // Ignore: ticks are purely cosmetic
     }
   }
 }
