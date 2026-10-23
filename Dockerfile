@@ -1,31 +1,17 @@
-# Multi-stage Docker build for ultra-lightweight Go backend (~25MB)
-FROM golang:alpine AS builder
+# syntax=docker/dockerfile:1
+# Build a static, CGO-free binary and ship it in a distroless image that runs
+# as a non-root user with no shell.
 
-WORKDIR /app
-
-# Install build dependencies for CGO SQLite
-RUN apk add --no-cache gcc musl-dev
-
-# Copy backend dependencies
+FROM golang:1.26-alpine AS builder
+WORKDIR /src
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
-
-# Copy backend source
 COPY backend/ .
-RUN CGO_ENABLED=1 GOOS=linux go build -ldflags="-s -w" -o study-tracker-server main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/server ./cmd/server
 
-# Production Runner Stage
-FROM alpine:latest
-
-WORKDIR /app
-RUN apk add --no-cache ca-certificates tzdata
-
-COPY --from=builder /app/study-tracker-server .
-
-EXPOSE 8080
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY --from=builder /out/server /server
 ENV PORT=8080
-ENV DB_PATH=/app/data/study_tracker.db
-
-RUN mkdir -p /app/data
-
-CMD ["./study-tracker-server"]
+EXPOSE 8080
+USER nonroot:nonroot
+ENTRYPOINT ["/server"]

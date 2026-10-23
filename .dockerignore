@@ -1,0 +1,13 @@
+.git
+.github
+frontend
+*.md
+*.db
+*.db-*
+.env
+.env.*
+!.env.example
+run.sh
+render.yaml
+backend/.idea
+backend/study-tracker-server

@@ -1,0 +1,16 @@
+# Best-effort ping to keep the free Render instance from spinning down.
+# GitHub cron can run 10–30 minutes late and is disabled after 60 days of
+# repo inactivity, so an external pinger (cron-job.org / UptimeRobot) is the
+# reliable option. See README.
+name: keepalive
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -fsS --max-time 60 https://study-tracker-s2ck.onrender.com/api/health || true
