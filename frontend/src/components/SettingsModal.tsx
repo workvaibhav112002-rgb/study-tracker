@@ -1,7 +1,10 @@
-import React, { useState } from 'react'
-import { X, Settings as SettingsIcon, Volume2, Bell } from 'lucide-react'
-import { Settings } from '../types'
+import React, { useEffect, useState } from 'react'
+import { Settings as SettingsIcon, Volume2 } from 'lucide-react'
+import { SETTINGS_LIMITS, type Settings } from '../types'
 import { audioService } from '../services/audio'
+import { Modal } from './ui/Modal'
+import { Button } from './ui/Button'
+import { Field, inputClass } from './ui/Field'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -10,178 +13,141 @@ interface SettingsModalProps {
   onSave: (settings: Settings) => Promise<void>
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({
-  isOpen,
-  onClose,
-  settings,
-  onSave,
-}) => {
-  const [form, setForm] = useState<Settings>({ ...settings })
+type NumericKey = keyof typeof SETTINGS_LIMITS
 
-  if (!isOpen) return null
+export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave }) => {
+  const [form, setForm] = useState<Settings>(settings)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Always start from the latest saved values when the dialog opens.
+  useEffect(() => {
+    if (isOpen) {
+      setForm(settings)
+      setError(null)
+    }
+  }, [isOpen, settings])
+
+  const setNumber = (key: NumericKey, raw: string) => setForm((f) => ({ ...f, [key]: raw === '' ? 0 : Number(raw) }))
+
+  const validate = (): string | null => {
+    for (const key of Object.keys(SETTINGS_LIMITS) as NumericKey[]) {
+      const { min, max } = SETTINGS_LIMITS[key]
+      const v = form[key]
+      if (!Number.isInteger(v) || v < min || v > max) {
+        return `${labels[key]} must be between ${min} and ${max}.`
+      }
+    }
+    return null
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    await onSave(form)
-    onClose()
+    const problem = validate()
+    if (problem) {
+      setError(problem)
+      return
+    }
+    setSaving(true)
+    try {
+      await onSave(form)
+      onClose()
+    } catch {
+      /* surfaced by caller */
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const handleTestSound = () => {
-    audioService.playWorkCompleteChime()
+  const labels: Record<NumericKey, string> = {
+    work_duration: 'Work (mins)',
+    short_break_duration: 'Short Break',
+    long_break_duration: 'Long Break',
+    long_break_interval: 'Long Break Interval (Pomodoro count)',
   }
+
+  const numberField = (key: NumericKey, className?: string) => (
+    <Field label={labels[key]} className={className}>
+      {(id) => (
+        <input
+          id={id}
+          type="number"
+          inputMode="numeric"
+          min={SETTINGS_LIMITS[key].min}
+          max={SETTINGS_LIMITS[key].max}
+          value={form[key] || ''}
+          onChange={(e) => setNumber(key, e.target.value)}
+          className={inputClass}
+          required
+        />
+      )}
+    </Field>
+  )
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-100 transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        {/* Title */}
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-slate-800 text-brand-400 flex items-center justify-center border border-slate-700">
-            <SettingsIcon className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-white">Timer Preferences</h3>
-            <p className="text-xs text-slate-400">Customize intervals, breaks, and notifications.</p>
-          </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={saving ? undefined : onClose}
+      dismissible={!saving}
+      title="Timer Preferences"
+      description="Customize intervals, breaks, and notifications."
+      icon={<SettingsIcon className="w-5 h-5" />}
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-3 gap-3">
+          {numberField('work_duration')}
+          {numberField('short_break_duration')}
+          {numberField('long_break_duration')}
         </div>
+        {numberField('long_break_interval')}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Durations Grid */}
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Work (mins)
-              </label>
-              <input
-                type="number"
-                min="1"
-                max="120"
-                value={form.work_duration}
-                onChange={(e) =>
-                  setForm({ ...form, work_duration: Number(e.target.value) })
-                }
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Short Break
-              </label>
-              <input
-                type="number"
-                min="1"
-                max="60"
-                value={form.short_break_duration}
-                onChange={(e) =>
-                  setForm({ ...form, short_break_duration: Number(e.target.value) })
-                }
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Long Break
-              </label>
-              <input
-                type="number"
-                min="1"
-                max="90"
-                value={form.long_break_duration}
-                onChange={(e) =>
-                  setForm({ ...form, long_break_duration: Number(e.target.value) })
-                }
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Long Break Interval */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">
-              Long Break Interval (Pomodoro count)
-            </label>
+        <div className="pt-2 space-y-3">
+          <label className="flex items-center space-x-3 cursor-pointer">
             <input
-              type="number"
-              min="1"
-              max="12"
-              value={form.long_break_interval}
-              onChange={(e) =>
-                setForm({ ...form, long_break_interval: Number(e.target.value) })
-              }
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
-              required
+              type="checkbox"
+              checked={form.auto_start_breaks}
+              onChange={(e) => setForm({ ...form, auto_start_breaks: e.target.checked })}
+              className="w-4 h-4 rounded text-brand-500 bg-slate-950 border-slate-800 focus:ring-brand-500"
             />
-          </div>
+            <span className="text-xs font-medium text-slate-300">Auto-start breaks & pomodoros</span>
+          </label>
 
-          {/* Toggles */}
-          <div className="pt-2 space-y-3">
+          <div className="flex items-center justify-between">
             <label className="flex items-center space-x-3 cursor-pointer">
               <input
                 type="checkbox"
-                checked={form.auto_start_breaks}
-                onChange={(e) =>
-                  setForm({ ...form, auto_start_breaks: e.target.checked })
-                }
+                checked={form.sound_enabled}
+                onChange={(e) => setForm({ ...form, sound_enabled: e.target.checked })}
                 className="w-4 h-4 rounded text-brand-500 bg-slate-950 border-slate-800 focus:ring-brand-500"
               />
-              <span className="text-xs font-medium text-slate-300">
-                Auto-start breaks & pomodoros
-              </span>
+              <span className="text-xs font-medium text-slate-300">Audio sound chimes</span>
             </label>
-
-            <div className="flex items-center justify-between">
-              <label className="flex items-center space-x-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.sound_enabled}
-                  onChange={(e) =>
-                    setForm({ ...form, sound_enabled: e.target.checked })
-                  }
-                  className="w-4 h-4 rounded text-brand-500 bg-slate-950 border-slate-800 focus:ring-brand-500"
-                />
-                <span className="text-xs font-medium text-slate-300">
-                  Audio sound chimes
-                </span>
-              </label>
-
-              <button
-                type="button"
-                onClick={handleTestSound}
-                className="text-[11px] font-semibold text-brand-400 hover:text-brand-300 flex items-center space-x-1"
-              >
-                <Volume2 className="w-3.5 h-3.5" />
-                <span>Test Chime</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-800">
             <button
               type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+              onClick={() => audioService.playWorkCompleteChime()}
+              className="text-[11px] font-semibold text-brand-400 hover:text-brand-300 flex items-center space-x-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
             >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-5 py-2 rounded-xl bg-brand-500 hover:bg-brand-600 text-slate-950 text-xs font-bold shadow-lg shadow-brand-500/20 transition-all"
-            >
-              Save Preferences
+              <Volume2 className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>Test Chime</span>
             </button>
           </div>
-        </form>
-      </div>
-    </div>
+        </div>
+
+        {error && (
+          <p role="alert" className="text-xs text-rose-400 font-medium">
+            {error}
+          </p>
+        )}
+
+        <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-800">
+          <Button variant="ghost" onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button type="submit" loading={saving}>
+            Save Preferences
+          </Button>
+        </div>
+      </form>
+    </Modal>
   )
 }

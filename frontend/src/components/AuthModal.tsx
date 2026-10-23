@@ -1,15 +1,20 @@
 import React, { useState } from 'react'
-import { X, Lock, Mail, User as UserIcon, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react'
-import { api, tokenStorage } from '../api/client'
-import { User } from '../types'
+import { Lock, Mail, User as UserIcon, ArrowRight, ShieldCheck } from 'lucide-react'
+import { errorMessage } from '../api/client'
+import { Modal } from './ui/Modal'
+import { Button } from './ui/Button'
+import { Field, inputClass } from './ui/Field'
 
 interface AuthModalProps {
   isOpen: boolean
-  onClose: () => void
-  onSuccess: (user: User) => void
+  onLogin: (email: string, password: string) => Promise<void>
+  onRegister: (email: string, password: string, name: string) => Promise<void>
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => {
+const MIN_PASSWORD = 8
+
+/** Sign-in gate. Not dismissible: the app needs an account to store data. */
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onLogin, onRegister }) => {
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -17,168 +22,132 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  if (!isOpen) return null
+  const switchMode = (m: 'login' | 'register') => {
+    setMode(m)
+    setError(null)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    if (mode === 'register' && password.length < MIN_PASSWORD) {
+      setError(`Password must be at least ${MIN_PASSWORD} characters.`)
+      return
+    }
     setLoading(true)
-
     try {
-      if (mode === 'register') {
-        const res = await api.register(email, password, name)
-        tokenStorage.set(res.token)
-        onSuccess(res.user)
-      } else {
-        const res = await api.login(email, password)
-        tokenStorage.set(res.token)
-        onSuccess(res.user)
-      }
-      onClose()
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message)
-      } else {
-        setError('Authentication failed. Please check your credentials.')
-      }
+      if (mode === 'register') await onRegister(email.trim(), password, name.trim())
+      else await onLogin(email.trim(), password)
+    } catch (err) {
+      setError(errorMessage(err, 'Authentication failed. Please check your credentials.'))
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-7 shadow-2xl relative">
-        <button
-          onClick={onClose}
-          className="absolute top-5 right-5 text-slate-400 hover:text-slate-100 transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        {/* Brand Icon & Heading */}
-        <div className="text-center mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-emerald-400 mx-auto flex items-center justify-center shadow-lg shadow-emerald-500/20 mb-3">
-            <ShieldCheck className="w-6 h-6 text-slate-950" />
-          </div>
-          <h3 className="text-xl font-bold text-white tracking-tight">
-            {mode === 'login' ? 'Welcome Back' : 'Create Your Account'}
-          </h3>
-          <p className="text-xs text-slate-400 mt-1">
-            {mode === 'login'
-              ? 'Sign in to access your personal study history and streaks.'
-              : 'Join to track your study sessions with 100% private cloud sync.'}
-          </p>
-        </div>
-
-        {/* Tab Switcher */}
-        <div className="flex bg-slate-950 p-1 rounded-xl mb-5 border border-slate-800">
+    <Modal
+      isOpen={isOpen}
+      dismissible={false}
+      align="center"
+      rounded="3xl"
+      title={mode === 'login' ? 'Welcome Back' : 'Create Your Account'}
+      description={
+        mode === 'login'
+          ? 'Sign in to access your study history and streaks.'
+          : 'Track your study sessions, synced to your private account.'
+      }
+      icon={<ShieldCheck className="w-6 h-6 text-slate-950" aria-hidden="true" />}
+      iconClassName="bg-gradient-to-tr from-brand-600 to-emerald-400 shadow-lg shadow-emerald-500/20"
+    >
+      <div role="tablist" aria-label="Authentication mode" className="flex bg-slate-950 p-1 rounded-xl mb-5 border border-slate-800">
+        {(['login', 'register'] as const).map((m) => (
           <button
+            key={m}
             type="button"
-            onClick={() => {
-              setMode('login')
-              setError(null)
-            }}
-            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
-              mode === 'login'
-                ? 'bg-slate-800 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
+            role="tab"
+            aria-selected={mode === m}
+            onClick={() => switchMode(m)}
+            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+              mode === m ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            Sign In
+            {m === 'login' ? 'Sign In' : 'Register'}
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setMode('register')
-              setError(null)
-            }}
-            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
-              mode === 'register'
-                ? 'bg-slate-800 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Register
-          </button>
+        ))}
+      </div>
+
+      {error && (
+        <div role="alert" className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium">
+          {error}
         </div>
+      )}
 
-        {/* Error Alert */}
-        {error && (
-          <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {mode === 'register' && (
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Full Name
-              </label>
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate={false}>
+        {mode === 'register' && (
+          <Field label="Full Name">
+            {(id) => (
               <div className="relative">
-                <UserIcon className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                <UserIcon className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" aria-hidden="true" />
                 <input
+                  id={id}
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Alex Smith"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-3.5 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  required
+                  autoComplete="name"
+                  maxLength={100}
+                  className={`${inputClass} pl-10`}
                 />
               </div>
-            </div>
-          )}
+            )}
+          </Field>
+        )}
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Email Address
-            </label>
+        <Field label="Email Address">
+          {(id) => (
             <div className="relative">
-              <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+              <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" aria-hidden="true" />
               <input
+                id={id}
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-3.5 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                autoComplete="email"
+                className={`${inputClass} pl-10`}
                 required
               />
             </div>
-          </div>
+          )}
+        </Field>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Password
-            </label>
+        <Field label="Password" hint={mode === 'register' ? `At least ${MIN_PASSWORD} characters.` : undefined}>
+          {(id, describedBy) => (
             <div className="relative">
-              <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+              <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" aria-hidden="true" />
               <input
+                id={id}
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                minLength={6}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-3.5 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                minLength={mode === 'register' ? MIN_PASSWORD : 1}
+                autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                aria-describedby={describedBy}
+                className={`${inputClass} pl-10`}
                 required
               />
             </div>
-          </div>
+          )}
+        </Field>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full mt-2 py-3 rounded-xl bg-brand-500 hover:bg-brand-600 text-slate-950 font-bold text-sm shadow-lg shadow-brand-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center space-x-2 disabled:opacity-50"
-          >
-            <span>{loading ? 'Please wait...' : mode === 'login' ? 'Sign In' : 'Create Account'}</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </form>
+        <Button type="submit" size="lg" loading={loading} className="w-full mt-2 py-3" icon={<ArrowRight className="w-4 h-4" aria-hidden="true" />}>
+          {loading ? 'Please wait…' : mode === 'login' ? 'Sign In' : 'Create Account'}
+        </Button>
+      </form>
 
-        <p className="text-[11px] text-slate-500 text-center mt-5">
-          🔒 Production-ready encryption using bcrypt & JWT authentication.
-        </p>
-      </div>
-    </div>
+      <p className="text-[11px] text-slate-500 text-center mt-5">Passwords are hashed with bcrypt. Sessions use signed, expiring tokens.</p>
+    </Modal>
   )
 }
