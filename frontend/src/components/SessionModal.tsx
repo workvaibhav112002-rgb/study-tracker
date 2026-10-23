@@ -17,14 +17,7 @@ interface SessionModalProps {
 }
 
 /** Post-pomodoro log. Project is editable so a session is never lost. */
-export const SessionModal: React.FC<SessionModalProps> = ({
-  isOpen,
-  onClose,
-  onSave,
-  durationSeconds,
-  projects,
-  defaultProjectId,
-}) => {
+export const SessionModal: React.FC<SessionModalProps> = ({ isOpen, onClose, onSave, durationSeconds, projects, defaultProjectId }) => {
   const [projectId, setProjectId] = useState<number | ''>('')
   const [rating, setRating] = useState(5)
   const [notes, setNotes] = useState('')
@@ -58,33 +51,26 @@ export const SessionModal: React.FC<SessionModalProps> = ({
       isOpen={isOpen}
       onClose={saving ? undefined : onClose}
       dismissible={!saving}
-      title="Pomodoro Completed!"
-      description="Great focus block. Log your progress below."
-      icon={<Check className="w-5 h-5" />}
-      iconClassName="bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+      title="Session complete"
+      description="Nice work. Log how it went."
+      icon={<Check className="h-5 w-5" />}
+      iconClassName="bg-brand-500/10 text-brand-400 border-brand-500/20"
     >
-      <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3.5 mb-5 flex items-center justify-between">
-        <div className="flex items-center space-x-2.5 min-w-0">
-          <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: project?.color || '#3b82f6' }} aria-hidden="true" />
-          <span className="text-sm font-semibold text-slate-200 truncate">{project?.name || 'Select a project'}</span>
+      <div className="mb-5 flex items-center justify-between rounded-2xl border border-white/[0.06] bg-white/[0.03] p-3.5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: project?.color || '#3987e5', boxShadow: `0 0 10px ${project?.color || '#3987e5'}` }} aria-hidden="true" />
+          <span className="truncate text-sm font-medium text-ink-100">{project?.name || 'Select a project'}</span>
         </div>
-        <div className="flex items-center space-x-1 text-xs text-emerald-400 font-semibold bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20 shrink-0">
-          <Clock className="w-3.5 h-3.5" aria-hidden="true" />
-          <span>{formatDurationSeconds(durationSeconds)}</span>
-        </div>
+        <span className="chip shrink-0 border-brand-500/20 bg-brand-500/10 font-mono tabular-nums text-brand-300">
+          <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+          {formatDurationSeconds(durationSeconds)}
+        </span>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <Field label="Project">
           {(id) => (
-            <select
-              id={id}
-              value={projectId}
-              onChange={(e) => setProjectId(Number(e.target.value))}
-              className={inputClass}
-              required
-              disabled={projects.length === 0}
-            >
+            <select id={id} value={projectId} onChange={(e) => setProjectId(Number(e.target.value))} className={inputClass} required disabled={projects.length === 0}>
               {projects.length === 0 && <option value="">No projects yet</option>}
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -96,30 +82,22 @@ export const SessionModal: React.FC<SessionModalProps> = ({
         </Field>
 
         <div>
-          <span className="block text-xs font-semibold text-slate-300 mb-2">How focused were you? (1-5)</span>
+          <span className="mb-2 block text-xs font-medium text-ink-300">How focused were you?</span>
           <StarRating value={rating} onChange={setRating} />
         </div>
 
-        <Field label="Study Notes / What did you accomplish?">
+        <Field label="Notes">
           {(id) => (
-            <textarea
-              id={id}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g. Read chapters 3-4, wrote unit tests for the repository layer..."
-              rows={3}
-              maxLength={2000}
-              className={`${inputClass} resize-none`}
-            />
+            <textarea id={id} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="What did you get done?" rows={3} maxLength={2000} className={`${inputClass} resize-none`} />
           )}
         </Field>
 
-        <div className="flex items-center justify-end space-x-3 pt-2">
+        <div className="flex items-center justify-end gap-2 pt-1">
           <Button variant="ghost" onClick={onClose} disabled={saving}>
-            Skip Logging
+            Skip
           </Button>
           <Button type="submit" loading={saving} disabled={projectId === ''}>
-            Save Study Session
+            Save session
           </Button>
         </div>
       </form>

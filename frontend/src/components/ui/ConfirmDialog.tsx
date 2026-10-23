@@ -38,11 +38,11 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       onClose={busy ? undefined : onCancel}
       dismissible={!busy}
       title={title}
-      icon={<AlertTriangle className="w-5 h-5" />}
+      icon={<AlertTriangle className="h-5 w-5" />}
       iconClassName="bg-rose-500/10 text-rose-400 border-rose-500/20"
     >
-      <div className="text-sm text-slate-300 leading-relaxed">{message}</div>
-      <div className="flex items-center justify-end space-x-3 pt-5">
+      <div className="text-sm leading-relaxed text-ink-300">{message}</div>
+      <div className="mt-6 flex items-center justify-end gap-2">
         <Button variant="ghost" onClick={onCancel} disabled={busy}>
           Cancel
         </Button>

@@ -1,14 +1,16 @@
 import React, { useState } from 'react'
-import { Plus, Trash2, Edit3, FolderKanban, Target, Clock, Check } from 'lucide-react'
+import { Plus, Trash2, Pencil, FolderKanban, Target, Clock, Check } from 'lucide-react'
 import type { Project, ProjectInput } from '../types'
 import { Modal } from './ui/Modal'
 import { Button } from './ui/Button'
 import { Field, inputClass } from './ui/Field'
 import { ConfirmDialog } from './ui/ConfirmDialog'
+import { Skeleton } from './ui/Skeleton'
 import { formatMinutes } from '../lib/time'
 
 interface ProjectManagerProps {
   projects: Project[]
+  loading?: boolean
   onCreateProject: (project: ProjectInput) => Promise<void>
   onUpdateProject: (id: number, project: ProjectInput) => Promise<void>
   onDeleteProject: (id: number) => Promise<void>
@@ -16,10 +18,12 @@ interface ProjectManagerProps {
   openCreateSignal?: number
 }
 
-const PRESET_COLORS = ['#22c55e', '#00ADD8', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#ef4444', '#14b8a6']
+/** Colorblind-safe categorical set, validated for the dark surface. */
+const PRESET_COLORS = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9', '#e66767']
 
 export const ProjectManager: React.FC<ProjectManagerProps> = ({
   projects,
+  loading = false,
   onCreateProject,
   onUpdateProject,
   onDeleteProject,
@@ -60,12 +64,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const input: ProjectInput = {
-      name: name.trim(),
-      color,
-      description: description.trim(),
-      target_minutes_per_day: targetMinutes,
-    }
+    const input: ProjectInput = { name: name.trim(), color, description: description.trim(), target_minutes_per_day: targetMinutes }
     if (!input.name) return
     setSaving(true)
     try {
@@ -79,76 +78,89 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
     }
   }
 
+  const totalMinutes = projects.reduce((sum, p) => sum + (p.total_minutes ?? 0), 0)
+
   return (
-    <div className="max-w-5xl mx-auto py-8 px-4">
-      <div className="flex items-center justify-between mb-8 gap-4">
+    <div className="mx-auto max-w-5xl py-6 sm:py-10">
+      <div className="mb-8 flex items-end justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-            <FolderKanban className="w-6 h-6 text-brand-400" aria-hidden="true" />
-            Study Projects
-          </h2>
-          <p className="text-sm text-slate-400 mt-1">Organize topics, set daily targets, and track your cumulative study hours.</p>
+          <p className="eyebrow mb-2">Workspace</p>
+          <h2 className="text-2xl font-semibold tracking-tight text-ink-50 sm:text-3xl">Projects</h2>
+          <p className="mt-1.5 text-sm text-ink-400">
+            {projects.length} {projects.length === 1 ? 'project' : 'projects'} · {formatMinutes(totalMinutes)} logged in total
+          </p>
         </div>
-        <Button size="lg" onClick={openCreate} icon={<Plus className="w-4 h-4" aria-hidden="true" />} className="shrink-0">
-          <span className="hidden sm:inline">New Project</span>
+        <Button size="lg" onClick={openCreate} icon={<Plus className="h-4 w-4" aria-hidden="true" />} className="shrink-0">
+          <span className="hidden sm:inline">New project</span>
           <span className="sm:hidden">New</span>
         </Button>
       </div>
 
-      {projects.length === 0 ? (
-        <div className="text-center py-16 bg-slate-900/40 border border-slate-800/80 rounded-2xl">
-          <FolderKanban className="w-12 h-12 text-slate-600 mx-auto mb-3" aria-hidden="true" />
-          <h3 className="text-base font-semibold text-slate-300">No projects yet</h3>
-          <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">Create your first project to start logging focus sessions against it.</p>
+      {loading ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3" role="status" aria-label="Loading projects">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-44 rounded-3xl" />
+          ))}
+        </div>
+      ) : projects.length === 0 ? (
+        <div className="card flex flex-col items-center px-6 py-16 text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-brand-500/20 bg-brand-500/10 text-brand-400">
+            <FolderKanban className="h-6 w-6" aria-hidden="true" />
+          </div>
+          <h3 className="text-base font-semibold text-ink-50">No projects yet</h3>
+          <p className="mt-1.5 max-w-sm text-sm text-ink-400">Create your first project to start logging focus sessions against it.</p>
+          <Button className="mt-6" onClick={openCreate} icon={<Plus className="h-4 w-4" aria-hidden="true" />}>
+            Create a project
+          </Button>
         </div>
       ) : (
-        <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 list-none p-0 m-0">
+        <ul className="stagger m-0 grid list-none grid-cols-1 gap-4 p-0 md:grid-cols-2 lg:grid-cols-3">
           {projects.map((p) => (
-            <li
-              key={p.id}
-              className="bg-slate-900 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-5 transition-all shadow-sm flex flex-col justify-between"
-            >
-              <div>
+            <li key={p.id} className="card card-hover group relative flex flex-col justify-between overflow-hidden p-5">
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full opacity-[0.12] blur-2xl transition-opacity duration-300 group-hover:opacity-25"
+                style={{ background: p.color }}
+              />
+              <div className="relative">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center space-x-2.5 min-w-0">
-                    <div className="w-4 h-4 rounded-full shadow-sm shrink-0" style={{ backgroundColor: p.color }} aria-hidden="true" />
-                    <h3 className="font-bold text-base text-white truncate">{p.name}</h3>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.04]" aria-hidden="true">
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: p.color, boxShadow: `0 0 12px ${p.color}` }} />
+                    </span>
+                    <h3 className="truncate text-[15px] font-semibold text-ink-50">{p.name}</h3>
                   </div>
-                  <div className="flex items-center space-x-1 shrink-0">
+                  <div className="flex shrink-0 items-center gap-0.5 opacity-70 transition-opacity group-hover:opacity-100">
                     <button
                       type="button"
                       onClick={() => openEdit(p)}
                       aria-label={`Edit ${p.name}`}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                      className="focus-ring rounded-lg p-1.5 text-ink-500 transition-colors hover:bg-white/[0.06] hover:text-ink-50"
                     >
-                      <Edit3 className="w-4 h-4" />
+                      <Pencil className="h-4 w-4" />
                     </button>
                     <button
                       type="button"
                       onClick={() => setPendingDelete(p)}
                       aria-label={`Delete ${p.name}`}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                      className="focus-ring rounded-lg p-1.5 text-ink-500 transition-colors hover:bg-white/[0.06] hover:text-rose-400"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
-                <p className="text-xs text-slate-400 mt-2 line-clamp-2 min-h-[32px]">{p.description || 'No description provided.'}</p>
+                <p className="mt-3 line-clamp-2 min-h-[36px] text-[13px] leading-relaxed text-ink-400">{p.description || 'No description yet.'}</p>
               </div>
 
-              <div className="mt-5 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs">
-                <div className="flex items-center space-x-1 text-slate-400">
-                  <Target className="w-3.5 h-3.5 text-brand-400" aria-hidden="true" />
-                  <span>
-                    Goal: <strong className="text-slate-200">{p.target_minutes_per_day}m/day</strong>
-                  </span>
-                </div>
-                <div className="flex items-center space-x-1 text-slate-400">
-                  <Clock className="w-3.5 h-3.5 text-sky-400" aria-hidden="true" />
-                  <span>
-                    Logged: <strong className="text-white">{formatMinutes(p.total_minutes ?? 0)}</strong>
-                  </span>
-                </div>
+              <div className="relative mt-5 flex items-center justify-between border-t border-white/[0.06] pt-4 text-xs">
+                <span className="flex items-center gap-1.5 text-ink-400">
+                  <Target className="h-3.5 w-3.5 text-brand-400" aria-hidden="true" />
+                  <span className="font-semibold text-ink-100">{p.target_minutes_per_day}m</span> / day
+                </span>
+                <span className="flex items-center gap-1.5 text-ink-400">
+                  <Clock className="h-3.5 w-3.5 text-accent-sky" aria-hidden="true" />
+                  <span className="font-semibold text-ink-100">{formatMinutes(p.total_minutes ?? 0)}</span> logged
+                </span>
               </div>
             </li>
           ))}
@@ -159,27 +171,20 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
         isOpen={isModalOpen}
         onClose={saving ? undefined : () => setIsModalOpen(false)}
         dismissible={!saving}
-        title={editing ? 'Edit Project' : 'Create New Project'}
+        title={editing ? 'Edit project' : 'New project'}
+        description={editing ? 'Update the details below.' : 'Group your study time by subject or goal.'}
+        icon={<FolderKanban className="h-5 w-5" />}
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Field label="Project Name">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <Field label="Name">
             {(id) => (
-              <input
-                id={id}
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Distributed Systems in Go"
-                className={inputClass}
-                maxLength={100}
-                required
-              />
+              <input id={id} type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Distributed Systems in Go" className={inputClass} maxLength={100} required autoFocus />
             )}
           </Field>
 
           <div>
-            <span className="block text-xs font-semibold text-slate-300 mb-1.5">Badge Color</span>
-            <div role="radiogroup" aria-label="Badge color" className="flex items-center flex-wrap gap-2">
+            <span className="mb-2 block text-xs font-medium text-ink-300">Color</span>
+            <div role="radiogroup" aria-label="Badge color" className="flex flex-wrap items-center gap-2.5">
               {PRESET_COLORS.map((c) => (
                 <button
                   key={c}
@@ -188,52 +193,33 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                   aria-checked={color === c}
                   aria-label={`Color ${c}`}
                   onClick={() => setColor(c)}
-                  className={`w-7 h-7 rounded-full transition-transform flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white ${
-                    color === c ? 'scale-110 ring-2 ring-white ring-offset-2 ring-offset-slate-900' : 'hover:scale-105'
+                  className={`focus-ring flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200 ease-premium ${
+                    color === c ? 'scale-110 ring-2 ring-white ring-offset-2 ring-offset-surface-900' : 'hover:scale-110'
                   }`}
-                  style={{ backgroundColor: c }}
+                  style={{ backgroundColor: c, boxShadow: color === c ? `0 0 16px ${c}` : undefined }}
                 >
-                  {color === c && <Check className="w-3.5 h-3.5 text-slate-950" aria-hidden="true" />}
+                  {color === c && <Check className="h-4 w-4 text-white drop-shadow" aria-hidden="true" />}
                 </button>
               ))}
             </div>
           </div>
 
-          <Field label="Daily Goal (Minutes)">
+          <Field label="Daily goal (minutes)">
+            {(id) => <input id={id} type="number" min={1} max={1440} value={targetMinutes} onChange={(e) => setTargetMinutes(Number(e.target.value))} className={inputClass} required />}
+          </Field>
+
+          <Field label="Description">
             {(id) => (
-              <input
-                id={id}
-                type="number"
-                min={1}
-                max={1440}
-                value={targetMinutes}
-                onChange={(e) => setTargetMinutes(Number(e.target.value))}
-                className={inputClass}
-                required
-              />
+              <textarea id={id} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Topics, books or goals included in this project" rows={2} maxLength={500} className={`${inputClass} resize-none`} />
             )}
           </Field>
 
-          <Field label="Description / Topics">
-            {(id) => (
-              <textarea
-                id={id}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="What topics or books are included in this project?"
-                rows={2}
-                maxLength={500}
-                className={`${inputClass} resize-none`}
-              />
-            )}
-          </Field>
-
-          <div className="flex items-center justify-end space-x-3 pt-3">
+          <div className="flex items-center justify-end gap-2 pt-1">
             <Button variant="ghost" onClick={() => setIsModalOpen(false)} disabled={saving}>
               Cancel
             </Button>
             <Button type="submit" loading={saving}>
-              {editing ? 'Save Changes' : 'Create Project'}
+              {editing ? 'Save changes' : 'Create project'}
             </Button>
           </div>
         </form>

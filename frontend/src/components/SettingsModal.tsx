@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Settings as SettingsIcon, Volume2 } from 'lucide-react'
+import { SlidersHorizontal, Volume2 } from 'lucide-react'
 import { SETTINGS_LIMITS, type Settings } from '../types'
 import { audioService } from '../services/audio'
 import { Modal } from './ui/Modal'
@@ -14,6 +14,27 @@ interface SettingsModalProps {
 }
 
 type NumericKey = keyof typeof SETTINGS_LIMITS
+
+const labels: Record<NumericKey, string> = {
+  work_duration: 'Focus',
+  short_break_duration: 'Short break',
+  long_break_duration: 'Long break',
+  long_break_interval: 'Pomodoros before a long break',
+}
+
+const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void; label: string; hint?: string }> = ({ checked, onChange, label, hint }) => (
+  <label className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-3 transition-colors hover:bg-white/[0.05]">
+    <span>
+      <span className="block text-[13px] font-medium text-ink-100">{label}</span>
+      {hint && <span className="block text-[11px] text-ink-500">{hint}</span>}
+    </span>
+    <span className="relative inline-flex shrink-0 items-center">
+      <input type="checkbox" className="peer sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <span className="h-6 w-11 rounded-full bg-white/[0.08] transition-colors duration-200 peer-checked:bg-brand-500 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400/70 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-surface-900" />
+      <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ease-premium peer-checked:translate-x-5" />
+    </span>
+  </label>
+)
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave }) => {
   const [form, setForm] = useState<Settings>(settings)
@@ -34,9 +55,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     for (const key of Object.keys(SETTINGS_LIMITS) as NumericKey[]) {
       const { min, max } = SETTINGS_LIMITS[key]
       const v = form[key]
-      if (!Number.isInteger(v) || v < min || v > max) {
-        return `${labels[key]} must be between ${min} and ${max}.`
-      }
+      if (!Number.isInteger(v) || v < min || v > max) return `${labels[key]} must be between ${min} and ${max}.`
     }
     return null
   }
@@ -59,27 +78,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     }
   }
 
-  const labels: Record<NumericKey, string> = {
-    work_duration: 'Work (mins)',
-    short_break_duration: 'Short Break',
-    long_break_duration: 'Long Break',
-    long_break_interval: 'Long Break Interval (Pomodoro count)',
-  }
-
-  const numberField = (key: NumericKey, className?: string) => (
-    <Field label={labels[key]} className={className}>
+  const numberField = (key: NumericKey, suffix: string) => (
+    <Field label={labels[key]}>
       {(id) => (
-        <input
-          id={id}
-          type="number"
-          inputMode="numeric"
-          min={SETTINGS_LIMITS[key].min}
-          max={SETTINGS_LIMITS[key].max}
-          value={form[key] || ''}
-          onChange={(e) => setNumber(key, e.target.value)}
-          className={inputClass}
-          required
-        />
+        <div className="relative">
+          <input
+            id={id}
+            type="number"
+            inputMode="numeric"
+            min={SETTINGS_LIMITS[key].min}
+            max={SETTINGS_LIMITS[key].max}
+            value={form[key] || ''}
+            onChange={(e) => setNumber(key, e.target.value)}
+            className={`${inputClass} pr-12 font-mono tabular-nums`}
+            required
+          />
+          <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] font-medium text-ink-500">{suffix}</span>
+        </div>
       )}
     </Field>
   )
@@ -89,62 +104,43 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
       isOpen={isOpen}
       onClose={saving ? undefined : onClose}
       dismissible={!saving}
-      title="Timer Preferences"
-      description="Customize intervals, breaks, and notifications."
-      icon={<SettingsIcon className="w-5 h-5" />}
+      title="Preferences"
+      description="Intervals, breaks and sounds."
+      icon={<SlidersHorizontal className="h-5 w-5" />}
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div className="grid grid-cols-3 gap-3">
-          {numberField('work_duration')}
-          {numberField('short_break_duration')}
-          {numberField('long_break_duration')}
+          {numberField('work_duration', 'min')}
+          {numberField('short_break_duration', 'min')}
+          {numberField('long_break_duration', 'min')}
         </div>
-        {numberField('long_break_interval')}
+        {numberField('long_break_interval', 'cycles')}
 
-        <div className="pt-2 space-y-3">
-          <label className="flex items-center space-x-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={form.auto_start_breaks}
-              onChange={(e) => setForm({ ...form, auto_start_breaks: e.target.checked })}
-              className="w-4 h-4 rounded text-brand-500 bg-slate-950 border-slate-800 focus:ring-brand-500"
-            />
-            <span className="text-xs font-medium text-slate-300">Auto-start breaks & pomodoros</span>
-          </label>
-
-          <div className="flex items-center justify-between">
-            <label className="flex items-center space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.sound_enabled}
-                onChange={(e) => setForm({ ...form, sound_enabled: e.target.checked })}
-                className="w-4 h-4 rounded text-brand-500 bg-slate-950 border-slate-800 focus:ring-brand-500"
-              />
-              <span className="text-xs font-medium text-slate-300">Audio sound chimes</span>
-            </label>
-            <button
-              type="button"
-              onClick={() => audioService.playWorkCompleteChime()}
-              className="text-[11px] font-semibold text-brand-400 hover:text-brand-300 flex items-center space-x-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
-            >
-              <Volume2 className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>Test Chime</span>
-            </button>
-          </div>
+        <div className="space-y-2.5">
+          <Toggle checked={form.auto_start_breaks} onChange={(v) => setForm({ ...form, auto_start_breaks: v })} label="Auto-start next interval" hint="Breaks and focus sessions begin on their own." />
+          <Toggle checked={form.sound_enabled} onChange={(v) => setForm({ ...form, sound_enabled: v })} label="Sound" hint="Chimes on completion and soft ticks on controls." />
+          <button
+            type="button"
+            onClick={() => audioService.playWorkCompleteChime()}
+            className="focus-ring flex items-center gap-1.5 rounded-md text-[12px] font-medium text-brand-400 hover:text-brand-300"
+          >
+            <Volume2 className="h-3.5 w-3.5" aria-hidden="true" />
+            Preview chime
+          </button>
         </div>
 
         {error && (
-          <p role="alert" className="text-xs text-rose-400 font-medium">
+          <p role="alert" className="text-xs font-medium text-rose-400">
             {error}
           </p>
         )}
 
-        <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-800">
+        <div className="flex items-center justify-end gap-2 border-t border-white/[0.06] pt-5">
           <Button variant="ghost" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
           <Button type="submit" loading={saving}>
-            Save Preferences
+            Save preferences
           </Button>
         </div>
       </form>

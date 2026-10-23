@@ -1,5 +1,5 @@
 import React from 'react'
-import { Timer, BarChart3, FolderKanban, History, Settings as SettingsIcon, Flame, Clock, LogOut } from 'lucide-react'
+import { Timer, BarChart3, FolderKanban, History, Settings as SettingsIcon, Flame, LogOut } from 'lucide-react'
 import type { DashboardStats, User } from '../types'
 import { formatMinutes } from '../lib/time'
 
@@ -17,11 +17,20 @@ interface NavbarProps {
 }
 
 const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
-  { id: 'timer', label: 'Pomodoro', icon: Timer },
+  { id: 'timer', label: 'Focus', icon: Timer },
   { id: 'projects', label: 'Projects', icon: FolderKanban },
   { id: 'history', label: 'History', icon: History },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
 ]
+
+const Logo: React.FC = () => (
+  <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-300 via-brand-500 to-brand-700 shadow-glow" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-[18px] w-[18px] text-surface-950" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  </div>
+)
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
@@ -33,28 +42,27 @@ export const Navbar: React.FC<NavbarProps> = ({
   timerRunning,
   timerLabel,
 }) => (
-  <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40">
-    <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
-      <div className="flex items-center space-x-3 min-w-0">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0">
-          <Clock className="w-5 h-5 text-slate-950" aria-hidden="true" />
-        </div>
-        <span className="text-lg font-bold tracking-tight text-white hidden sm:flex items-center gap-1.5">
-          Study<span className="text-brand-500">Tracker</span>
+  <header className="sticky top-0 z-40 px-3 pt-3 sm:px-6">
+    <div className="glass mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 rounded-2xl px-2.5 shadow-card sm:px-3">
+      <div className="flex min-w-0 items-center gap-3 pl-1">
+        <Logo />
+        <span className="hidden items-center gap-1 text-[15px] font-semibold tracking-tight text-ink-50 md:flex">
+          Study<span className="text-brand-400">Tracker</span>
         </span>
         {timerRunning && activeTab !== 'timer' && (
           <button
             type="button"
             onClick={() => setActiveTab('timer')}
-            className="ml-1 text-xs font-mono font-semibold px-2 py-1 rounded-lg bg-brand-500/10 text-brand-400 border border-brand-500/20 hover:bg-brand-500/20"
+            className="focus-ring chip border-brand-500/25 bg-brand-500/10 font-mono tabular-nums text-brand-300 hover:bg-brand-500/20"
             aria-label={`Timer running, ${timerLabel} remaining. Go to timer.`}
           >
+            <span className="h-1.5 w-1.5 animate-breathe rounded-full bg-brand-400" aria-hidden="true" />
             {timerLabel}
           </button>
         )}
       </div>
 
-      <nav aria-label="Primary" className="flex items-center space-x-1 sm:space-x-2 bg-slate-950/60 p-1 rounded-xl border border-slate-800">
+      <nav aria-label="Primary" className="flex items-center gap-0.5 rounded-xl border border-white/[0.06] bg-surface-950/60 p-1">
         {tabs.map((tab) => {
           const Icon = tab.icon
           const isActive = activeTab === tab.id
@@ -66,52 +74,53 @@ export const Navbar: React.FC<NavbarProps> = ({
               aria-current={isActive ? 'page' : undefined}
               aria-label={tab.label}
               title={tab.label}
-              className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
-                isActive
-                  ? 'bg-slate-800 text-brand-400 shadow-sm border border-slate-700/60'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+              className={`focus-ring flex items-center gap-2 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all duration-200 ease-premium ${
+                isActive ? 'bg-white/[0.08] text-ink-50 shadow-inner-hi' : 'text-ink-400 hover:bg-white/[0.04] hover:text-ink-100'
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-brand-400' : 'text-slate-400'}`} aria-hidden="true" />
+              <Icon className={`h-4 w-4 ${isActive ? 'text-brand-400' : ''}`} aria-hidden="true" />
               <span className="hidden sm:inline">{tab.label}</span>
             </button>
           )
         })}
       </nav>
 
-      <div className="flex items-center space-x-2 sm:space-x-3">
+      <div className="flex items-center gap-1.5 sm:gap-2">
         {stats && user && (
-          <div className="hidden lg:flex items-center space-x-2 text-xs">
-            <div className="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-orange-500/10 text-orange-400 border border-orange-500/20 font-medium">
-              <Flame className="w-3.5 h-3.5 fill-orange-400 text-orange-400" aria-hidden="true" />
-              <span>{stats.current_streak_days}d streak</span>
+          <div className="hidden items-center gap-1.5 lg:flex">
+            <div className="chip border-orange-400/20 bg-orange-400/10 text-orange-300" title="Current streak">
+              <Flame className="h-3.5 w-3.5 fill-orange-400 text-orange-400" aria-hidden="true" />
+              {stats.current_streak_days}d
             </div>
-            <div className="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 font-medium">
-              <span className="text-slate-500">Today:</span>
-              <span className="text-brand-400">{formatMinutes(stats.today_minutes)}</span>
+            <div className="chip border-white/[0.06] bg-white/[0.04] text-ink-300" title="Studied today">
+              <span className="text-ink-500">Today</span>
+              <span className="text-ink-50">{formatMinutes(stats.today_minutes)}</span>
             </div>
           </div>
         )}
 
         {user && (
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-1">
             <div
-              className="flex items-center space-x-2 bg-slate-800/80 border border-slate-700/60 px-2.5 py-1 rounded-xl text-xs"
+              className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.04] py-1 pl-1 pr-2.5 text-xs"
               title={user.email}
             >
-              <div className="w-5 h-5 rounded-full bg-brand-500 text-slate-950 font-bold flex items-center justify-center text-[10px]" aria-hidden="true">
+              <div
+                className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 text-[11px] font-bold text-surface-950"
+                aria-hidden="true"
+              >
                 {user.name.charAt(0).toUpperCase()}
               </div>
-              <span className="hidden sm:inline text-slate-200 font-medium max-w-[100px] truncate">{user.name}</span>
+              <span className="hidden max-w-[110px] truncate font-medium text-ink-200 sm:inline">{user.name}</span>
             </div>
             <button
               type="button"
               onClick={onLogout}
               title="Log out"
               aria-label="Log out"
-              className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              className="focus-ring rounded-xl p-2 text-ink-500 transition-colors hover:bg-white/[0.06] hover:text-rose-400"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="h-4 w-4" />
             </button>
           </div>
         )}
@@ -121,9 +130,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={onOpenSettings}
           title="Timer settings"
           aria-label="Timer settings"
-          className="p-2 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors border border-transparent hover:border-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          className="focus-ring rounded-xl p-2 text-ink-400 transition-colors hover:bg-white/[0.06] hover:text-ink-50"
         >
-          <SettingsIcon className="w-5 h-5" />
+          <SettingsIcon className="h-[18px] w-[18px]" />
         </button>
       </div>
     </div>

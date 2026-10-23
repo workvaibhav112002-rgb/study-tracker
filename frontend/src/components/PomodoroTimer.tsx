@@ -1,5 +1,5 @@
-import React from 'react'
-import { Play, Pause, RotateCcw, SkipForward, Plus, Minus, CheckCircle2, Coffee, Sparkles, FolderPlus } from 'lucide-react'
+import React, { useId } from 'react'
+import { Play, Pause, RotateCcw, SkipForward, Plus, Minus, Coffee, Sparkles, Moon, FolderPlus, ChevronDown, Target } from 'lucide-react'
 import type { Project, Settings, TimerMode } from '../types'
 import type { useTimer } from '../hooks/useTimer'
 import { longBreakInterval } from '../lib/timer'
@@ -14,17 +14,53 @@ interface PomodoroTimerProps {
   onCreateProject: () => void
 }
 
-const MODES: { id: TimerMode; label: string; icon: React.ElementType; active: string }[] = [
-  { id: 'work', label: 'Pomodoro', icon: Sparkles, active: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-sm' },
-  { id: 'short_break', label: 'Short Break', icon: Coffee, active: 'bg-sky-500/15 text-sky-400 border border-sky-500/30 shadow-sm' },
-  { id: 'long_break', label: 'Long Break', icon: CheckCircle2, active: 'bg-purple-500/15 text-purple-400 border border-purple-500/30 shadow-sm' },
-]
-
-const MODE_STYLES: Record<TimerMode, { ring: string; button: string }> = {
-  work: { ring: 'stroke-brand-500', button: 'bg-brand-500 hover:bg-brand-600 text-slate-950' },
-  short_break: { ring: 'stroke-sky-400', button: 'bg-sky-400 hover:bg-sky-500 text-slate-950' },
-  long_break: { ring: 'stroke-purple-400', button: 'bg-purple-400 hover:bg-purple-500 text-slate-950' },
+interface ModeStyle {
+  label: string
+  eyebrow: string
+  icon: React.ElementType
+  from: string
+  to: string
+  glow: string
+  chip: string
+  cta: string
 }
+
+const MODES: Record<TimerMode, ModeStyle> = {
+  work: {
+    label: 'Focus',
+    eyebrow: 'Focus session',
+    icon: Sparkles,
+    from: '#6ee7b7',
+    to: '#059669',
+    glow: 'rgb(16 185 129 / 0.45)',
+    chip: 'border-brand-500/30 bg-brand-500/15 text-brand-300',
+    cta: 'from-brand-400 to-brand-600 text-surface-950 shadow-glow hover:from-brand-300 hover:to-brand-500',
+  },
+  short_break: {
+    label: 'Short break',
+    eyebrow: 'Short break',
+    icon: Coffee,
+    from: '#7dd3fc',
+    to: '#0284c7',
+    glow: 'rgb(56 189 248 / 0.4)',
+    chip: 'border-sky-400/30 bg-sky-400/15 text-sky-300',
+    cta: 'from-sky-300 to-sky-500 text-surface-950 shadow-[0_12px_40px_-12px_rgb(56_189_248/0.55)] hover:from-sky-200 hover:to-sky-400',
+  },
+  long_break: {
+    label: 'Long break',
+    eyebrow: 'Long break',
+    icon: Moon,
+    from: '#c4b5fd',
+    to: '#7c3aed',
+    glow: 'rgb(139 124 246 / 0.4)',
+    chip: 'border-violet-400/30 bg-violet-400/15 text-violet-300',
+    cta: 'from-violet-300 to-violet-500 text-surface-950 shadow-[0_12px_40px_-12px_rgb(139_124_246/0.55)] hover:from-violet-200 hover:to-violet-400',
+  },
+}
+
+const RADIUS = 150
+const STROKE = 10
+const SIZE = (RADIUS + STROKE) * 2
 
 export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
   timer,
@@ -34,12 +70,11 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
   settings,
   onCreateProject,
 }) => {
+  const gradId = useId()
   const { state, formatted, progress } = timer
   const isRunning = state.status === 'running'
-  const styles = MODE_STYLES[state.mode]
-
-  const radius = 130
-  const circumference = 2 * Math.PI * radius
+  const mode = MODES[state.mode]
+  const circumference = 2 * Math.PI * RADIUS
   const dashOffset = circumference - (progress / 100) * circumference
 
   const interval = longBreakInterval(settings)
@@ -52,80 +87,73 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
   }
 
   return (
-    <div className="flex flex-col items-center justify-center py-6 px-4 max-w-xl mx-auto">
-      <div role="group" aria-label="Timer mode" className="flex items-center space-x-1 sm:space-x-2 p-1.5 rounded-2xl bg-slate-900 border border-slate-800 mb-8 shadow-inner">
-        {MODES.map((m) => {
+    <section className="mx-auto flex max-w-2xl flex-col items-center px-2 pb-8 pt-4 sm:pt-8" aria-label="Pomodoro timer">
+      {/* Mode switcher */}
+      <div role="group" aria-label="Timer mode" className="glass flex items-center gap-1 rounded-full p-1 shadow-card">
+        {(Object.keys(MODES) as TimerMode[]).map((id) => {
+          const m = MODES[id]
           const Icon = m.icon
-          const active = state.mode === m.id
+          const active = state.mode === id
           return (
             <button
-              key={m.id}
+              key={id}
               type="button"
-              onClick={() => timer.switchMode(m.id)}
+              onClick={() => timer.switchMode(id)}
               aria-pressed={active}
-              className={`px-3 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center space-x-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
-                active ? m.active : 'text-slate-400 hover:text-slate-200'
+              className={`focus-ring flex items-center gap-2 rounded-full px-3.5 py-2 text-[13px] font-medium transition-all duration-200 ease-premium sm:px-4 ${
+                active ? `border ${m.chip} shadow-inner-hi` : 'border border-transparent text-ink-400 hover:text-ink-100'
               }`}
             >
-              <Icon className="w-4 h-4" aria-hidden="true" />
-              <span>{m.label}</span>
+              <Icon className="h-4 w-4" aria-hidden="true" />
+              <span className={active ? '' : 'hidden sm:inline'}>{m.label}</span>
             </button>
           )
         })}
       </div>
 
-      <div className="relative flex items-center justify-center my-2">
-        <svg className="w-80 h-80 sm:w-96 sm:h-96 transform -rotate-90" aria-hidden="true">
-          <circle cx="50%" cy="50%" r={radius} className="stroke-slate-900" strokeWidth="12" fill="transparent" />
+      {/* Ring */}
+      <div className="relative mt-8 flex items-center justify-center sm:mt-10">
+        <div
+          aria-hidden="true"
+          className={`absolute inset-6 rounded-full blur-3xl transition-opacity duration-700 ${isRunning ? 'animate-breathe opacity-100' : 'opacity-40'}`}
+          style={{ background: mode.glow }}
+        />
+        <svg
+          width={SIZE}
+          height={SIZE}
+          viewBox={`0 0 ${SIZE} ${SIZE}`}
+          className="relative h-[300px] w-[300px] -rotate-90 sm:h-[340px] sm:w-[340px]"
+          aria-hidden="true"
+        >
+          <defs>
+            <linearGradient id={gradId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={SIZE} y2={SIZE}>
+              <stop offset="0%" stopColor={mode.from} />
+              <stop offset="100%" stopColor={mode.to} />
+            </linearGradient>
+          </defs>
+          <circle cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} className="stroke-white/[0.06]" strokeWidth={STROKE} fill="transparent" />
           <circle
-            cx="50%"
-            cy="50%"
-            r={radius}
-            className={`${styles.ring} transition-all duration-300 ease-out`}
-            strokeWidth="12"
+            cx={SIZE / 2}
+            cy={SIZE / 2}
+            r={RADIUS}
+            stroke={`url(#${gradId})`}
+            strokeWidth={STROKE}
             strokeDasharray={circumference}
             strokeDashoffset={dashOffset}
             strokeLinecap="round"
             fill="transparent"
+            style={{ transition: 'stroke-dashoffset 250ms linear', filter: `drop-shadow(0 0 12px ${mode.glow})` }}
           />
         </svg>
 
-        <div className="absolute flex flex-col items-center justify-center text-center">
-          {state.mode === 'work' && (
-            <div className="mb-2">
-              {projects.length > 0 ? (
-                <>
-                  <label htmlFor="timer-project" className="sr-only">
-                    Project for this session
-                  </label>
-                  <select
-                    id="timer-project"
-                    value={selectedProjectId ?? ''}
-                    onChange={(e) => setSelectedProjectId(Number(e.target.value))}
-                    className="bg-slate-900/90 hover:bg-slate-800 text-xs font-semibold px-3 py-1.5 rounded-full border border-slate-700/80 text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all cursor-pointer shadow-sm max-w-[220px]"
-                  >
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        ● {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={onCreateProject}
-                  className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
-                >
-                  <FolderPlus className="w-3.5 h-3.5" aria-hidden="true" />
-                  Create a project to log sessions
-                </button>
-              )}
-            </div>
-          )}
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+          <span className={`chip mb-3 ${mode.chip}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${isRunning ? 'animate-breathe bg-current' : 'bg-current opacity-50'}`} aria-hidden="true" />
+            {isRunning ? 'Running' : state.status === 'paused' ? 'Paused' : mode.eyebrow}
+          </span>
 
           <span
-            className="text-6xl sm:text-7xl font-extrabold tracking-tighter text-white font-mono drop-shadow-md tabular-nums"
+            className="font-mono text-[64px] font-semibold leading-none tracking-tight text-ink-50 tabular-nums sm:text-[76px]"
             role="timer"
             aria-live={isRunning ? 'off' : 'polite'}
             aria-label={`${formatted} remaining`}
@@ -133,64 +161,94 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
             {formatted}
           </span>
 
-          <div className="mt-3 flex items-center space-x-1.5 text-xs text-slate-400 font-medium">
-            <span>Cycle #{state.cycle}</span>
-            <span className="text-slate-600" aria-hidden="true">
-              •
-            </span>
-            <span>
-              Interval {((state.cycle - 1) % interval) + 1} of {interval}
-            </span>
-          </div>
+          <p className="mt-3 text-xs font-medium text-ink-500">
+            Cycle {state.cycle} <span className="mx-1.5 text-ink-700">·</span> {((state.cycle - 1) % interval) + 1} of {interval} before a long break
+          </p>
 
-          <div className="flex items-center space-x-2 mt-4">
-            <button
-              type="button"
-              onClick={withTick(() => timer.adjust(-300))}
-              aria-label="Subtract 5 minutes"
-              className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800 transition-all text-xs flex items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-            >
-              <Minus className="w-3.5 h-3.5 mr-0.5" aria-hidden="true" /> 5m
-            </button>
-            <button
-              type="button"
-              onClick={withTick(() => timer.adjust(300))}
-              aria-label="Add 5 minutes"
-              className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800 transition-all text-xs flex items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-            >
-              <Plus className="w-3.5 h-3.5 mr-0.5" aria-hidden="true" /> 5m
-            </button>
-          </div>
+          {state.mode === 'work' && (
+            <div className="mt-4">
+              {projects.length > 0 ? (
+                <div className="relative">
+                  <label htmlFor="timer-project" className="sr-only">
+                    Project for this session
+                  </label>
+                  <select
+                    id="timer-project"
+                    value={selectedProjectId ?? ''}
+                    onChange={(e) => setSelectedProjectId(Number(e.target.value))}
+                    className="focus-ring glass max-w-[220px] cursor-pointer appearance-none rounded-full py-1.5 pl-3.5 pr-8 text-xs font-medium text-ink-100 transition hover:border-white/20"
+                  >
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-500" aria-hidden="true" />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onCreateProject}
+                  className="focus-ring chip border-accent-amber/30 bg-accent-amber/10 text-amber-200 hover:bg-accent-amber/20"
+                >
+                  <FolderPlus className="h-3.5 w-3.5" aria-hidden="true" />
+                  Create a project to log sessions
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="flex items-center space-x-4 mt-8">
+      {/* Quick adjust */}
+      <div className="mt-6 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={withTick(() => timer.adjust(-300))}
+          aria-label="Subtract 5 minutes"
+          className="focus-ring chip border-white/[0.06] bg-white/[0.04] text-ink-400 transition hover:bg-white/[0.08] hover:text-ink-100"
+        >
+          <Minus className="h-3.5 w-3.5" aria-hidden="true" /> 5 min
+        </button>
+        <button
+          type="button"
+          onClick={withTick(() => timer.adjust(300))}
+          aria-label="Add 5 minutes"
+          className="focus-ring chip border-white/[0.06] bg-white/[0.04] text-ink-400 transition hover:bg-white/[0.08] hover:text-ink-100"
+        >
+          <Plus className="h-3.5 w-3.5" aria-hidden="true" /> 5 min
+        </button>
+      </div>
+
+      {/* Controls */}
+      <div className="mt-6 flex items-center gap-3 sm:gap-4">
         <button
           type="button"
           onClick={withTick(timer.reset)}
           aria-label="Reset timer"
-          title="Reset timer"
-          className="p-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-100 border border-slate-800 transition-all hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          title="Reset (R)"
+          className="focus-ring glass flex h-12 w-12 items-center justify-center rounded-full text-ink-400 transition-all duration-200 ease-premium hover:text-ink-50 hover:scale-105 active:scale-95"
         >
-          <RotateCcw className="w-5 h-5" />
+          <RotateCcw className="h-5 w-5" />
         </button>
 
         <button
           type="button"
           onClick={withTick(timer.toggle)}
           disabled={needsProject}
-          title={needsProject ? 'Create a project first' : undefined}
-          className={`flex items-center space-x-2 px-8 py-4 rounded-2xl font-bold text-lg shadow-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-white ${styles.button}`}
+          title={needsProject ? 'Create a project first' : 'Start / pause (Space)'}
+          className={`focus-ring flex h-14 min-w-[172px] items-center justify-center gap-2.5 rounded-full bg-gradient-to-b px-9 text-[15px] font-semibold tracking-wide transition-all duration-200 ease-premium hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0 ${mode.cta}`}
         >
           {isRunning ? (
             <>
-              <Pause className="w-6 h-6 fill-current" aria-hidden="true" />
-              <span>PAUSE</span>
+              <Pause className="h-5 w-5 fill-current" aria-hidden="true" />
+              Pause
             </>
           ) : (
             <>
-              <Play className="w-6 h-6 fill-current" aria-hidden="true" />
-              <span>{state.status === 'paused' ? 'RESUME' : 'START'}</span>
+              <Play className="h-5 w-5 fill-current" aria-hidden="true" />
+              {state.status === 'paused' ? 'Resume' : 'Start'}
             </>
           )}
         </button>
@@ -200,29 +258,40 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
           onClick={withTick(timer.skip)}
           aria-label="Skip to next interval"
           title="Skip to next interval"
-          className="p-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-100 border border-slate-800 transition-all hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          className="focus-ring glass flex h-12 w-12 items-center justify-center rounded-full text-ink-400 transition-all duration-200 ease-premium hover:text-ink-50 hover:scale-105 active:scale-95"
         >
-          <SkipForward className="w-5 h-5" />
+          <SkipForward className="h-5 w-5" />
         </button>
       </div>
 
+      <p className="mt-5 hidden items-center gap-3 text-[11px] text-ink-600 sm:flex" aria-hidden="true">
+        <span>
+          <kbd className="rounded-md border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-ink-400">Space</kbd> start / pause
+        </span>
+        <span>
+          <kbd className="rounded-md border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-ink-400">R</kbd> reset
+        </span>
+      </p>
+
+      {/* Active project */}
       {activeProject && state.mode === 'work' && (
-        <div className="mt-8 w-full bg-slate-900/50 border border-slate-800/80 rounded-2xl p-4 flex items-center justify-between">
-          <div className="flex items-center space-x-3 min-w-0">
-            <div className="w-3.5 h-3.5 rounded-full shadow-sm shrink-0" style={{ backgroundColor: activeProject.color }} aria-hidden="true" />
+        <div className="card card-hover mt-8 flex w-full items-center justify-between gap-4 p-4 sm:p-5">
+          <div className="flex min-w-0 items-center gap-3.5">
+            <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.04]" aria-hidden="true">
+              <span className="h-3 w-3 rounded-full" style={{ backgroundColor: activeProject.color, boxShadow: `0 0 16px ${activeProject.color}` }} />
+            </span>
             <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-white truncate">{activeProject.name}</h3>
-              <p className="text-xs text-slate-400 truncate max-w-[280px]">
-                {activeProject.description || `Target: ${activeProject.target_minutes_per_day} min/day`}
-              </p>
+              <p className="eyebrow">Studying</p>
+              <h3 className="truncate text-[15px] font-semibold text-ink-50">{activeProject.name}</h3>
+              {activeProject.description && <p className="truncate text-xs text-ink-500">{activeProject.description}</p>}
             </div>
           </div>
-          <div className="text-right shrink-0">
-            <span className="text-xs text-slate-500 block">Daily Goal</span>
-            <span className="text-xs font-semibold text-emerald-400">{activeProject.target_minutes_per_day}m</span>
+          <div className="chip shrink-0 border-white/[0.06] bg-white/[0.04] text-ink-300">
+            <Target className="h-3.5 w-3.5 text-brand-400" aria-hidden="true" />
+            {activeProject.target_minutes_per_day}m / day
           </div>
         </div>
       )}
-    </div>
+    </section>
   )
 }

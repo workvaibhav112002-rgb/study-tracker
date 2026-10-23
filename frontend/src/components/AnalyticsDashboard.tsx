@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
-import { BarChart3, Flame, Clock, Sparkles, Download, Calendar, Award, Loader2, RefreshCw } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid } from 'recharts'
+import { Flame, Clock, Sparkles, Download, Calendar, Award, RefreshCw } from 'lucide-react'
 import type { DashboardStats } from '../types'
 import { api, errorMessage } from '../api/client'
 import { useToast } from './ui/Toast'
@@ -15,18 +15,32 @@ interface AnalyticsDashboardProps {
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const SURFACE = '#0b0d13'
+const GRID = 'rgba(255,255,255,0.06)'
+const AXIS = '#6b7388'
 
 interface BarDatum {
   date: string
   rawDate: string
   hours: number
   minutes: number
+  isToday: boolean
 }
 interface PieDatum {
   name: string
   value: number
   color: string
 }
+
+const TooltipCard: React.FC<{ title: string; value: string; swatch?: string }> = ({ title, value, swatch }) => (
+  <div className="glass rounded-xl px-3 py-2 text-xs shadow-modal">
+    <div className="flex items-center gap-1.5 font-medium text-ink-50">
+      {swatch && <span className="h-2 w-2 rounded-full" style={{ backgroundColor: swatch }} aria-hidden="true" />}
+      {title}
+    </div>
+    <div className="mt-0.5 font-mono tabular-nums text-ink-300">{value}</div>
+  </div>
+)
 
 export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, loading, error, onRetry }) => {
   const toast = useToast()
@@ -46,148 +60,158 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, l
 
   if (!stats) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-slate-500 text-sm gap-3">
-        {error ? (
-          <>
-            <p className="text-rose-400">{error}</p>
-            <Button variant="secondary" size="sm" onClick={onRetry} icon={<RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />}>
-              Try again
-            </Button>
-          </>
-        ) : (
-          <>
-            <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
-            Loading analytics…
-          </>
-        )}
+      <div className="card mx-auto mt-10 flex max-w-md flex-col items-center px-6 py-12 text-center">
+        <p className="text-sm text-rose-300">{error ?? 'Analytics are unavailable right now.'}</p>
+        <Button variant="secondary" size="sm" className="mt-5" onClick={onRetry} icon={<RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />}>
+          Try again
+        </Button>
       </div>
     )
   }
 
-  const pieData: PieDatum[] = stats.project_stats.map((ps) => ({
-    name: ps.name,
-    value: Math.round(ps.total_seconds / 60),
-    color: ps.color || '#3b82f6',
-  }))
-
+  const pieData: PieDatum[] = stats.project_stats.map((ps) => ({ name: ps.name, value: Math.round(ps.total_seconds / 60), color: ps.color || '#3987e5' }))
+  const last = stats.daily_trend[stats.daily_trend.length - 1]?.date
   const barData: BarDatum[] = stats.daily_trend.map((dt) => {
     const [, m, d] = dt.date.split('-')
     return {
       date: `${MONTHS[parseInt(m, 10) - 1]} ${parseInt(d, 10)}`,
       rawDate: dt.date,
-      hours: Number((dt.minutes / 60).toFixed(1)),
+      hours: Number((dt.minutes / 60).toFixed(2)),
       minutes: dt.minutes,
+      isToday: dt.date === last,
     }
   })
+  const peak = Math.max(0, ...barData.map((b) => b.minutes))
 
   const cards = [
-    { label: "Today's Study", value: formatMinutes(stats.today_minutes), hint: 'Resets at your local midnight', icon: <Clock className="w-4 h-4 text-emerald-400" aria-hidden="true" /> },
-    { label: 'Daily Streak', value: <>{stats.current_streak_days} <span className="text-sm font-normal text-slate-400">days</span></>, hint: 'Consecutive study days', icon: <Flame className="w-4 h-4 text-orange-400 fill-orange-400" aria-hidden="true" />, accent: 'text-orange-400' },
-    { label: 'Past 7 Days', value: formatMinutes(stats.weekly_minutes), hint: 'Rolling week', icon: <Calendar className="w-4 h-4 text-sky-400" aria-hidden="true" /> },
-    { label: 'Completed Pomodoros', value: stats.completed_pomodoros, hint: 'Total focus cycles logged', icon: <Sparkles className="w-4 h-4 text-yellow-400" aria-hidden="true" /> },
+    { label: 'Today', value: formatMinutes(stats.today_minutes), hint: 'Resets at your local midnight', icon: <Clock className="h-4 w-4" aria-hidden="true" />, tone: 'text-brand-400 bg-brand-500/10 border-brand-500/20' },
+    { label: 'Streak', value: `${stats.current_streak_days}d`, hint: 'Consecutive study days', icon: <Flame className="h-4 w-4 fill-current" aria-hidden="true" />, tone: 'text-orange-400 bg-orange-400/10 border-orange-400/20' },
+    { label: 'Last 7 days', value: formatMinutes(stats.weekly_minutes), hint: 'Rolling week', icon: <Calendar className="h-4 w-4" aria-hidden="true" />, tone: 'text-accent-sky bg-accent-sky/10 border-accent-sky/20' },
+    { label: 'Pomodoros', value: String(stats.completed_pomodoros), hint: 'Completed focus cycles', icon: <Sparkles className="h-4 w-4" aria-hidden="true" />, tone: 'text-accent-amber bg-accent-amber/10 border-accent-amber/20' },
   ]
 
   return (
-    <div className={`max-w-5xl mx-auto py-8 px-4 transition-opacity ${loading ? 'opacity-70' : ''}`} aria-busy={loading}>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+    <div className={`mx-auto max-w-5xl py-6 transition-opacity duration-300 sm:py-10 ${loading ? 'opacity-70' : ''}`} aria-busy={loading}>
+      <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-            <BarChart3 className="w-6 h-6 text-brand-400" aria-hidden="true" />
-            Study Analytics & Insights
-          </h2>
-          <p className="text-sm text-slate-400 mt-1">Visual breakdown of your productivity, consistency streak, and study balance.</p>
+          <p className="eyebrow mb-2">Insights</p>
+          <h2 className="text-2xl font-semibold tracking-tight text-ink-50 sm:text-3xl">Analytics</h2>
+          <p className="mt-1.5 text-sm text-ink-400">{formatMinutes(stats.total_minutes)} studied in total, across every project.</p>
         </div>
-        <Button variant="secondary" size="sm" onClick={handleExport} loading={exporting} icon={<Download className="w-4 h-4 text-brand-400" aria-hidden="true" />}>
-          {exporting ? 'Exporting…' : 'Export JSON Backup'}
+        <Button variant="secondary" size="lg" onClick={handleExport} loading={exporting} icon={<Download className="h-4 w-4 text-brand-400" aria-hidden="true" />}>
+          {exporting ? 'Exporting…' : 'Export backup'}
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="stagger mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {cards.map((c) => (
-          <div key={c.label} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm">
-            <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-semibold">{c.label}</span>
-              {c.icon}
+          <div key={c.label} className="card card-hover p-5">
+            <div className="flex items-center justify-between">
+              <span className="eyebrow">{c.label}</span>
+              <span className={`flex h-8 w-8 items-center justify-center rounded-lg border ${c.tone}`}>{c.icon}</span>
             </div>
-            <div className={`text-2xl font-extrabold ${c.accent ?? 'text-white'}`}>{c.value}</div>
-            <span className="text-[11px] text-slate-500 mt-1 block">{c.hint}</span>
+            <div className="mt-4 text-3xl font-semibold tracking-tight text-ink-50 tabular-nums">{c.value}</div>
+            <span className="mt-1 block text-[11px] text-ink-500">{c.hint}</span>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <section className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col justify-between" aria-label="Daily study activity">
-          <div>
-            <h3 className="text-base font-bold text-white mb-1">Daily Study Activity</h3>
-            <p className="text-xs text-slate-400 mb-4">Hours logged each day over the past 2 weeks</p>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        <section className="card p-5 sm:p-6 lg:col-span-3" aria-label="Daily study activity">
+          <div className="mb-5 flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-base font-semibold text-ink-50">Daily activity</h3>
+              <p className="mt-0.5 text-xs text-ink-500">Minutes per day over the last two weeks</p>
+            </div>
+            {peak > 0 && (
+              <span className="chip border-white/[0.06] bg-white/[0.04] text-ink-300">
+                Peak <span className="font-mono tabular-nums text-ink-50">{formatMinutes(peak)}</span>
+              </span>
+            )}
           </div>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
-                <XAxis dataKey="date" stroke="#64748b" fontSize={10} tickLine={false} angle={-30} textAnchor="end" />
-                <YAxis stroke="#64748b" fontSize={10} tickLine={false} allowDecimals />
+              <BarChart data={barData} margin={{ top: 8, right: 4, left: -18, bottom: 0 }} barCategoryGap="30%">
+                <defs>
+                  <linearGradient id="barFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#6ee7b7" />
+                    <stop offset="100%" stopColor="#059669" />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} stroke={GRID} strokeWidth={1} />
+                <XAxis dataKey="date" stroke="transparent" tick={{ fill: AXIS, fontSize: 11 }} tickLine={false} axisLine={{ stroke: GRID }} interval={1} />
+                <YAxis stroke="transparent" tick={{ fill: AXIS, fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} unit="m" dataKey="minutes" />
                 <Tooltip
-                  cursor={{ fill: 'rgba(148,163,184,0.08)' }}
+                  cursor={{ fill: 'rgba(255,255,255,0.04)' }}
                   content={({ active, payload }) => {
                     if (!active || !payload?.length) return null
                     const d = payload[0].payload as BarDatum
-                    return (
-                      <div className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl shadow-xl text-xs">
-                        <p className="font-bold text-slate-200">{d.rawDate}</p>
-                        <p className="text-emerald-400 font-semibold mt-1">
-                          {formatMinutes(d.minutes)} ({d.hours} hrs)
-                        </p>
-                      </div>
-                    )
+                    return <TooltipCard title={d.rawDate} value={formatMinutes(d.minutes)} />
                   }}
                 />
-                <Bar dataKey="hours" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="minutes" fill="url(#barFill)" radius={[4, 4, 0, 0]} maxBarSize={24}>
+                  {barData.map((b) => (
+                    <Cell key={b.rawDate} fill={b.isToday ? 'url(#barFill)' : 'rgba(110,231,183,0.45)'} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
         </section>
 
-        <section className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col justify-between" aria-label="Time distribution by project">
-          <div>
-            <h3 className="text-base font-bold text-white mb-1">Time Distribution by Project</h3>
-            <p className="text-xs text-slate-400 mb-4">Cumulative breakdown across your subjects</p>
-          </div>
+        <section className="card p-5 sm:p-6 lg:col-span-2" aria-label="Time distribution by project">
+          <h3 className="text-base font-semibold text-ink-50">By project</h3>
+          <p className="mt-0.5 text-xs text-ink-500">Share of all study time</p>
           {pieData.length === 0 ? (
-            <div className="h-64 flex flex-col items-center justify-center text-slate-500 text-xs">
-              <Award className="w-8 h-8 text-slate-600 mb-2" aria-hidden="true" />
-              <span>No project study data yet</span>
+            <div className="flex h-64 flex-col items-center justify-center text-xs text-ink-500">
+              <Award className="mb-2 h-7 w-7 text-ink-700" aria-hidden="true" />
+              No project data yet
             </div>
           ) : (
-            <div className="h-64 w-full flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="value">
-                    {pieData.map((entry) => (
-                      <Cell key={entry.name} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (!active || !payload?.length) return null
-                      const d = payload[0].payload as PieDatum
-                      const pct = ((d.value / Math.max(1, stats.total_minutes)) * 100).toFixed(0)
-                      return (
-                        <div className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl shadow-xl text-xs">
-                          <div className="flex items-center space-x-1.5">
-                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} aria-hidden="true" />
-                            <p className="font-bold text-slate-200">{d.name}</p>
-                          </div>
-                          <p className="text-slate-300 mt-1 font-semibold">
-                            {formatMinutes(d.value)} ({pct}%)
-                          </p>
-                        </div>
-                      )
-                    }}
-                  />
-                  <Legend verticalAlign="bottom" iconType="circle" formatter={(value) => <span className="text-[11px] text-slate-300">{value}</span>} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+            <>
+              <div className="relative mx-auto mt-2 h-44 w-44">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={pieData} cx="50%" cy="50%" innerRadius={58} outerRadius={80} paddingAngle={2} dataKey="value" stroke={SURFACE} strokeWidth={2}>
+                      {pieData.map((entry) => (
+                        <Cell key={entry.name} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null
+                        const d = payload[0].payload as PieDatum
+                        const pct = ((d.value / Math.max(1, stats.total_minutes)) * 100).toFixed(0)
+                        return <TooltipCard title={d.name} value={`${formatMinutes(d.value)} · ${pct}%`} swatch={d.color} />
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-lg font-semibold tabular-nums text-ink-50">{pieData.length}</span>
+                  <span className="eyebrow">{pieData.length === 1 ? 'project' : 'projects'}</span>
+                </div>
+              </div>
+              <ul className="mt-4 space-y-2">
+                {pieData.slice(0, 5).map((d) => {
+                  const pct = (d.value / Math.max(1, stats.total_minutes)) * 100
+                  return (
+                    <li key={d.name} className="text-xs">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="flex min-w-0 items-center gap-2 text-ink-200">
+                          <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: d.color }} aria-hidden="true" />
+                          <span className="truncate">{d.name}</span>
+                        </span>
+                        <span className="shrink-0 font-mono tabular-nums text-ink-400">{formatMinutes(d.value)}</span>
+                      </div>
+                      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/[0.05]">
+                        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: d.color }} />
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            </>
           )}
         </section>
       </div>

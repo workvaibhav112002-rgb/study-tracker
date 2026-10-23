@@ -91,22 +91,14 @@ export const ManualSessionModal: React.FC<ManualSessionModalProps> = ({ isOpen, 
       isOpen={isOpen}
       onClose={saving ? undefined : onClose}
       dismissible={!saving}
-      title="Log Study Session"
-      description="Add an offline or past study block."
-      icon={<PlusCircle className="w-5 h-5" />}
-      iconClassName="bg-brand-500/10 text-brand-400 border-brand-500/20"
+      title="Log a session"
+      description="Add offline or past study time."
+      icon={<PlusCircle className="h-5 w-5" />}
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <Field label="Project" hint={projects.length === 0 ? 'Create a project before logging time.' : undefined}>
           {(id) => (
-            <select
-              id={id}
-              value={projectId}
-              onChange={(e) => setProjectId(Number(e.target.value))}
-              className={inputClass}
-              required
-              disabled={projects.length === 0}
-            >
+            <select id={id} value={projectId} onChange={(e) => setProjectId(Number(e.target.value))} className={inputClass} required disabled={projects.length === 0}>
               {projects.length === 0 && <option value="">No projects yet</option>}
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -118,58 +110,33 @@ export const ManualSessionModal: React.FC<ManualSessionModalProps> = ({ isOpen, 
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Date">
-            {(id) => (
-              <input id={id} type="date" value={date} max={today} onChange={(e) => setDate(e.target.value)} className={inputClass} required />
-            )}
-          </Field>
-          <Field label="Duration (mins)">
-            {(id) => (
-              <input
-                id={id}
-                type="number"
-                min={1}
-                max={1440}
-                value={durationMinutes}
-                onChange={(e) => setDurationMinutes(Number(e.target.value))}
-                className={inputClass}
-                required
-              />
-            )}
+          <Field label="Date">{(id) => <input id={id} type="date" value={date} max={today} onChange={(e) => setDate(e.target.value)} className={inputClass} required />}</Field>
+          <Field label="Duration (minutes)">
+            {(id) => <input id={id} type="number" min={1} max={1440} value={durationMinutes} onChange={(e) => setDurationMinutes(Number(e.target.value))} className={`${inputClass} font-mono tabular-nums`} required />}
           </Field>
         </div>
 
         <div>
-          <span className="block text-xs font-semibold text-slate-300 mb-1.5">Focus Rating</span>
-          <StarRating value={rating} onChange={setRating} size="sm" showLabel={false} />
+          <span className="mb-2 block text-xs font-medium text-ink-300">Focus</span>
+          <StarRating value={rating} onChange={setRating} size="sm" />
         </div>
 
         <Field label="Notes">
-          {(id) => (
-            <textarea
-              id={id}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="What did you study?"
-              rows={2}
-              maxLength={2000}
-              className={`${inputClass} resize-none`}
-            />
-          )}
+          {(id) => <textarea id={id} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="What did you study?" rows={2} maxLength={2000} className={`${inputClass} resize-none`} />}
         </Field>
 
         {error && (
-          <p role="alert" className="text-xs text-rose-400 font-medium">
+          <p role="alert" className="text-xs font-medium text-rose-400">
             {error}
           </p>
         )}
 
-        <div className="flex items-center justify-end space-x-3 pt-2">
+        <div className="flex items-center justify-end gap-2 pt-1">
           <Button variant="ghost" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
           <Button type="submit" loading={saving} disabled={projectId === ''}>
-            Add Entry
+            Add entry
           </Button>
         </div>
       </form>

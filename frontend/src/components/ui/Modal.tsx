@@ -20,6 +20,9 @@ interface ModalProps {
   children: React.ReactNode
 }
 
+const WIDTHS = { md: 'max-w-md', lg: 'max-w-lg' } as const
+const RADII = { '2xl': 'rounded-2xl', '3xl': 'rounded-3xl' } as const
+
 /**
  * Accessible dialog: role/aria wiring, focus trap, focus restore, Escape to
  * close, body scroll lock. Rendered through a portal so it is never clipped.
@@ -30,11 +33,11 @@ export const Modal: React.FC<ModalProps> = ({
   title,
   description,
   icon,
-  iconClassName = 'bg-slate-800 text-brand-400 border-slate-700',
+  iconClassName = 'bg-white/[0.06] text-brand-400 border-white/[0.08]',
   align = 'left',
   dismissible = true,
   size = 'md',
-  rounded = '2xl',
+  rounded = '3xl',
   children,
 }) => {
   const titleId = useId()
@@ -86,11 +89,9 @@ export const Modal: React.FC<ModalProps> = ({
 
   if (!isOpen) return null
 
-  const widths = { md: 'max-w-md', lg: 'max-w-lg' }
-
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-950/70 backdrop-blur-md animate-fade-in"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget && dismissible && onClose) onClose()
       }}
@@ -102,44 +103,46 @@ export const Modal: React.FC<ModalProps> = ({
         aria-labelledby={titleId}
         aria-describedby={description ? descId : undefined}
         tabIndex={-1}
-        className={`bg-slate-900 border border-slate-800 rounded-${rounded} w-full ${widths[size]} p-6 shadow-2xl relative outline-none max-h-[calc(100vh-2rem)] overflow-y-auto`}
+        className={`relative w-full ${WIDTHS[size]} ${RADII[rounded]} border border-white/[0.08] bg-surface-900/95 p-6 sm:p-7 shadow-modal outline-none max-h-[calc(100vh-2rem)] overflow-y-auto animate-scale-in`}
       >
+        <span aria-hidden="true" className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-brand-400/60 to-transparent" />
+
         {dismissible && onClose && (
           <button
             type="button"
             onClick={onClose}
             aria-label="Close dialog"
-            className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="focus-ring absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.04] text-ink-400 transition-colors hover:bg-white/[0.08] hover:text-ink-50"
           >
-            <X className="w-5 h-5" />
+            <X className="h-4 w-4" />
           </button>
         )}
 
         {align === 'center' ? (
-          <div className="text-center mb-6">
+          <div className="mb-6 text-center">
             {icon && (
-              <div className={`w-12 h-12 rounded-2xl mx-auto flex items-center justify-center mb-3 ${iconClassName}`}>{icon}</div>
+              <div className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl ${iconClassName}`}>{icon}</div>
             )}
-            <h2 id={titleId} className="text-xl font-bold text-white tracking-tight">
+            <h2 id={titleId} className="text-xl font-semibold tracking-tight text-ink-50">
               {title}
             </h2>
             {description && (
-              <p id={descId} className="text-xs text-slate-400 mt-1">
+              <p id={descId} className="mt-1.5 text-sm text-ink-400">
                 {description}
               </p>
             )}
           </div>
         ) : (
-          <div className="flex items-center space-x-3 mb-5 pr-8">
+          <div className="mb-6 flex items-center gap-3.5 pr-10">
             {icon && (
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${iconClassName}`}>{icon}</div>
+              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${iconClassName}`}>{icon}</div>
             )}
-            <div>
-              <h2 id={titleId} className="text-lg font-bold text-white">
+            <div className="min-w-0">
+              <h2 id={titleId} className="text-lg font-semibold tracking-tight text-ink-50">
                 {title}
               </h2>
               {description && (
-                <p id={descId} className="text-xs text-slate-400">
+                <p id={descId} className="mt-0.5 text-xs text-ink-400">
                   {description}
                 </p>
               )}

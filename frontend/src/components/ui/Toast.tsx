@@ -17,19 +17,10 @@ interface ToastApi {
 const ToastContext = createContext<ToastApi | null>(null)
 let counter = 0
 
-const styles: Record<Kind, { box: string; icon: React.ReactNode }> = {
-  success: {
-    box: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200',
-    icon: <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />,
-  },
-  error: {
-    box: 'border-rose-500/30 bg-rose-500/10 text-rose-200',
-    icon: <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />,
-  },
-  info: {
-    box: 'border-sky-500/30 bg-sky-500/10 text-sky-200',
-    icon: <Info className="w-4 h-4 text-sky-400 shrink-0" />,
-  },
+const styles: Record<Kind, { bar: string; icon: React.ReactNode }> = {
+  success: { bar: 'bg-brand-400', icon: <CheckCircle2 className="h-4 w-4 shrink-0 text-brand-400" /> },
+  error: { bar: 'bg-rose-400', icon: <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" /> },
+  info: { bar: 'bg-accent-sky', icon: <Info className="h-4 w-4 shrink-0 text-accent-sky" /> },
 }
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -61,23 +52,24 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       <div
         aria-live="polite"
         aria-atomic="false"
-        className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[70] flex flex-col gap-2 w-[min(92vw,400px)] pointer-events-none"
+        className="pointer-events-none fixed bottom-5 left-1/2 z-[70] flex w-[min(92vw,400px)] -translate-x-1/2 flex-col gap-2"
       >
         {toasts.map((t) => (
           <div
             key={t.id}
             role={t.kind === 'error' ? 'alert' : 'status'}
-            className={`pointer-events-auto flex items-start gap-2.5 px-3.5 py-2.5 rounded-xl border backdrop-blur shadow-xl text-xs font-medium animate-slide-up ${styles[t.kind].box}`}
+            className="glass pointer-events-auto relative flex items-start gap-3 overflow-hidden rounded-2xl py-3 pl-4 pr-3 text-[13px] font-medium text-ink-100 shadow-modal animate-slide-up"
           >
+            <span aria-hidden="true" className={`absolute left-0 top-0 h-full w-0.5 ${styles[t.kind].bar}`} />
             {styles[t.kind].icon}
             <span className="flex-1 leading-snug">{t.message}</span>
             <button
               type="button"
               onClick={() => dismiss(t.id)}
               aria-label="Dismiss notification"
-              className="p-0.5 rounded hover:bg-white/10 text-current/70"
+              className="focus-ring rounded-md p-1 text-ink-500 opacity-80 transition hover:bg-white/10 hover:text-ink-100 hover:opacity-100"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="h-3.5 w-3.5" />
             </button>
           </div>
         ))}
