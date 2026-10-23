@@ -1,5 +1,5 @@
-# Multi-stage Docker build for ultra-lightweight Go backend (~25MB)
-FROM golang:1.22-alpine AS builder
+# Multi-stage Docker build for ultra-lightweight Go backend
+FROM golang:alpine AS builder
 
 WORKDIR /app
 
@@ -13,7 +13,7 @@ COPY . .
 RUN CGO_ENABLED=1 GOOS=linux go build -ldflags="-s -w" -o study-tracker-server main.go
 
 # Production Runner Stage
-FROM alpine:3.19
+FROM alpine:latest
 
 WORKDIR /app
 RUN apk add --no-cache ca-certificates tzdata
@@ -24,7 +24,6 @@ EXPOSE 8080
 ENV PORT=8080
 ENV DB_PATH=/app/data/study_tracker.db
 
-# Ensure data directory exists
 RUN mkdir -p /app/data
 
 CMD ["./study-tracker-server"]

@@ -37,6 +37,12 @@ A full-stack, local-first personal study and focus tracker powered by a **Go (Go
 
 ## 🚀 Quick Start
 
+### 1-Click Cloud Deployment (Render)
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/workvaibhav112002-rgb/study-tracker)
+
+### Local Development
+
 To launch both the Go backend and React frontend with a single command:
 
 ```bash
