@@ -18,10 +18,10 @@ export const ServerStatusBanner: React.FC<Props> = ({ authStatus, onRetry }) => 
 
   if (authStatus === 'unreachable') {
     return (
-      <div role="status" className="bg-amber-500/10 border-b border-amber-500/20 text-amber-200 text-xs">
-        <div className="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between gap-3">
+      <div role="status" className="border-b border-accent-amber/20 bg-accent-amber/10 text-xs text-amber-200">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2">
           <span className="flex items-center gap-2">
-            <WifiOff className="w-3.5 h-3.5" />
+            <WifiOff className="h-3.5 w-3.5" />
             Cannot reach the server right now. It may be waking up; retrying automatically.
           </span>
           <button type="button" onClick={onRetry} className="font-semibold underline underline-offset-2 hover:text-white">
@@ -34,9 +34,9 @@ export const ServerStatusBanner: React.FC<Props> = ({ authStatus, onRetry }) => 
 
   if (!waking) return null
   return (
-    <div role="status" className="bg-sky-500/10 border-b border-sky-500/20 text-sky-200 text-xs">
-      <div className="max-w-6xl mx-auto px-4 py-2 flex items-center gap-2">
-        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+    <div role="status" className="border-b border-accent-sky/20 bg-accent-sky/10 text-xs text-sky-200">
+      <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-2">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
         Waking up the server, this can take up to a minute on the free tier…
       </div>
     </div>

@@ -14,7 +14,7 @@ interface StarRatingProps {
 export const StarRating: React.FC<StarRatingProps> = ({ value, onChange, size = 'md', label = 'Focus rating', showLabel = true }) => {
   const [hover, setHover] = useState(0)
   const shown = hover || value
-  const dim = size === 'md' ? 'w-6 h-6' : 'w-5 h-5'
+  const dim = size === 'md' ? 'h-6 w-6' : 'h-5 w-5'
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
@@ -27,8 +27,8 @@ export const StarRating: React.FC<StarRatingProps> = ({ value, onChange, size = 
   }
 
   return (
-    <div className="flex items-center space-x-2">
-      <div role="radiogroup" aria-label={label} className="flex items-center space-x-1" onKeyDown={onKeyDown}>
+    <div className="flex items-center gap-3">
+      <div role="radiogroup" aria-label={label} className="flex items-center gap-0.5" onKeyDown={onKeyDown}>
         {[1, 2, 3, 4, 5].map((star) => (
           <button
             type="button"
@@ -40,13 +40,15 @@ export const StarRating: React.FC<StarRatingProps> = ({ value, onChange, size = 
             onClick={() => onChange(star)}
             onMouseEnter={() => setHover(star)}
             onMouseLeave={() => setHover(0)}
-            className="p-1 transition-transform hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
+            className="focus-ring rounded-md p-1 transition-transform duration-150 hover:scale-110"
           >
-            <Star className={`${dim} transition-colors ${shown >= star ? 'fill-amber-400 text-amber-400' : 'text-slate-600'}`} />
+            <Star
+              className={`${dim} transition-colors duration-150 ${shown >= star ? 'fill-accent-amber text-accent-amber drop-shadow-[0_0_6px_rgb(245_182_61/0.5)]' : 'text-ink-700'}`}
+            />
           </button>
         ))}
       </div>
-      {showLabel && <span className="text-xs text-slate-400 ml-2 font-medium">{RATING_LABELS[shown] ?? ''}</span>}
+      {showLabel && <span className="text-xs font-medium text-ink-400">{RATING_LABELS[shown] ?? ''}</span>}
     </div>
   )
 }
