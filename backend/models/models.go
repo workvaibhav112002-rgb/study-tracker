@@ -1,7 +1,32 @@
 package models
 
+type User struct {
+	ID           int64  `json:"id"`
+	Email        string `json:"email"`
+	PasswordHash string `json:"-"`
+	Name         string `json:"name"`
+	CreatedAt    string `json:"created_at"`
+}
+
+type RegisterRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Name     string `json:"name"`
+}
+
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type AuthResponse struct {
+	Token string `json:"token"`
+	User  User   `json:"user"`
+}
+
 type Project struct {
 	ID                  int64  `json:"id"`
+	UserID              int64  `json:"user_id"`
 	Name                string `json:"name"`
 	Color               string `json:"color"`
 	Description         string `json:"description"`
@@ -12,6 +37,7 @@ type Project struct {
 
 type Session struct {
 	ID              int64  `json:"id"`
+	UserID          int64  `json:"user_id"`
 	ProjectID       int64  `json:"project_id"`
 	ProjectName     string `json:"project_name,omitempty"`
 	ProjectColor    string `json:"project_color,omitempty"`
@@ -25,12 +51,13 @@ type Session struct {
 }
 
 type Settings struct {
-	WorkDuration       int  `json:"work_duration"`        // in minutes
-	ShortBreakDuration int  `json:"short_break_duration"`  // in minutes
-	LongBreakDuration  int  `json:"long_break_duration"`   // in minutes
-	LongBreakInterval  int  `json:"long_break_interval"`   // default 4
-	AutoStartBreaks    bool `json:"auto_start_breaks"`
-	SoundEnabled       bool `json:"sound_enabled"`
+	UserID             int64 `json:"user_id"`
+	WorkDuration       int   `json:"work_duration"`
+	ShortBreakDuration int   `json:"short_break_duration"`
+	LongBreakDuration  int   `json:"long_break_duration"`
+	LongBreakInterval  int   `json:"long_break_interval"`
+	AutoStartBreaks    bool  `json:"auto_start_breaks"`
+	SoundEnabled       bool  `json:"sound_enabled"`
 }
 
 type ProjectStat struct {

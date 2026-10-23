@@ -1,5 +1,18 @@
+export interface User {
+  id: number
+  email: string
+  name: string
+  created_at?: string
+}
+
+export interface AuthResponse {
+  token: string
+  user: User
+}
+
 export interface Project {
   id: number
+  user_id?: number
   name: string
   color: string
   description: string
@@ -10,6 +23,7 @@ export interface Project {
 
 export interface Session {
   id: number
+  user_id?: number
   project_id: number
   project_name?: string
   project_color?: string

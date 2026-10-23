@@ -7,11 +7,18 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"study-tracker-backend/auth"
 	"study-tracker-backend/database"
 	"study-tracker-backend/models"
 )
 
 func GetSessions(w http.ResponseWriter, r *http.Request) {
+	userID, err := auth.GetUserID(r.Context())
+	if err != nil {
+		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
 	limitStr := r.URL.Query().Get("limit")
 	limit := 100
 	if limitStr != "" {
@@ -24,18 +31,19 @@ func GetSessions(w http.ResponseWriter, r *http.Request) {
 
 	query := `
 		SELECT 
-			s.id, s.project_id, COALESCE(p.name, 'Unknown'), COALESCE(p.color, '#6b7280'),
+			s.id, s.user_id, s.project_id, COALESCE(p.name, 'Unknown'), COALESCE(p.color, '#6b7280'),
 			s.start_time, s.end_time, s.duration_seconds, s.session_type,
 			s.focus_rating, s.notes, s.created_at
 		FROM sessions s
 		LEFT JOIN projects p ON s.project_id = p.id
+		WHERE s.user_id = ?
 	`
-	var args []interface{}
+	args := []interface{}{userID}
 
 	if projectIDStr != "" {
 		projectID, err := strconv.ParseInt(projectIDStr, 10, 64)
 		if err == nil {
-			query += " WHERE s.project_id = ?"
+			query += " AND s.project_id = ?"
 			args = append(args, projectID)
 		}
 	}
@@ -54,7 +62,7 @@ func GetSessions(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var s models.Session
 		if err := rows.Scan(
-			&s.ID, &s.ProjectID, &s.ProjectName, &s.ProjectColor,
+			&s.ID, &s.UserID, &s.ProjectID, &s.ProjectName, &s.ProjectColor,
 			&s.StartTime, &s.EndTime, &s.DurationSeconds, &s.SessionType,
 			&s.FocusRating, &s.Notes, &s.CreatedAt,
 		); err != nil {
@@ -69,6 +77,12 @@ func GetSessions(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateSession(w http.ResponseWriter, r *http.Request) {
+	userID, err := auth.GetUserID(r.Context())
+	if err != nil {
+		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
 	var s models.Session
 	if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -100,9 +114,9 @@ func CreateSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := database.DB.Exec(`
-		INSERT INTO sessions (project_id, start_time, end_time, duration_seconds, session_type, focus_rating, notes)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
-	`, s.ProjectID, s.StartTime, s.EndTime, s.DurationSeconds, s.SessionType, s.FocusRating, s.Notes)
+		INSERT INTO sessions (user_id, project_id, start_time, end_time, duration_seconds, session_type, focus_rating, notes)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	`, userID, s.ProjectID, s.StartTime, s.EndTime, s.DurationSeconds, s.SessionType, s.FocusRating, s.Notes)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -110,9 +124,9 @@ func CreateSession(w http.ResponseWriter, r *http.Request) {
 
 	id, _ := result.LastInsertId()
 	s.ID = id
+	s.UserID = userID
 
-	// Fetch project name and color
-	_ = database.DB.QueryRow("SELECT name, color FROM projects WHERE id = ?", s.ProjectID).
+	_ = database.DB.QueryRow("SELECT name, color FROM projects WHERE id = ? AND user_id = ?", s.ProjectID, userID).
 		Scan(&s.ProjectName, &s.ProjectColor)
 
 	w.Header().Set("Content-Type", "application/json")
@@ -121,6 +135,12 @@ func CreateSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteSession(w http.ResponseWriter, r *http.Request) {
+	userID, err := auth.GetUserID(r.Context())
+	if err != nil {
+		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -128,7 +148,7 @@ func DeleteSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = database.DB.Exec("DELETE FROM sessions WHERE id = ?", id)
+	_, err = database.DB.Exec("DELETE FROM sessions WHERE id = ? AND user_id = ?", id, userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

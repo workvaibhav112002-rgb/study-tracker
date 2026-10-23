@@ -5,12 +5,19 @@ import (
 	"net/http"
 	"strconv"
 
+	"study-tracker-backend/auth"
 	"study-tracker-backend/database"
 	"study-tracker-backend/models"
 )
 
 func GetSettings(w http.ResponseWriter, r *http.Request) {
-	rows, err := database.DB.Query("SELECT key, value FROM settings")
+	userID, err := auth.GetUserID(r.Context())
+	if err != nil {
+		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
+	rows, err := database.DB.Query("SELECT key, value FROM settings WHERE user_id = ?", userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -18,6 +25,7 @@ func GetSettings(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	s := models.Settings{
+		UserID:             userID,
 		WorkDuration:       25,
 		ShortBreakDuration: 5,
 		LongBreakDuration:  15,
@@ -59,6 +67,12 @@ func GetSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateSettings(w http.ResponseWriter, r *http.Request) {
+	userID, err := auth.GetUserID(r.Context())
+	if err != nil {
+		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
 	var s models.Settings
 	if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -75,9 +89,13 @@ func UpdateSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for k, v := range updates {
-		_, _ = database.DB.Exec("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", k, v)
+		_, _ = database.DB.Exec(
+			"INSERT INTO settings (user_id, key, value) VALUES (?, ?, ?) ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value",
+			userID, k, v,
+		)
 	}
 
+	s.UserID = userID
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(s)
 }

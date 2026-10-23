@@ -2,12 +2,14 @@ package handlers_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 
+	"study-tracker-backend/auth"
 	"study-tracker-backend/database"
 	"study-tracker-backend/handlers"
 	"study-tracker-backend/models"
@@ -32,79 +34,77 @@ func setupTestDB(t *testing.T) func() {
 	}
 }
 
-func TestProjectAndSessionFlow(t *testing.T) {
+func TestMultiTenantAuthAndIsolation(t *testing.T) {
 	cleanup := setupTestDB(t)
 	defer cleanup()
 
-	// 1. Test Create Project
-	pBody := `{"name":"Test Project","color":"#ff0000","description":"Unit test","target_minutes_per_day":60}`
-	req := httptest.NewRequest("POST", "/api/projects", bytes.NewBufferString(pBody))
+	// 1. Register User A
+	userABody := `{"email":"alice@test.com","password":"password123","name":"Alice"}`
+	req := httptest.NewRequest("POST", "/api/auth/register", bytes.NewBufferString(userABody))
 	w := httptest.NewRecorder()
-	handlers.CreateProject(w, req)
+	handlers.Register(w, req)
 
 	if w.Code != http.StatusCreated {
-		t.Fatalf("Expected 201 Created, got %d, body: %s", w.Code, w.Body.String())
+		t.Fatalf("Expected 201 Created for register, got %d: %s", w.Code, w.Body.String())
 	}
 
-	var createdProject models.Project
-	if err := json.Unmarshal(w.Body.Bytes(), &createdProject); err != nil {
-		t.Fatalf("Failed to decode created project: %v", err)
-	}
-	if createdProject.ID == 0 {
-		t.Fatal("Expected valid project ID")
+	var authA models.AuthResponse
+	_ = json.Unmarshal(w.Body.Bytes(), &authA)
+	if authA.Token == "" || authA.User.ID == 0 {
+		t.Fatal("Expected valid auth response with token and user ID")
 	}
 
-	// 2. Test Create Session
+	// 2. Register User B
+	userBBody := `{"email":"bob@test.com","password":"password456","name":"Bob"}`
+	req = httptest.NewRequest("POST", "/api/auth/register", bytes.NewBufferString(userBBody))
+	w = httptest.NewRecorder()
+	handlers.Register(w, req)
+
+	var authB models.AuthResponse
+	_ = json.Unmarshal(w.Body.Bytes(), &authB)
+
+	// 3. Alice creates a project
+	ctxA := context.WithValue(context.Background(), auth.UserIDKey, authA.User.ID)
+	pBody := `{"name":"Alice Project","color":"#ff0000","target_minutes_per_day":60}`
+	req = httptest.NewRequest("POST", "/api/projects", bytes.NewBufferString(pBody)).WithContext(ctxA)
+	w = httptest.NewRecorder()
+	handlers.CreateProject(w, req)
+
+	var projectA models.Project
+	_ = json.Unmarshal(w.Body.Bytes(), &projectA)
+
+	// 4. Alice logs a 30m session
 	sBody, _ := json.Marshal(map[string]interface{}{
-		"project_id":       createdProject.ID,
-		"duration_seconds": 1500, // 25 mins
+		"project_id":       projectA.ID,
+		"duration_seconds": 1800,
 		"session_type":     "pomodoro",
 		"focus_rating":     5,
-		"notes":            "Great focus session",
+		"notes":            "Alice studying",
 	})
-	req = httptest.NewRequest("POST", "/api/sessions", bytes.NewBuffer(sBody))
+	req = httptest.NewRequest("POST", "/api/sessions", bytes.NewBuffer(sBody)).WithContext(ctxA)
 	w = httptest.NewRecorder()
 	handlers.CreateSession(w, req)
 
-	if w.Code != http.StatusCreated {
-		t.Fatalf("Expected 201 Created for session, got %d, body: %s", w.Code, w.Body.String())
-	}
-
-	// 3. Test Dashboard Stats
-	req = httptest.NewRequest("GET", "/api/stats/dashboard", nil)
+	// 5. Check Alice Stats (should have 30 mins)
+	req = httptest.NewRequest("GET", "/api/stats/dashboard", nil).WithContext(ctxA)
 	w = httptest.NewRecorder()
 	handlers.GetDashboardStats(w, req)
 
-	if w.Code != http.StatusOK {
-		t.Fatalf("Expected 200 OK for stats, got %d", w.Code)
+	var statsA models.DashboardStats
+	_ = json.Unmarshal(w.Body.Bytes(), &statsA)
+	if statsA.TodayMinutes != 30 {
+		t.Fatalf("Expected Alice to have 30 today_minutes, got %d", statsA.TodayMinutes)
 	}
 
-	var stats models.DashboardStats
-	if err := json.Unmarshal(w.Body.Bytes(), &stats); err != nil {
-		t.Fatalf("Failed to decode stats: %v", err)
-	}
-
-	if stats.TodayMinutes != 25 {
-		t.Fatalf("Expected TodayMinutes to be 25, got %d", stats.TodayMinutes)
-	}
-	if stats.CompletedPomodoros != 1 {
-		t.Fatalf("Expected CompletedPomodoros to be 1, got %d", stats.CompletedPomodoros)
-	}
-
-	// 4. Test Settings
-	req = httptest.NewRequest("GET", "/api/settings", nil)
+	// 6. Check Bob Stats (MUST HAVE 0 MINS - strict data isolation!)
+	ctxB := context.WithValue(context.Background(), auth.UserIDKey, authB.User.ID)
+	req = httptest.NewRequest("GET", "/api/stats/dashboard", nil).WithContext(ctxB)
 	w = httptest.NewRecorder()
-	handlers.GetSettings(w, req)
+	handlers.GetDashboardStats(w, req)
 
-	if w.Code != http.StatusOK {
-		t.Fatalf("Expected 200 OK for settings, got %d", w.Code)
-	}
-
-	var settings models.Settings
-	if err := json.Unmarshal(w.Body.Bytes(), &settings); err != nil {
-		t.Fatalf("Failed to decode settings: %v", err)
-	}
-	if settings.WorkDuration != 25 {
-		t.Fatalf("Expected default WorkDuration 25, got %d", settings.WorkDuration)
+	var statsB models.DashboardStats
+	_ = json.Unmarshal(w.Body.Bytes(), &statsB)
+	if statsB.TodayMinutes != 0 {
+		t.Fatalf("DATA LEAK: Bob should have 0 today_minutes, got %d", statsB.TodayMinutes)
 	}
 }

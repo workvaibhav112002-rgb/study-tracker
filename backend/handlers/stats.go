@@ -5,11 +5,18 @@ import (
 	"net/http"
 	"time"
 
+	"study-tracker-backend/auth"
 	"study-tracker-backend/database"
 	"study-tracker-backend/models"
 )
 
 func GetDashboardStats(w http.ResponseWriter, r *http.Request) {
+	userID, err := auth.GetUserID(r.Context())
+	if err != nil {
+		http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
 	now := time.Now()
 	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	sevenDaysAgo := todayStart.AddDate(0, 0, -6)
@@ -24,16 +31,16 @@ func GetDashboardStats(w http.ResponseWriter, r *http.Request) {
 	_ = database.DB.QueryRow(`
 		SELECT COALESCE(SUM(duration_seconds) / 60, 0)
 		FROM sessions
-		WHERE date(start_time, 'localtime') = ?
-	`, todayStr).Scan(&stats.TodayMinutes)
+		WHERE user_id = ? AND date(start_time, 'localtime') = ?
+	`, userID, todayStr).Scan(&stats.TodayMinutes)
 
-	// 2. Weekly Minutes (last 7 days)
+	// 2. Weekly Minutes
 	sevenDaysAgoStr := sevenDaysAgo.Format("2006-01-02")
 	_ = database.DB.QueryRow(`
 		SELECT COALESCE(SUM(duration_seconds) / 60, 0)
 		FROM sessions
-		WHERE date(start_time, 'localtime') >= ?
-	`, sevenDaysAgoStr).Scan(&stats.WeeklyMinutes)
+		WHERE user_id = ? AND date(start_time, 'localtime') >= ?
+	`, userID, sevenDaysAgoStr).Scan(&stats.WeeklyMinutes)
 
 	// 3. Total Minutes & Pomodoro count
 	_ = database.DB.QueryRow(`
@@ -41,7 +48,8 @@ func GetDashboardStats(w http.ResponseWriter, r *http.Request) {
 			COALESCE(SUM(duration_seconds) / 60, 0),
 			COUNT(CASE WHEN session_type = 'pomodoro' THEN 1 END)
 		FROM sessions
-	`).Scan(&stats.TotalMinutes, &stats.CompletedPomodoros)
+		WHERE user_id = ?
+	`, userID).Scan(&stats.TotalMinutes, &stats.CompletedPomodoros)
 
 	// 4. Project-wise Stats
 	projectRows, err := database.DB.Query(`
@@ -50,11 +58,12 @@ func GetDashboardStats(w http.ResponseWriter, r *http.Request) {
 			COALESCE(SUM(s.duration_seconds), 0) AS total_seconds,
 			COUNT(s.id) AS session_count
 		FROM projects p
-		LEFT JOIN sessions s ON p.id = s.project_id
+		LEFT JOIN sessions s ON p.id = s.project_id AND s.user_id = ?
+		WHERE p.user_id = ?
 		GROUP BY p.id
 		HAVING total_seconds > 0
 		ORDER BY total_seconds DESC
-	`)
+	`, userID, userID)
 	if err == nil {
 		defer projectRows.Close()
 		for projectRows.Next() {
@@ -71,9 +80,9 @@ func GetDashboardStats(w http.ResponseWriter, r *http.Request) {
 	dailyRows, err := database.DB.Query(`
 		SELECT date(start_time, 'localtime') as day, COALESCE(SUM(duration_seconds) / 60, 0)
 		FROM sessions
-		WHERE date(start_time, 'localtime') >= ?
+		WHERE user_id = ? AND date(start_time, 'localtime') >= ?
 		GROUP BY day
-	`, fourteenDaysAgo.Format("2006-01-02"))
+	`, userID, fourteenDaysAgo.Format("2006-01-02"))
 	if err == nil {
 		defer dailyRows.Close()
 		for dailyRows.Next() {
@@ -85,7 +94,6 @@ func GetDashboardStats(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Build smooth 14-day continuous slice
 	for i := 13; i >= 0; i-- {
 		d := todayStart.AddDate(0, 0, -i).Format("2006-01-02")
 		stats.DailyTrend = append(stats.DailyTrend, models.DailyStat{
@@ -98,8 +106,9 @@ func GetDashboardStats(w http.ResponseWriter, r *http.Request) {
 	streakRows, err := database.DB.Query(`
 		SELECT DISTINCT date(start_time, 'localtime') as day
 		FROM sessions
+		WHERE user_id = ?
 		ORDER BY day DESC
-	`)
+	`, userID)
 	if err == nil {
 		defer streakRows.Close()
 		var studyDates []string
@@ -117,7 +126,6 @@ func GetDashboardStats(w http.ResponseWriter, r *http.Request) {
 			dateSet[d] = true
 		}
 
-		// If today doesn't have a session yet, start streak check from yesterday
 		if !dateSet[checkDate.Format("2006-01-02")] {
 			checkDate = checkDate.AddDate(0, 0, -1)
 		}

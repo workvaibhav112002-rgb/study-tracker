@@ -1,19 +1,25 @@
 import React from 'react'
-import { Timer, BarChart3, FolderKanban, History, Settings as SettingsIcon, Flame, Clock } from 'lucide-react'
-import { DashboardStats } from '../types'
+import { Timer, BarChart3, FolderKanban, History, Settings as SettingsIcon, Flame, Clock, LogIn, LogOut, User as UserIcon } from 'lucide-react'
+import { DashboardStats, User } from '../types'
 
 interface NavbarProps {
   activeTab: 'timer' | 'projects' | 'history' | 'analytics'
   setActiveTab: (tab: 'timer' | 'projects' | 'history' | 'analytics') => void
   onOpenSettings: () => void
+  onOpenAuth: () => void
+  onLogout: () => void
   stats: DashboardStats | null
+  user: User | null
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   setActiveTab,
   onOpenSettings,
+  onOpenAuth,
+  onLogout,
   stats,
+  user,
 }) => {
   const tabs = [
     { id: 'timer', label: 'Pomodoro', icon: Timer },
@@ -41,7 +47,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
               Study<span className="text-brand-500">Tracker</span>
               <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">
-                Go + React
+                PROD
               </span>
             </span>
           </div>
@@ -69,17 +75,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           })}
         </nav>
 
-        {/* Right Action & Live Counters */}
+        {/* Right Actions & Auth Status */}
         <div className="flex items-center space-x-3">
-          {stats && (
-            <div className="hidden md:flex items-center space-x-2 text-xs">
-              {/* Daily Streak */}
+          {stats && user && (
+            <div className="hidden lg:flex items-center space-x-2 text-xs">
               <div className="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-orange-500/10 text-orange-400 border border-orange-500/20 font-medium">
                 <Flame className="w-3.5 h-3.5 fill-orange-400 text-orange-400" />
                 <span>{stats.current_streak_days}d streak</span>
               </div>
-
-              {/* Today Focus */}
               <div className="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 font-medium">
                 <span className="text-slate-500">Today:</span>
                 <span className="text-brand-400">{formatHoursMinutes(stats.today_minutes)}</span>
@@ -87,10 +90,39 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           )}
 
-          {/* Settings Button */}
+          {/* User Profile / Auth Button */}
+          {user ? (
+            <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 bg-slate-800/80 border border-slate-700/60 px-2.5 py-1 rounded-xl text-xs">
+                <div className="w-5 h-5 rounded-full bg-brand-500 text-slate-950 font-bold flex items-center justify-center text-[10px]">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+                <span className="hidden sm:inline text-slate-200 font-medium max-w-[100px] truncate">
+                  {user.name}
+                </span>
+              </div>
+              <button
+                onClick={onLogout}
+                title="Log Out"
+                className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onOpenAuth}
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-slate-950 font-bold text-xs shadow-md transition-all hover:scale-105 active:scale-95"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In</span>
+            </button>
+          )}
+
+          {/* Settings */}
           <button
             onClick={onOpenSettings}
-            title="Settings"
+            title="Timer Settings"
             className="p-2 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors border border-transparent hover:border-slate-700"
           >
             <SettingsIcon className="w-5 h-5" />

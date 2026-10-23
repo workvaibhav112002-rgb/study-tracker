@@ -1,19 +1,40 @@
-import { DashboardStats, Project, Session, Settings } from '../types'
+import { AuthResponse, DashboardStats, Project, Session, Settings, User } from '../types'
 
 const BASE_URL = '/api'
+const TOKEN_KEY = 'study_tracker_token'
+
+export const tokenStorage = {
+  get: () => localStorage.getItem(TOKEN_KEY),
+  set: (token: string) => localStorage.setItem(TOKEN_KEY, token),
+  clear: () => localStorage.removeItem(TOKEN_KEY),
+}
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const token = tokenStorage.get()
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string>),
+  }
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
     ...options,
+    headers,
   })
 
   if (!res.ok) {
-    const errorText = await res.text().catch(() => res.statusText)
-    throw new Error(errorText || `Request failed with status ${res.status}`)
+    let errorMsg = `Request failed (${res.status})`
+    try {
+      const errJson = await res.json()
+      if (errJson.error) errorMsg = errJson.error
+    } catch {
+      const text = await res.text().catch(() => '')
+      if (text) errorMsg = text
+    }
+    throw new Error(errorMsg)
   }
 
   if (res.status === 204) {
@@ -24,6 +45,19 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  // Auth
+  register: (email: string, password: string, name: string) =>
+    request<AuthResponse>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, name }),
+    }),
+  login: (email: string, password: string) =>
+    request<AuthResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
+  getMe: () => request<User>('/auth/me'),
+
   // Projects
   getProjects: () => request<Project[]>('/projects'),
   createProject: (data: Partial<Project>) =>

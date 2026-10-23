@@ -7,11 +7,14 @@ import { ProjectManager } from './components/ProjectManager'
 import { HistoryTable } from './components/HistoryTable'
 import { AnalyticsDashboard } from './components/AnalyticsDashboard'
 import { SettingsModal } from './components/SettingsModal'
-import { api } from './api/client'
-import { DashboardStats, Project, Session, Settings } from './types'
+import { AuthModal } from './components/AuthModal'
+import { api, tokenStorage } from './api/client'
+import { DashboardStats, Project, Session, Settings, User } from './types'
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'timer' | 'projects' | 'history' | 'analytics'>('timer')
+  const [user, setUser] = useState<User | null>(null)
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [projects, setProjects] = useState<Project[]>([])
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null)
   const [sessions, setSessions] = useState<Session[]>([])
@@ -35,8 +38,8 @@ export const App: React.FC = () => {
     projectId: number
   } | null>(null)
 
-  // Load initial data
-  const loadData = useCallback(async () => {
+  // Load user data
+  const loadUserData = useCallback(async () => {
     try {
       const [fetchedProjects, fetchedSettings, fetchedStats, fetchedSessions] = await Promise.all([
         api.getProjects(),
@@ -46,20 +49,50 @@ export const App: React.FC = () => {
       ])
 
       setProjects(fetchedProjects)
-      if (fetchedProjects.length > 0 && !selectedProjectId) {
-        setSelectedProjectId(fetchedProjects[0].id)
+      if (fetchedProjects.length > 0) {
+        setSelectedProjectId((prev) => (prev ? prev : fetchedProjects[0].id))
       }
       setSettings(fetchedSettings)
       setStats(fetchedStats)
       setSessions(fetchedSessions)
     } catch (err) {
-      console.error('Error loading initial study tracker data:', err)
+      console.error('Error loading study tracker data:', err)
     }
-  }, [selectedProjectId])
+  }, [])
 
+  // Check initial authentication
   useEffect(() => {
-    loadData()
-  }, [loadData])
+    const token = tokenStorage.get()
+    if (token) {
+      api
+        .getMe()
+        .then((userData) => {
+          setUser(userData)
+          loadUserData()
+        })
+        .catch(() => {
+          tokenStorage.clear()
+          setUser(null)
+          setIsAuthModalOpen(true)
+        })
+    } else {
+      setIsAuthModalOpen(true)
+    }
+  }, [loadUserData])
+
+  const handleAuthSuccess = (authenticatedUser: User) => {
+    setUser(authenticatedUser)
+    loadUserData()
+  }
+
+  const handleLogout = () => {
+    tokenStorage.clear()
+    setUser(null)
+    setProjects([])
+    setSessions([])
+    setStats(null)
+    setIsAuthModalOpen(true)
+  }
 
   // Handle Work Session Completion
   const handleWorkSessionComplete = (
@@ -68,6 +101,10 @@ export const App: React.FC = () => {
     endTime: string,
     projectId: number
   ) => {
+    if (!user) {
+      setIsAuthModalOpen(true)
+      return
+    }
     setCompletedSessionData({
       durationSeconds,
       startTime,
@@ -91,7 +128,7 @@ export const App: React.FC = () => {
         notes,
       })
       setCompletedSessionData(null)
-      await loadData()
+      await loadUserData()
     } catch (err) {
       console.error('Failed to save pomodoro session:', err)
     }
@@ -101,7 +138,7 @@ export const App: React.FC = () => {
   const handleSaveManualSession = async (sessionData: Omit<Session, 'id' | 'created_at'>) => {
     try {
       await api.createSession(sessionData)
-      await loadData()
+      await loadUserData()
     } catch (err) {
       console.error('Failed to create manual session:', err)
     }
@@ -111,7 +148,7 @@ export const App: React.FC = () => {
   const handleDeleteSession = async (id: number) => {
     try {
       await api.deleteSession(id)
-      await loadData()
+      await loadUserData()
     } catch (err) {
       console.error('Failed to delete session:', err)
     }
@@ -121,7 +158,7 @@ export const App: React.FC = () => {
   const handleCreateProject = async (data: Partial<Project>) => {
     try {
       await api.createProject(data)
-      await loadData()
+      await loadUserData()
     } catch (err) {
       console.error('Failed to create project:', err)
     }
@@ -130,7 +167,7 @@ export const App: React.FC = () => {
   const handleUpdateProject = async (id: number, data: Partial<Project>) => {
     try {
       await api.updateProject(id, data)
-      await loadData()
+      await loadUserData()
     } catch (err) {
       console.error('Failed to update project:', err)
     }
@@ -139,7 +176,7 @@ export const App: React.FC = () => {
   const handleDeleteProject = async (id: number) => {
     try {
       await api.deleteProject(id)
-      await loadData()
+      await loadUserData()
     } catch (err) {
       console.error('Failed to delete project:', err)
     }
@@ -164,7 +201,10 @@ export const App: React.FC = () => {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+        onLogout={handleLogout}
         stats={stats}
+        user={user}
       />
 
       {/* Main Content Area */}
@@ -193,7 +233,13 @@ export const App: React.FC = () => {
             sessions={sessions}
             projects={projects}
             onDeleteSession={handleDeleteSession}
-            onOpenManualModal={() => setIsManualModalOpen(true)}
+            onOpenManualModal={() => {
+              if (!user) {
+                setIsAuthModalOpen(true)
+                return
+              }
+              setIsManualModalOpen(true)
+            }}
           />
         )}
 
@@ -225,6 +271,13 @@ export const App: React.FC = () => {
         onClose={() => setIsSettingsOpen(false)}
         settings={settings}
         onSave={handleSaveSettings}
+      />
+
+      {/* Auth Modal (Sign In / Register) */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={handleAuthSuccess}
       />
     </div>
   )

@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 
+	"study-tracker-backend/auth"
 	"study-tracker-backend/database"
 	"study-tracker-backend/handlers"
 )
@@ -23,7 +24,6 @@ func main() {
 
 	dbPath := os.Getenv("DB_PATH")
 	if dbPath == "" {
-		// Store DB in the root of study tracker folder
 		execDir, err := os.Getwd()
 		if err != nil {
 			dbPath = "study_tracker.db"
@@ -45,7 +45,7 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:*", "http://127.0.0.1:*"},
+		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link", "Content-Disposition"},
@@ -56,33 +56,47 @@ func main() {
 	// API Routes
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
 			w.Write([]byte(`{"status":"ok"}`))
 		})
 
-		// Projects
-		r.Get("/projects", handlers.GetProjects)
-		r.Post("/projects", handlers.CreateProject)
-		r.Put("/projects/{id}", handlers.UpdateProject)
-		r.Delete("/projects/{id}", handlers.DeleteProject)
+		// Public Auth Endpoints
+		r.Route("/auth", func(r chi.Router) {
+			r.Post("/register", handlers.Register)
+			r.Post("/login", handlers.Login)
+		})
 
-		// Sessions
-		r.Get("/sessions", handlers.GetSessions)
-		r.Post("/sessions", handlers.CreateSession)
-		r.Delete("/sessions/{id}", handlers.DeleteSession)
+		// Protected Routes (Requires JWT Token)
+		r.Group(func(r chi.Router) {
+			r.Use(auth.AuthMiddleware)
 
-		// Stats
-		r.Get("/stats/dashboard", handlers.GetDashboardStats)
+			r.Get("/auth/me", handlers.GetMe)
 
-		// Settings
-		r.Get("/settings", handlers.GetSettings)
-		r.Post("/settings", handlers.UpdateSettings)
+			// Projects
+			r.Get("/projects", handlers.GetProjects)
+			r.Post("/projects", handlers.CreateProject)
+			r.Put("/projects/{id}", handlers.UpdateProject)
+			r.Delete("/projects/{id}", handlers.DeleteProject)
 
-		// Export
-		r.Get("/export", handlers.ExportData)
+			// Sessions
+			r.Get("/sessions", handlers.GetSessions)
+			r.Post("/sessions", handlers.CreateSession)
+			r.Delete("/sessions/{id}", handlers.DeleteSession)
+
+			// Stats
+			r.Get("/stats/dashboard", handlers.GetDashboardStats)
+
+			// Settings
+			r.Get("/settings", handlers.GetSettings)
+			r.Post("/settings", handlers.UpdateSettings)
+
+			// Export
+			r.Get("/export", handlers.ExportData)
+		})
 	})
 
 	addr := fmt.Sprintf("0.0.0.0:%s", port)
-	log.Printf("Study Tracker Backend (Go) listening on http://localhost:%s", port)
+	log.Printf("Study Tracker Backend (Go) listening on http://0.0.0.0:%s", port)
 	if err := http.ListenAndServe(addr, r); err != nil {
 		log.Fatalf("Server error: %v", err)
 	}
