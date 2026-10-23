@@ -90,7 +90,29 @@ export const api = {
     request<Settings>('/settings', { method: 'POST', body: JSON.stringify(data) }),
 
   // Export
-  exportUrl: `${BASE_URL}/export`,
+  exportBackup: async () => {
+    const token = tokenStorage.get()
+    const headers: Record<string, string> = {}
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const res = await fetch(`${BASE_URL}/export`, { headers })
+    if (!res.ok) {
+      const errText = await res.text().catch(() => res.statusText)
+      throw new Error(errText || 'Export failed')
+    }
+
+    const blob = await res.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `study_tracker_backup_${new Date().toISOString().slice(0, 10)}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+  },
 
   // Feedback
   submitFeedback: (data: { type: string; message: string; email?: string }) =>

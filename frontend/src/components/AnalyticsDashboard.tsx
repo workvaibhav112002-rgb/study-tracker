@@ -32,6 +32,22 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   stats,
   projects,
 }) => {
+  const [exporting, setExporting] = React.useState(false)
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      await api.exportBackup()
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        alert(err.message)
+      } else {
+        alert('Export failed. Please ensure you are signed in.')
+      }
+    } finally {
+      setExporting(false)
+    }
+  }
   if (!stats) {
     return (
       <div className="flex items-center justify-center py-20 text-slate-500">
@@ -84,14 +100,14 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         </div>
 
         {/* Data Export Button */}
-        <a
-          href={api.exportUrl}
-          download
-          className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all hover:scale-105 active:scale-95"
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
         >
           <Download className="w-4 h-4 text-brand-400" />
-          <span>Export JSON Backup</span>
-        </a>
+          <span>{exporting ? 'Exporting...' : 'Export JSON Backup'}</span>
+        </button>
       </div>
 
       {/* Metric Cards Grid */}
