@@ -50,14 +50,19 @@ func NewRouter(d Deps) http.Handler {
 	r.Use(recoverer(d.Logger))
 	r.Use(middleware.Timeout(d.Config.RequestTimeout))
 	r.Use(maxBody(d.Config.MaxBodyBytes))
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   d.Config.CORSOrigins,
-		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
-		ExposedHeaders:   []string{"Content-Disposition"},
-		AllowCredentials: false,
-		MaxAge:           300,
-	}))
+	// go-chi/cors treats an empty AllowedOrigins as "allow everything", so the
+	// middleware is only mounted when an explicit allow-list exists. Without
+	// it no CORS headers are emitted and browsers deny cross-origin calls.
+	if len(d.Config.CORSOrigins) > 0 {
+		r.Use(cors.Handler(cors.Options{
+			AllowedOrigins:   d.Config.CORSOrigins,
+			AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
+			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
+			ExposedHeaders:   []string{"Content-Disposition"},
+			AllowCredentials: false,
+			MaxAge:           300,
+		}))
+	}
 
 	limited := func(limit int, window time.Duration) func(http.Handler) http.Handler {
 		return httprate.Limit(limit, window,

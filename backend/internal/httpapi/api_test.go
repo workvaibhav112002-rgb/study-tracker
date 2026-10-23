@@ -439,6 +439,21 @@ func TestCORS(t *testing.T) {
 	}
 }
 
+func TestCORSDeniedWithoutAllowList(t *testing.T) {
+	s := newServer(t, func(c *config.Config) { c.CORSOrigins = nil })
+	req, _ := newRequest("OPTIONS", s.URL+"/api/projects")
+	req.Header.Set("Origin", "https://evil.example")
+	req.Header.Set("Access-Control-Request-Method", "GET")
+	res, err := s.Client().Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if got := res.Header.Get("Access-Control-Allow-Origin"); got != "" {
+		t.Fatalf("expected no CORS headers without an allow-list, got %q", got)
+	}
+}
+
 func TestMigrateIsIdempotent(t *testing.T) {
 	ctx := context.Background()
 	if err := postgres.Migrate(ctx, testPool); err != nil {

@@ -63,6 +63,11 @@ func Load(getenv func(string) string) (Config, error) {
 			cfg.CORSOrigins = append(cfg.CORSOrigins, o)
 		}
 	}
+	// With no allow-list the router emits no CORS headers at all, so browsers
+	// deny every cross-origin call. That is never what production wants.
+	if cfg.IsProduction() && len(cfg.CORSOrigins) == 0 {
+		errs = append(errs, errors.New("CORS_ORIGINS is required in production (comma-separated origins, e.g. https://*.vercel.app)"))
+	}
 
 	cfg.JWTTTL = duration(getenv, "JWT_TTL", 7*24*time.Hour, &errs)
 	cfg.AuthRateLimit = integer(getenv, "AUTH_RATE_LIMIT", 10, &errs)

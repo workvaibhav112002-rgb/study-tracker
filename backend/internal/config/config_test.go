@@ -52,6 +52,18 @@ func TestLoadDefaultsAndOverrides(t *testing.T) {
 	}
 }
 
+func TestProductionRequiresCORSOrigins(t *testing.T) {
+	_, err := Load(env(map[string]string{
+		"DATABASE_URL": "postgres://x", "JWT_SECRET": strings.Repeat("s", 32), "APP_ENV": "production",
+	}))
+	if err == nil || !strings.Contains(err.Error(), "CORS_ORIGINS") {
+		t.Fatalf("expected CORS_ORIGINS error in production, got %v", err)
+	}
+	if _, err := Load(env(map[string]string{"DATABASE_URL": "postgres://x", "JWT_SECRET": strings.Repeat("s", 32)})); err != nil {
+		t.Fatalf("development should not require CORS_ORIGINS: %v", err)
+	}
+}
+
 func TestLoadRejectsBadNumbers(t *testing.T) {
 	_, err := Load(env(map[string]string{
 		"DATABASE_URL": "postgres://x", "JWT_SECRET": strings.Repeat("s", 32),
