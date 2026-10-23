@@ -4,8 +4,10 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"study-tracker-backend/internal/store"
@@ -32,6 +34,14 @@ func NewPool(ctx context.Context, databaseURL string) (*pgxpool.Pool, error) {
 	cfg.MaxConnLifetime = 30 * time.Minute
 	cfg.HealthCheckPeriod = time.Minute
 	cfg.ConnConfig.ConnectTimeout = 15 * time.Second
+
+	// Neon's pooled endpoint (host contains "-pooler") is PgBouncer in
+	// transaction mode, where server-side prepared statements break. Fall back
+	// to the simple protocol there. The direct endpoint is preferred for this
+	// long-running server; see README.
+	if strings.Contains(cfg.ConnConfig.Host, "-pooler") {
+		cfg.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
+	}
 
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {

@@ -7,11 +7,16 @@ set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export PATH="$HOME/.local/go/bin:$PATH"
 
-if [ ! -f "$DIR/.env" ]; then
-  echo "Missing $DIR/.env — copy .env.example and fill in DATABASE_URL and JWT_SECRET." >&2
+# Load .env.local (written by `neon deploy`) first, then .env for overrides.
+set -a
+[ -f "$DIR/.env.local" ] && . "$DIR/.env.local"
+[ -f "$DIR/.env" ] && . "$DIR/.env"
+set +a
+: "${DATABASE_URL:=${DATABASE_URL_UNPOOLED:-}}"
+if [ -z "${DATABASE_URL:-}" ] || [ -z "${JWT_SECRET:-}" ]; then
+  echo "Set DATABASE_URL (run 'neon deploy' or copy .env.example to .env) and JWT_SECRET." >&2
   exit 1
 fi
-set -a; . "$DIR/.env"; set +a
 
 cleanup() {
   echo; echo "Shutting down..."
