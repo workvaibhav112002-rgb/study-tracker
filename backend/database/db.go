@@ -72,6 +72,14 @@ func createTables(db *sql.DB) error {
 			PRIMARY KEY(user_id, key),
 			FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 		);`,
+		`CREATE TABLE IF NOT EXISTS feedback (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER DEFAULT 0,
+			email TEXT DEFAULT '',
+			type TEXT NOT NULL DEFAULT 'general',
+			message TEXT NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		);`,
 		`CREATE INDEX IF NOT EXISTS idx_projects_user ON projects(user_id);`,
 		`CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);`,
 		`CREATE INDEX IF NOT EXISTS idx_sessions_user_start ON sessions(user_id, start_time);`,

@@ -8,6 +8,8 @@ import { HistoryTable } from './components/HistoryTable'
 import { AnalyticsDashboard } from './components/AnalyticsDashboard'
 import { SettingsModal } from './components/SettingsModal'
 import { AuthModal } from './components/AuthModal'
+import { FeedbackModal } from './components/FeedbackModal'
+import { MessageSquareHeart } from 'lucide-react'
 import { api, tokenStorage } from './api/client'
 import { DashboardStats, Project, Session, Settings, User } from './types'
 
@@ -30,6 +32,7 @@ export const App: React.FC = () => {
 
   // Modals
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
   const [isManualModalOpen, setIsManualModalOpen] = useState(false)
   const [completedSessionData, setCompletedSessionData] = useState<{
     durationSeconds: number
@@ -278,6 +281,23 @@ export const App: React.FC = () => {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         onSuccess={handleAuthSuccess}
+      />
+
+      {/* Floating Feedback Button */}
+      <button
+        onClick={() => setIsFeedbackOpen(true)}
+        title="Share your feedback or suggest a feature"
+        className="fixed bottom-5 right-5 z-40 flex items-center space-x-2 px-3.5 py-2 rounded-full bg-slate-900/90 hover:bg-slate-800 text-slate-200 hover:text-white border border-slate-700/80 hover:border-brand-500/80 shadow-2xl backdrop-blur transition-all hover:scale-105 active:scale-95 text-xs font-semibold"
+      >
+        <MessageSquareHeart className="w-4 h-4 text-brand-400" />
+        <span>Feedback</span>
+      </button>
+
+      {/* Feedback Modal */}
+      <FeedbackModal
+        isOpen={isFeedbackOpen}
+        onClose={() => setIsFeedbackOpen(false)}
+        userEmail={user?.email}
       />
     </div>
   )

@@ -44,8 +44,8 @@ type Session struct {
 	StartTime       string `json:"start_time"`
 	EndTime         string `json:"end_time"`
 	DurationSeconds int    `json:"duration_seconds"`
-	SessionType     string `json:"session_type"` // 'pomodoro' | 'custom' | 'manual'
-	FocusRating     int    `json:"focus_rating"` // 1 - 5
+	SessionType     string `json:"session_type"`
+	FocusRating     int    `json:"focus_rating"`
 	Notes           string `json:"notes"`
 	CreatedAt       string `json:"created_at"`
 }
@@ -69,7 +69,7 @@ type ProjectStat struct {
 }
 
 type DailyStat struct {
-	Date    string `json:"date"` // YYYY-MM-DD
+	Date    string `json:"date"`
 	Minutes int    `json:"minutes"`
 }
 
@@ -81,4 +81,13 @@ type DashboardStats struct {
 	CompletedPomodoros int           `json:"completed_pomodoros"`
 	ProjectStats       []ProjectStat `json:"project_stats"`
 	DailyTrend         []DailyStat   `json:"daily_trend"`
+}
+
+type Feedback struct {
+	ID        int64  `json:"id"`
+	UserID    int64  `json:"user_id,omitempty"`
+	Email     string `json:"email"`
+	Type      string `json:"type"` // "feature" | "bug" | "praise" | "general"
+	Message   string `json:"message"`
+	CreatedAt string `json:"created_at"`
 }

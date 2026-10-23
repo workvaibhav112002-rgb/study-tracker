@@ -69,3 +69,9 @@ export interface DashboardStats {
 }
 
 export type TimerMode = 'work' | 'short_break' | 'long_break'
+
+export interface FeedbackSubmission {
+  type: 'feature' | 'bug' | 'praise' | 'general'
+  message: string
+  email?: string
+}

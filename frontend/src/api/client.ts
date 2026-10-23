@@ -91,4 +91,11 @@ export const api = {
 
   // Export
   exportUrl: `${BASE_URL}/export`,
+
+  // Feedback
+  submitFeedback: (data: { type: string; message: string; email?: string }) =>
+    request<{ status: string; message: string }>('/feedback', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 }

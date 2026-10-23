@@ -66,6 +66,9 @@ func main() {
 			r.Post("/login", handlers.Login)
 		})
 
+		// Public Feedback endpoint (supports feedback from any user)
+		r.Post("/feedback", handlers.CreateFeedback)
+
 		// Protected Routes (Requires JWT Token)
 		r.Group(func(r chi.Router) {
 			r.Use(auth.AuthMiddleware)
