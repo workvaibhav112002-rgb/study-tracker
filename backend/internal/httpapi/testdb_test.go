@@ -98,7 +98,7 @@ func testConfig() config.Config {
 	cfg, err := config.Load(func(k string) string {
 		return map[string]string{
 			"DATABASE_URL": "unused", "JWT_SECRET": strings.Repeat("t", 32),
-			"CORS_ORIGINS": "http://localhost:5173,https://*.vercel.app",
+			"CORS_ORIGINS":    "http://localhost:5173,https://*.vercel.app",
 			"AUTH_RATE_LIMIT": "100000", "FEEDBACK_RATE_LIMIT": "100000",
 		}[k]
 	})
@@ -192,7 +192,7 @@ func (s *testServer) createSession(t *testing.T, token string, projectID int64, 
 	t.Helper()
 	return s.do(t, "POST", "/api/sessions", token, map[string]any{
 		"project_id": projectID, "start_time": start.UTC().Format(time.RFC3339),
-		"end_time": start.Add(time.Duration(seconds) * time.Second).UTC().Format(time.RFC3339),
+		"end_time":         start.Add(time.Duration(seconds) * time.Second).UTC().Format(time.RFC3339),
 		"duration_seconds": seconds, "session_type": "pomodoro", "focus_rating": 4,
 	})
 }
