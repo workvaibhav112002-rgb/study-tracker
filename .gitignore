@@ -1,22 +1,24 @@
-# Binaries & build artifacts
+# Build artifacts
 backend/study-tracker-server
 frontend/dist/
 frontend/dist-ssr/
+frontend/coverage/
 
-# Node dependencies
+# Dependencies
 node_modules/
-frontend/node_modules/
 
-# Database files
+# Local secrets
+.env
+.env.local
+
+# Legacy SQLite files
 *.db
 *.db-journal
 *.db-wal
 *.db-shm
 
-# Logs
+# Logs, editors, OS
 *.log
-
-# Editor & OS files
 .DS_Store
 Thumbs.db
 .idea/
