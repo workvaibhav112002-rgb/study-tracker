@@ -174,7 +174,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
         <div className="mt-6 space-y-6 border-t border-white/[0.06] pt-6">
           <CalendarSyncSection hasToken={Boolean(user.has_calendar_token)} onChanged={onUserChanged} />
           <ImportSection onImported={onDataChanged} />
-          <AccountSection email={user.email} onPasswordChanged={onPasswordChanged} onDeleted={onAccountDeleted} />
+          <AccountSection email={user.email} hasPassword={Boolean(user.has_password)} googleLinked={Boolean(user.google_linked)} onPasswordChanged={onPasswordChanged} onDeleted={onAccountDeleted} />
         </div>
       )}
     </Modal>

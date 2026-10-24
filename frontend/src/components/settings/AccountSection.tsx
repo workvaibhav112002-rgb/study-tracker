@@ -9,11 +9,13 @@ import { useToast } from '../ui/Toast'
 
 interface Props {
   email: string
+  hasPassword: boolean
+  googleLinked: boolean
   onPasswordChanged: (res: AuthResponse) => void
   onDeleted: () => void
 }
 
-export const AccountSection: React.FC<Props> = ({ email, onPasswordChanged, onDeleted }) => {
+export const AccountSection: React.FC<Props> = ({ email, hasPassword, googleLinked, onPasswordChanged, onDeleted }) => {
   const toast = useToast()
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
@@ -29,7 +31,7 @@ export const AccountSection: React.FC<Props> = ({ email, onPasswordChanged, onDe
     if (next !== confirm) return setError('The new passwords do not match.')
     setBusy(true)
     try {
-      const res = await api.changePassword(current, next)
+      const res = await api.changePassword(hasPassword ? current : null, next)
       onPasswordChanged(res)
       setCurrent('')
       setNext('')
@@ -48,12 +50,18 @@ export const AccountSection: React.FC<Props> = ({ email, onPasswordChanged, onDe
         <h3 id="account-section" className="eyebrow">
           Account
         </h3>
-        <p className="mt-1 text-xs text-ink-500">Signed in as {email}.</p>
+        <p className="mt-1 text-xs text-ink-500">
+          Signed in as {email}
+          {googleLinked ? ' · Google linked' : ''}
+          {hasPassword ? '' : ' · no password set yet'}.
+        </p>
       </div>
       <form onSubmit={change} className="space-y-3">
-        <Field label="Current password">
-          {(id) => <input id={id} type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} className={inputClass} required />}
-        </Field>
+        {hasPassword && (
+          <Field label="Current password">
+            {(id) => <input id={id} type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} className={inputClass} required />}
+          </Field>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <Field label="New password">
             {(id) => <input id={id} type="password" autoComplete="new-password" minLength={8} value={next} onChange={(e) => setNext(e.target.value)} className={inputClass} required />}
@@ -68,7 +76,7 @@ export const AccountSection: React.FC<Props> = ({ email, onPasswordChanged, onDe
           </p>
         )}
         <Button type="submit" size="sm" variant="secondary" loading={busy} icon={<KeyRound className="h-3.5 w-3.5" aria-hidden="true" />}>
-          Change password
+          {hasPassword ? 'Change password' : 'Set a password'}
         </Button>
       </form>
 

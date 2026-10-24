@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react'
+import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import { MessageSquareHeart } from 'lucide-react'
 import confetti from 'canvas-confetti'
 import { Navbar, type Tab } from './components/Navbar'
@@ -9,6 +9,10 @@ import { ProjectManager } from './components/ProjectManager'
 import { HistoryTable } from './components/HistoryTable'
 import { SettingsModal } from './components/SettingsModal'
 import { AuthModal } from './components/AuthModal'
+import { ResetPasswordModal } from './components/ResetPasswordModal'
+import { useAppConfig } from './hooks/useAppConfig'
+import { cleanEntryLink, parseEntryLink } from './lib/entryLink'
+import { api } from './api/client'
 import { FeedbackModal } from './components/FeedbackModal'
 import { ToastProvider, useToast } from './components/ui/Toast'
 import { ServerStatusBanner } from './components/ui/ServerStatusBanner'
@@ -61,7 +65,11 @@ const AnalyticsSkeleton: React.FC = () => (
 const AppShell: React.FC = () => {
   const toast = useToast()
   const auth = useAuth()
+  const config = useAppConfig()
   const userId = auth.user?.id ?? null
+  const [entry] = useState(() => parseEntryLink(window.location.pathname, window.location.search))
+  const [resetToken, setResetToken] = useState<string | null>(() => (entry?.kind === 'reset' ? entry.token : null))
+
   const data = useAppData(userId)
   const taskState = useTasks(userId, data.selectedProjectId)
   const { prefs } = useLocalPrefs()
@@ -129,6 +137,22 @@ const AppShell: React.FC = () => {
       void clearApiCache()
     }
   }, [auth.status])
+
+  // Emailed magic link: redeem it once, then clean the address bar.
+  const magicHandled = useRef(false)
+  useEffect(() => {
+    if (!entry || magicHandled.current) return
+    magicHandled.current = true
+    cleanEntryLink()
+    if (entry.kind !== 'magic') return
+    api
+      .magicSignIn(entry.token)
+      .then((res) => {
+        auth.applyAuth(res)
+        toast.success('Signed in.')
+      })
+      .catch((err) => toast.error(errorMessage(err, 'This sign-in link is invalid or has expired.')))
+  }, [entry, auth, toast])
 
   useServiceWorker({
     onNeedRefresh: (reload) => toast.action('A new version is available.', 'Reload', reload),
@@ -328,7 +352,24 @@ const AppShell: React.FC = () => {
         }}
       />
 
-      <AuthModal isOpen={auth.status === 'anonymous'} onLogin={auth.login} onRegister={auth.register} />
+      <AuthModal
+        isOpen={auth.status === 'anonymous' && resetToken === null}
+        config={config}
+        onLogin={auth.login}
+        onRegister={auth.register}
+        onGoogle={async (credential) => auth.applyAuth(await api.googleSignIn(credential))}
+      />
+      {resetToken !== null && (
+        <ResetPasswordModal
+          token={resetToken}
+          onCancel={() => setResetToken(null)}
+          onDone={(res) => {
+            auth.applyAuth(res)
+            setResetToken(null)
+            toast.success('Password updated. You are signed in.')
+          }}
+        />
+      )}
 
       <button
         type="button"

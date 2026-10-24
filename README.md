@@ -21,6 +21,8 @@ Go API on Postgres, React frontend. Runs entirely on free tiers.
 - **Daily goal rings** per project, a **year heatmap**, **best hours of the day**, week-over-week delta.
 - **Tasks** per project with pomodoro estimates, linked to sessions.
 - **Calendar feed**: a private iCal URL so sessions appear in Google or Apple Calendar.
+- **Sign in with Google**, **magic links** (passwordless sign-in and signup) and **password reset** by email,
+  each switched on by a single env var and hidden until configured.
 - **Export / import** your data as JSON. Change password and delete account. **Feedback** widget with rate limiting.
 - Installable **PWA** with offline shell. Accessible dialogs (focus trap, Escape, ARIA), toasts for every error,
   cold-start banner for the free tier. Optional Sentry error reporting on both ends.
@@ -57,6 +59,12 @@ All routes are under `/api`. Authenticated routes need `Authorization: Bearer <t
 | GET    | /health               | no   | 200 when the database answers, 503 otherwise              |
 | POST   | /auth/register        | no   | `{email,password,name}` → 201 `{token,user}`; 409 if taken |
 | POST   | /auth/login           | no   | → 200 `{token,user}`; 401 `invalid credentials`           |
+| GET    | /config               | no   | which optional features are on (`email_enabled`, `google_client_id`) |
+| POST   | /auth/forgot-password | no   | `{email}` → always 200; emails a 1-hour reset link (needs SMTP) |
+| POST   | /auth/reset-password  | no   | `{token,new_password}` → 200 `{token,user}`; invalidates old sessions |
+| POST   | /auth/magic-link      | no   | `{email}` → 200; emails a 15-minute sign-in link, creates the account if new |
+| POST   | /auth/magic           | no   | `{token}` → 200 `{token,user}`                            |
+| POST   | /auth/google          | no   | `{credential}` Google ID token → 200 `{token,user}`; links by verified email |
 | GET    | /auth/me              | yes  |                                                           |
 | GET    | /projects             | yes  | includes `total_minutes`                                  |
 | POST   | /projects             | yes  | `{name,color,description,target_minutes_per_day}`         |
@@ -160,8 +168,22 @@ Set `TEST_DATABASE_URL` to run the backend suite against an existing database in
 | `REQUEST_TIMEOUT`     | no       | `20s`                                    |
 | `SHUTDOWN_TIMEOUT`    | no       | `15s`                                    |
 | `SENTRY_DSN`          | no       | enables error reporting when set         |
+| `APP_URL`             | no       | frontend origin used in emailed links (defaults to the Vercel URL) |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | no | enables password reset and magic links (any STARTTLS relay; Brevo's free tier works) |
+| `GOOGLE_CLIENT_ID`    | no       | enables "Continue with Google"           |
 
 Frontend (Vercel): `VITE_API_URL` (optional override), `VITE_SENTRY_DSN` (optional).
+
+## Optional sign-in features (free)
+
+**Email (password reset + magic links).** Create a free account at <https://www.brevo.com>, verify a sender
+address under *Senders*, then *SMTP & API → SMTP → Generate key*. On Render set `SMTP_HOST=smtp-relay.brevo.com`,
+`SMTP_PORT=587`, `SMTP_USER=<your Brevo login email>`, `SMTP_PASS=<the SMTP key>`, `SMTP_FROM=<the verified sender>`.
+The free tier allows 300 emails a day.
+
+**Google sign-in.** In <https://console.cloud.google.com> create a project, *APIs & Services → Credentials →
+Create credentials → OAuth client ID → Web application*. Authorised JavaScript origins: your Vercel URL and
+`http://localhost:5173`. No redirect URIs are needed. Copy the client ID into `GOOGLE_CLIENT_ID` on Render.
 
 ## Known trade-offs
 

@@ -1,4 +1,5 @@
 import type {
+  AppConfig,
   AuthResponse,
   CalendarToken,
   DailyStat,
@@ -212,6 +213,15 @@ export const api = {
   login: (email: string, password: string) =>
     request<AuthResponse>('/auth/login', { method: 'POST', body: { email, password }, auth: false }),
   getMe: () => request<User>('/auth/me'),
+  getConfig: () => request<AppConfig>('/config', { auth: false }),
+  forgotPassword: (email: string) =>
+    request<{ status: string; message: string }>('/auth/forgot-password', { method: 'POST', body: { email }, auth: false }),
+  resetPassword: (token: string, new_password: string) =>
+    request<AuthResponse>('/auth/reset-password', { method: 'POST', body: { token, new_password }, auth: false }),
+  requestMagicLink: (email: string) =>
+    request<{ status: string; message: string }>('/auth/magic-link', { method: 'POST', body: { email }, auth: false }),
+  magicSignIn: (token: string) => request<AuthResponse>('/auth/magic', { method: 'POST', body: { token }, auth: false }),
+  googleSignIn: (credential: string) => request<AuthResponse>('/auth/google', { method: 'POST', body: { credential }, auth: false }),
 
   // Projects
   getProjects: () => request<Project[]>('/projects'),
@@ -250,8 +260,8 @@ export const api = {
   calendarUrl: (token: string) => `${BASE_URL}/calendar/${token}.ics`,
 
   // Account
-  changePassword: (current_password: string, new_password: string) =>
-    request<AuthResponse>('/auth/change-password', { method: 'POST', body: { current_password, new_password } }),
+  changePassword: (current_password: string | null, new_password: string) =>
+    request<AuthResponse>('/auth/change-password', { method: 'POST', body: { current_password: current_password ?? '', new_password } }),
   deleteAccount: (password: string) => request<void>('/auth/me', { method: 'DELETE', body: { password } }),
 
   // Import

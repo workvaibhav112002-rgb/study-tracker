@@ -5,6 +5,15 @@ export interface User {
   created_at?: string
   updated_at?: string
   has_calendar_token?: boolean
+  has_password?: boolean
+  google_linked?: boolean
+  email_verified_at?: string | null
+}
+
+export interface AppConfig {
+  email_enabled: boolean
+  google_client_id: string
+  app_url: string
 }
 
 export interface AuthResponse {
