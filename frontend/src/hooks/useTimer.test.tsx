@@ -62,6 +62,20 @@ describe('useTimer persistence', () => {
     expect(r.stale).toBe(true)
   })
 
+  it('never persists the transient running-at-zero state', () => {
+    const onFinish = vi.fn()
+    const { result } = renderHook(() => useTimer({ settings: DEFAULT_SETTINGS, onFinish, userId: 1, notificationsEnabled: false }))
+    act(() => result.current.start())
+    act(() => {
+      vi.setSystemTime(t0 + 25 * 60_000 + 500)
+      vi.advanceTimersByTime(250)
+    })
+    expect(onFinish).toHaveBeenCalledTimes(1)
+    const saved = loadTimer(1)
+    expect(saved && saved.status === 'running' && saved.secondsLeft === 0).toBe(false)
+    expect(saved?.mode).toBe('short_break')
+  })
+
   it('does not write back state received from another tab', () => {
     const onFinish = vi.fn()
     const { result } = renderHook(() => useTimer({ settings: DEFAULT_SETTINGS, onFinish, userId: 1, notificationsEnabled: false }))
