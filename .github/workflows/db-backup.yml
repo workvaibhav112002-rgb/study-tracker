@@ -1,0 +1,31 @@
+# Weekly logical backup of the production database, kept as a workflow
+# artifact for 90 days. Needs a repository secret DATABASE_URL (the Neon
+# direct connection string). Skips silently when the secret is absent.
+name: db-backup
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    if: ${{ vars.DB_BACKUP_ENABLED == 'true' }}
+    steps:
+      - name: Install PostgreSQL 16 client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-16 || sudo apt-get install -y -qq postgresql-client
+      - name: Dump
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          test -n "$DATABASE_URL" || { echo "DATABASE_URL secret not set"; exit 1; }
+          pg_dump --no-owner --no-privileges --format=custom --file=study-tracker-$(date -u +%F).dump "$DATABASE_URL"
+          ls -la *.dump
+      - uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: "*.dump"
+          retention-days: 90

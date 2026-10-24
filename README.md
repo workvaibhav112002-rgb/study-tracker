@@ -23,6 +23,9 @@ Go API on Postgres, React frontend. Runs entirely on free tiers.
 - **Calendar feed**: a private iCal URL so sessions appear in Google or Apple Calendar.
 - **Sign in with Google**, **magic links** (passwordless sign-in and signup) and **password reset** by email,
   each switched on by a single env var and hidden until configured.
+- **Weekly review** every Monday, a **command palette** (Ctrl/Cmd+K), **zen mode** (F), a **landing page**,
+  **shareable stat cards**, **ambient sounds** synthesized in the browser, **light theme** and five accents,
+  and a timer that follows you **across devices**.
 - **Export / import** your data as JSON. Change password and delete account. **Feedback** widget with rate limiting.
 - Installable **PWA** with offline shell. Accessible dialogs (focus trap, Escape, ARIA), toasts for every error,
   cold-start banner for the free tier. Optional Sentry error reporting on both ends.
@@ -148,7 +151,17 @@ For an isolated dev database: `neon checkout dev --create` makes a 7-day auto-ex
 ```bash
 cd backend && go test -race ./...     # spins up an embedded Postgres on first run (downloads ~50 MB once)
 cd frontend && npm run lint && npm run typecheck && npm test && npm run build
+cd frontend && API_URL=http://localhost:8080 npm run test:e2e   # Playwright, needs the API running
 ```
+
+CI runs all of the above plus the Docker build on every push. Dependabot opens weekly grouped update PRs.
+
+### Backups
+
+Neon's free tier keeps 6 hours of point-in-time restore. For longer retention the `db-backup` workflow
+runs `pg_dump` every Monday and keeps the file as a workflow artifact for 90 days. Enable it by adding a
+repository **secret** `DATABASE_URL` (the Neon direct string) and a repository **variable**
+`DB_BACKUP_ENABLED` = `true` under Settings → Secrets and variables → Actions.
 
 Set `TEST_DATABASE_URL` to run the backend suite against an existing database instead (CI does this).
 

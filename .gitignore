@@ -3,6 +3,8 @@ backend/study-tracker-server
 frontend/dist/
 frontend/dist-ssr/
 frontend/coverage/
+frontend/playwright-report/
+frontend/test-results/
 
 # Dependencies
 node_modules/
