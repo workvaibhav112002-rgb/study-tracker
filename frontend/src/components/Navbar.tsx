@@ -62,7 +62,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         )}
       </div>
 
-      <nav aria-label="Primary" className="flex items-center gap-0.5 rounded-xl border border-white/[0.06] bg-surface-950/60 p-1">
+      <nav aria-label="Primary" className="flex items-center gap-0.5 rounded-xl border border-fg/[0.06] bg-surface-950/60 p-1">
         {tabs.map((tab) => {
           const Icon = tab.icon
           const isActive = activeTab === tab.id
@@ -75,7 +75,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               aria-label={tab.label}
               title={tab.label}
               className={`focus-ring flex items-center gap-2 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all duration-200 ease-premium ${
-                isActive ? 'bg-white/[0.08] text-ink-50 shadow-inner-hi' : 'text-ink-400 hover:bg-white/[0.04] hover:text-ink-100'
+                isActive ? 'bg-fg/[0.08] text-ink-50 shadow-inner-hi' : 'text-ink-400 hover:bg-fg/[0.04] hover:text-ink-100'
               }`}
             >
               <Icon className={`h-4 w-4 ${isActive ? 'text-brand-400' : ''}`} aria-hidden="true" />
@@ -92,7 +92,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Flame className="h-3.5 w-3.5 fill-orange-400 text-orange-400" aria-hidden="true" />
               {stats.current_streak_days}d
             </div>
-            <div className="chip border-white/[0.06] bg-white/[0.04] text-ink-300" title="Studied today">
+            <div className="chip border-fg/[0.06] bg-fg/[0.04] text-ink-300" title="Studied today">
               <span className="text-ink-500">Today</span>
               <span className="text-ink-50">{formatMinutes(stats.today_minutes)}</span>
             </div>
@@ -102,7 +102,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {user && (
           <div className="flex items-center gap-1">
             <div
-              className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.04] py-1 pl-1 pr-2.5 text-xs"
+              className="flex items-center gap-2 rounded-xl border border-fg/[0.06] bg-fg/[0.04] py-1 pl-1 pr-2.5 text-xs"
               title={user.email}
             >
               <div
@@ -118,7 +118,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={onLogout}
               title="Log out"
               aria-label="Log out"
-              className="focus-ring rounded-xl p-2 text-ink-500 transition-colors hover:bg-white/[0.06] hover:text-rose-400"
+              className="focus-ring rounded-xl p-2 text-ink-500 transition-colors hover:bg-fg/[0.06] hover:text-rose-400"
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -130,7 +130,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={onOpenSettings}
           title="Timer settings"
           aria-label="Timer settings"
-          className="focus-ring rounded-xl p-2 text-ink-400 transition-colors hover:bg-white/[0.06] hover:text-ink-50"
+          className="focus-ring rounded-xl p-2 text-ink-400 transition-colors hover:bg-fg/[0.06] hover:text-ink-50"
         >
           <SettingsIcon className="h-[18px] w-[18px]" />
         </button>

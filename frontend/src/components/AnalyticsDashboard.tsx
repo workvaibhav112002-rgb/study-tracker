@@ -23,9 +23,9 @@ interface AnalyticsDashboardProps {
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-const SURFACE = '#0b0d13'
-const GRID = 'rgba(255,255,255,0.06)'
-const AXIS = '#6b7388'
+const SURFACE = 'rgb(var(--surface-900))'
+const GRID = 'rgb(var(--fg) / 0.08)'
+const AXIS = 'rgb(var(--ink-500))'
 
 interface BarDatum {
   date: string
@@ -138,7 +138,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, h
               <p className="mt-0.5 text-xs text-ink-500">Minutes per day over the last two weeks</p>
             </div>
             {peak > 0 && (
-              <span className="chip border-white/[0.06] bg-white/[0.04] text-ink-300">
+              <span className="chip border-fg/[0.06] bg-fg/[0.04] text-ink-300">
                 Peak <span className="font-mono tabular-nums text-ink-50">{formatMinutes(peak)}</span>
               </span>
             )}
@@ -148,15 +148,15 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, h
               <BarChart data={barData} margin={{ top: 8, right: 4, left: -18, bottom: 0 }} barCategoryGap="30%">
                 <defs>
                   <linearGradient id="barFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#6ee7b7" />
-                    <stop offset="100%" stopColor="#059669" />
+                    <stop offset="0%" stopColor="rgb(var(--brand-300))" />
+                    <stop offset="100%" stopColor="rgb(var(--brand-600))" />
                   </linearGradient>
                 </defs>
                 <CartesianGrid vertical={false} stroke={GRID} strokeWidth={1} />
                 <XAxis dataKey="date" stroke="transparent" tick={{ fill: AXIS, fontSize: 11 }} tickLine={false} axisLine={{ stroke: GRID }} interval={1} />
                 <YAxis stroke="transparent" tick={{ fill: AXIS, fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} unit="m" dataKey="minutes" />
                 <Tooltip
-                  cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                  cursor={{ fill: 'rgb(var(--fg) / 0.05)' }}
                   content={({ active, payload }) => {
                     if (!active || !payload?.length) return null
                     const d = payload[0].payload as BarDatum
@@ -165,7 +165,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, h
                 />
                 <Bar dataKey="minutes" fill="url(#barFill)" radius={[4, 4, 0, 0]} maxBarSize={24}>
                   {barData.map((b) => (
-                    <Cell key={b.rawDate} fill={b.isToday ? 'url(#barFill)' : 'rgba(110,231,183,0.45)'} />
+                    <Cell key={b.rawDate} fill={b.isToday ? 'url(#barFill)' : 'rgb(var(--brand-400) / 0.45)'} />
                   ))}
                 </Bar>
               </BarChart>
@@ -218,7 +218,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, h
                         </span>
                         <span className="shrink-0 font-mono tabular-nums text-ink-400">{formatMinutes(d.value)}</span>
                       </div>
-                      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/[0.05]">
+                      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-fg/[0.05]">
                         <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: d.color }} />
                       </div>
                     </li>

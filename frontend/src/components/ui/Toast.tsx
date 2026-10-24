@@ -74,7 +74,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                   t.action?.run()
                   dismiss(t.id)
                 }}
-                className="focus-ring rounded-lg border border-white/[0.1] bg-white/[0.08] px-2.5 py-1 text-xs font-semibold text-ink-50 hover:bg-white/[0.14]"
+                className="focus-ring rounded-lg border border-fg/[0.1] bg-fg/[0.08] px-2.5 py-1 text-xs font-semibold text-ink-50 hover:bg-fg/[0.14]"
               >
                 {t.action.label}
               </button>
@@ -83,7 +83,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               type="button"
               onClick={() => dismiss(t.id)}
               aria-label="Dismiss notification"
-              className="focus-ring rounded-md p-1 text-ink-500 opacity-80 transition hover:bg-white/10 hover:text-ink-100 hover:opacity-100"
+              className="focus-ring rounded-md p-1 text-ink-500 opacity-80 transition hover:bg-fg/10 hover:text-ink-100 hover:opacity-100"
             >
               <X className="h-3.5 w-3.5" />
             </button>

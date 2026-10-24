@@ -128,7 +128,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
               <div className="relative">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.04]" aria-hidden="true">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-fg/[0.06] bg-fg/[0.04]" aria-hidden="true">
                       <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: p.color, boxShadow: `0 0 12px ${p.color}` }} />
                     </span>
                     <h3 className="truncate text-[15px] font-semibold text-ink-50">{p.name}</h3>
@@ -138,7 +138,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                       type="button"
                       onClick={() => openEdit(p)}
                       aria-label={`Edit ${p.name}`}
-                      className="focus-ring rounded-lg p-1.5 text-ink-500 transition-colors hover:bg-white/[0.06] hover:text-ink-50"
+                      className="focus-ring rounded-lg p-1.5 text-ink-500 transition-colors hover:bg-fg/[0.06] hover:text-ink-50"
                     >
                       <Pencil className="h-4 w-4" />
                     </button>
@@ -146,7 +146,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                       type="button"
                       onClick={() => setPendingDelete(p)}
                       aria-label={`Delete ${p.name}`}
-                      className="focus-ring rounded-lg p-1.5 text-ink-500 transition-colors hover:bg-white/[0.06] hover:text-rose-400"
+                      className="focus-ring rounded-lg p-1.5 text-ink-500 transition-colors hover:bg-fg/[0.06] hover:text-rose-400"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -155,7 +155,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                 <p className="mt-3 line-clamp-2 min-h-[36px] text-[13px] leading-relaxed text-ink-400">{p.description || 'No description yet.'}</p>
               </div>
 
-              <div className="relative mt-5 flex items-center justify-between gap-3 border-t border-white/[0.06] pt-4 text-xs">
+              <div className="relative mt-5 flex items-center justify-between gap-3 border-t border-fg/[0.06] pt-4 text-xs">
                 <div className="flex items-center gap-3">
                   <GoalRing today={goals.find((g) => g.project_id === p.id)?.today_minutes ?? 0} target={p.target_minutes_per_day} color={p.color} size={44} />
                   <div>

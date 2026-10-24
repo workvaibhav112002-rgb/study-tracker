@@ -67,7 +67,7 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({ sessions, projects, 
         </div>
       ) : filtered.length === 0 ? (
         <div className="card flex flex-col items-center px-6 py-16 text-center">
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.06] bg-white/[0.04] text-ink-400">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-fg/[0.06] bg-fg/[0.04] text-ink-400">
             <BookOpen className="h-6 w-6" aria-hidden="true" />
           </div>
           <h3 className="text-base font-semibold text-ink-50">Nothing logged yet</h3>
@@ -78,7 +78,7 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({ sessions, projects, 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px] text-ink-300">
               <thead>
-                <tr className="border-b border-white/[0.06] text-ink-500">
+                <tr className="border-b border-fg/[0.06] text-ink-500">
                   <th scope="col" className="eyebrow px-5 py-3.5 font-semibold">Project</th>
                   <th scope="col" className="eyebrow px-5 py-3.5 font-semibold">When</th>
                   <th scope="col" className="eyebrow px-5 py-3.5 font-semibold">Duration</th>
@@ -89,15 +89,15 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({ sessions, projects, 
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.05]">
+              <tbody className="divide-y divide-fg/[0.05]">
                 {filtered.map((session) => (
-                  <tr key={session.id} className="group transition-colors hover:bg-white/[0.03]">
+                  <tr key={session.id} className="group transition-colors hover:bg-fg/[0.03]">
                     <td className="whitespace-nowrap px-5 py-3.5">
                       <div className="flex items-center gap-2.5">
                         <span className="h-2 w-2 rounded-full" style={{ backgroundColor: session.project_color || '#3987e5', boxShadow: `0 0 8px ${session.project_color || '#3987e5'}` }} aria-hidden="true" />
                         <span className="font-medium text-ink-50">{session.project_name || 'Project'}</span>
                         {session.session_type === 'manual' && (
-                          <span className="rounded-md border border-white/[0.06] bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-ink-500">manual</span>
+                          <span className="rounded-md border border-fg/[0.06] bg-fg/[0.04] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-ink-500">manual</span>
                         )}
                       </div>
                     </td>
@@ -128,7 +128,7 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({ sessions, projects, 
                         type="button"
                         onClick={() => setPendingDelete(session)}
                         aria-label={`Delete session from ${formatDateTime(session.start_time)}`}
-                        className="focus-ring rounded-lg p-1.5 text-ink-600 opacity-60 transition-all hover:bg-white/[0.06] hover:text-rose-400 group-hover:opacity-100"
+                        className="focus-ring rounded-lg p-1.5 text-ink-600 opacity-60 transition-all hover:bg-fg/[0.06] hover:text-rose-400 group-hover:opacity-100"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>

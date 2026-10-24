@@ -18,7 +18,7 @@ export interface HeatmapModel {
 }
 
 /** Sequential emerald ramp, validated for the dark surface (level 0 = empty). */
-export const LEVEL_COLORS = ['rgba(255,255,255,0.04)', '#065f46', '#047857', '#10b981', '#6ee7b7', '#d1fae5']
+export const LEVEL_COLORS = ['rgb(var(--fg) / 0.05)', 'rgb(var(--brand-800))', 'rgb(var(--brand-700))', 'rgb(var(--brand-500))', 'rgb(var(--brand-300))', 'rgb(var(--brand-100))']
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 

@@ -60,7 +60,7 @@ export const CalendarSyncSection: React.FC<Props> = ({ hasToken, onChanged }) =>
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
-          <span className={`chip ${hasToken ? 'border-brand-500/20 bg-brand-500/10 text-brand-300' : 'border-white/[0.06] bg-white/[0.04] text-ink-400'}`}>
+          <span className={`chip ${hasToken ? 'border-brand-500/20 bg-brand-500/10 text-brand-300' : 'border-fg/[0.06] bg-fg/[0.04] text-ink-400'}`}>
             <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
             {hasToken ? 'Feed active' : 'Not set up'}
           </span>

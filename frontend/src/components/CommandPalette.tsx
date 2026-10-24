@@ -60,7 +60,7 @@ export const CommandPalette: React.FC<Props> = ({ isOpen, onClose, commands }) =
   return createPortal(
     <div className="fixed inset-0 z-[60] flex items-start justify-center bg-surface-950/70 p-4 pt-[12vh] backdrop-blur-md animate-fade-in" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div role="dialog" aria-modal="true" aria-label="Command palette" className="glass w-full max-w-lg overflow-hidden rounded-2xl shadow-modal animate-scale-in" onKeyDown={onKey}>
-        <div className="flex items-center gap-3 border-b border-white/[0.06] px-4">
+        <div className="flex items-center gap-3 border-b border-fg/[0.06] px-4">
           <Search className="h-4 w-4 shrink-0 text-ink-500" aria-hidden="true" />
           <input
             ref={inputRef}
@@ -74,7 +74,7 @@ export const CommandPalette: React.FC<Props> = ({ isOpen, onClose, commands }) =
             aria-activedescendant={results[active] ? `cmd-${results[active].id}` : undefined}
             className="h-12 w-full bg-transparent text-sm text-ink-50 placeholder:text-ink-600 focus:outline-none"
           />
-          <kbd className="rounded-md border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-ink-500">Esc</kbd>
+          <kbd className="rounded-md border border-fg/[0.08] bg-fg/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-ink-500">Esc</kbd>
         </div>
         <ul id="palette-list" role="listbox" className="max-h-[50vh] overflow-y-auto p-2">
           {results.length === 0 && <li className="px-3 py-6 text-center text-xs text-ink-500">No matching commands</li>}
@@ -97,7 +97,7 @@ export const CommandPalette: React.FC<Props> = ({ isOpen, onClose, commands }) =
                         aria-selected={selected}
                         onMouseEnter={() => setActive(i)}
                         onClick={() => run(c)}
-                        className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-colors ${selected ? 'bg-brand-500/10 text-ink-50' : 'text-ink-300 hover:bg-white/[0.04]'}`}
+                        className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-colors ${selected ? 'bg-brand-500/10 text-ink-50' : 'text-ink-300 hover:bg-fg/[0.04]'}`}
                       >
                         <span className="flex min-w-0 items-center gap-2">
                           <span className="truncate">{c.label}</span>

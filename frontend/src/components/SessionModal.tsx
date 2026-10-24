@@ -72,7 +72,7 @@ export const SessionModal: React.FC<SessionModalProps> = ({
       icon={<Check className="h-5 w-5" />}
       iconClassName="bg-brand-500/10 text-brand-400 border-brand-500/20"
     >
-      <div className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-3.5">
+      <div className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-fg/[0.06] bg-fg/[0.03] p-3.5">
         <div className="flex min-w-0 items-center gap-2.5">
           <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: project?.color || '#3987e5', boxShadow: `0 0 10px ${project?.color || '#3987e5'}` }} aria-hidden="true" />
           <span className="truncate text-sm font-medium text-ink-100">{project?.name || 'Select a project'}</span>

@@ -44,7 +44,7 @@ export const TaskPanel: React.FC<TaskPanelProps> = ({ projectName, tasks, curren
     <section className="card mt-6 w-full p-5" aria-label={`Tasks for ${projectName}`}>
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.04] text-brand-400">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-fg/[0.06] bg-fg/[0.04] text-brand-400">
             <ListChecks className="h-4 w-4" aria-hidden="true" />
           </span>
           <div>
@@ -68,7 +68,7 @@ export const TaskPanel: React.FC<TaskPanelProps> = ({ projectName, tasks, curren
           maxLength={200}
           className={`${inputClass} h-10 py-0`}
         />
-        <div className="flex h-10 shrink-0 items-center rounded-xl border border-white/[0.08] bg-surface-950/80 px-1" role="group" aria-label="Estimate in pomodoros">
+        <div className="flex h-10 shrink-0 items-center rounded-xl border border-fg/[0.08] bg-surface-950/80 px-1" role="group" aria-label="Estimate in pomodoros">
           <button type="button" onClick={() => setEstimate((n) => Math.max(1, n - 1))} aria-label="Decrease estimate" className="focus-ring rounded-lg p-1.5 text-ink-400 hover:text-ink-50">
             <Minus className="h-3.5 w-3.5" />
           </button>
@@ -93,7 +93,7 @@ export const TaskPanel: React.FC<TaskPanelProps> = ({ projectName, tasks, curren
               <li
                 key={t.id}
                 className={`group flex items-center gap-3 rounded-xl border px-3 py-2 transition-colors ${
-                  current ? 'border-brand-500/30 bg-brand-500/[0.07]' : 'border-white/[0.05] bg-white/[0.02] hover:bg-white/[0.04]'
+                  current ? 'border-brand-500/30 bg-brand-500/[0.07]' : 'border-fg/[0.05] bg-fg/[0.02] hover:bg-fg/[0.04]'
                 } ${t.done ? 'opacity-60' : ''}`}
               >
                 <button
@@ -103,13 +103,13 @@ export const TaskPanel: React.FC<TaskPanelProps> = ({ projectName, tasks, curren
                   aria-label={`Mark ${t.title} ${t.done ? 'not done' : 'done'}`}
                   onClick={() => void swallow(onToggle(t.id, !t.done))}
                   className={`focus-ring flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors ${
-                    t.done ? 'border-brand-500 bg-brand-500 text-surface-950' : 'border-white/20 hover:border-brand-400'
+                    t.done ? 'border-brand-500 bg-brand-500 text-surface-950' : 'border-fg/20 hover:border-brand-400'
                   }`}
                 >
                   {t.done && <Check className="h-3.5 w-3.5" aria-hidden="true" />}
                 </button>
                 <span className={`min-w-0 flex-1 truncate text-[13px] ${t.done ? 'line-through text-ink-500' : 'text-ink-100'}`}>{t.title}</span>
-                <span className="chip border-white/[0.06] bg-white/[0.04] font-mono tabular-nums text-ink-400" title="Completed / estimated pomodoros">
+                <span className="chip border-fg/[0.06] bg-fg/[0.04] font-mono tabular-nums text-ink-400" title="Completed / estimated pomodoros">
                   {t.completed_pomodoros}/{t.estimate_pomodoros}
                 </span>
                 {!t.done && (

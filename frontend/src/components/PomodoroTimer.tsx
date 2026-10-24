@@ -33,9 +33,9 @@ const MODES: Record<TimerMode, ModeStyle> = {
     label: 'Focus',
     eyebrow: 'Focus session',
     icon: Sparkles,
-    from: '#6ee7b7',
-    to: '#059669',
-    glow: 'rgb(16 185 129 / 0.45)',
+    from: 'rgb(var(--brand-300))',
+    to: 'rgb(var(--brand-600))',
+    glow: 'rgb(var(--brand-500) / 0.45)',
     chip: 'border-brand-500/30 bg-brand-500/15 text-brand-300',
     cta: 'from-brand-400 to-brand-600 text-surface-950 shadow-glow hover:from-brand-300 hover:to-brand-500',
   },
@@ -135,7 +135,7 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
               <stop offset="100%" stopColor={mode.to} />
             </linearGradient>
           </defs>
-          <circle cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} className="stroke-white/[0.06]" strokeWidth={STROKE} fill="transparent" />
+          <circle cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} className="stroke-fg/[0.06]" strokeWidth={STROKE} fill="transparent" />
           <circle
             cx={SIZE / 2}
             cy={SIZE / 2}
@@ -180,7 +180,7 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
                     id="timer-project"
                     value={selectedProjectId ?? ''}
                     onChange={(e) => setSelectedProjectId(Number(e.target.value))}
-                    className="focus-ring glass max-w-[220px] cursor-pointer appearance-none rounded-full py-1.5 pl-3.5 pr-8 text-xs font-medium text-ink-100 transition hover:border-white/20"
+                    className="focus-ring glass max-w-[220px] cursor-pointer appearance-none rounded-full py-1.5 pl-3.5 pr-8 text-xs font-medium text-ink-100 transition hover:border-fg/20"
                   >
                     {projects.map((p) => (
                       <option key={p.id} value={p.id}>
@@ -211,7 +211,7 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
           type="button"
           onClick={withTick(() => timer.adjust(-300))}
           aria-label="Subtract 5 minutes"
-          className="focus-ring chip border-white/[0.06] bg-white/[0.04] text-ink-400 transition hover:bg-white/[0.08] hover:text-ink-100"
+          className="focus-ring chip border-fg/[0.06] bg-fg/[0.04] text-ink-400 transition hover:bg-fg/[0.08] hover:text-ink-100"
         >
           <Minus className="h-3.5 w-3.5" aria-hidden="true" /> 5 min
         </button>
@@ -219,7 +219,7 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
           type="button"
           onClick={withTick(() => timer.adjust(300))}
           aria-label="Add 5 minutes"
-          className="focus-ring chip border-white/[0.06] bg-white/[0.04] text-ink-400 transition hover:bg-white/[0.08] hover:text-ink-100"
+          className="focus-ring chip border-fg/[0.06] bg-fg/[0.04] text-ink-400 transition hover:bg-fg/[0.08] hover:text-ink-100"
         >
           <Plus className="h-3.5 w-3.5" aria-hidden="true" /> 5 min
         </button>
@@ -270,16 +270,16 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
 
       <p className="mt-5 hidden items-center gap-3 text-[11px] text-ink-600 sm:flex" aria-hidden="true">
         <span>
-          <kbd className="rounded-md border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-ink-400">Space</kbd> start / pause
+          <kbd className="rounded-md border border-fg/[0.08] bg-fg/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-ink-400">Space</kbd> start / pause
         </span>
         <span>
-          <kbd className="rounded-md border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-ink-400">R</kbd> reset
+          <kbd className="rounded-md border border-fg/[0.08] bg-fg/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-ink-400">R</kbd> reset
         </span>
         <span>
-          <kbd className="rounded-md border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-ink-400">F</kbd> zen
+          <kbd className="rounded-md border border-fg/[0.08] bg-fg/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-ink-400">F</kbd> zen
         </span>
         <span>
-          <kbd className="rounded-md border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-ink-400">Ctrl K</kbd> commands
+          <kbd className="rounded-md border border-fg/[0.08] bg-fg/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-ink-400">Ctrl K</kbd> commands
         </span>
       </p>
 
@@ -289,7 +289,7 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
       {activeProject && state.mode === 'work' && (
         <div className="card card-hover mt-8 flex w-full items-center justify-between gap-4 p-4 sm:p-5">
           <div className="flex min-w-0 items-center gap-3.5">
-            <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.04]" aria-hidden="true">
+            <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-fg/[0.06] bg-fg/[0.04]" aria-hidden="true">
               <span className="h-3 w-3 rounded-full" style={{ backgroundColor: activeProject.color, boxShadow: `0 0 16px ${activeProject.color}` }} />
             </span>
             <div className="min-w-0">

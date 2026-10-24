@@ -27,7 +27,7 @@ import { useAuth } from './hooks/useAuth'
 import { useAppData } from './hooks/useAppData'
 import { useTimer, type TimerFinish } from './hooks/useTimer'
 import { useTasks, clearCurrentTask } from './hooks/useTasks'
-import { useLocalPrefs } from './hooks/useLocalPrefs'
+import { useAppearance, useLocalPrefs } from './hooks/useLocalPrefs'
 import { useWakeLock } from './hooks/useWakeLock'
 import { useServiceWorker, clearApiCache } from './hooks/useServiceWorker'
 import { notify } from './lib/notify'
@@ -78,7 +78,8 @@ const AppShell: React.FC = () => {
 
   const data = useAppData(userId)
   const taskState = useTasks(userId, data.selectedProjectId)
-  const { prefs } = useLocalPrefs()
+  const { prefs, setPrefs } = useLocalPrefs()
+  useAppearance()
 
   const [activeTab, setActiveTab] = useState<Tab>('timer')
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -233,6 +234,7 @@ const AppShell: React.FC = () => {
     { id: 'new-project', label: 'New project', group: 'Projects', run: requestCreateProject },
     { id: 'log', label: 'Log a past session', keywords: 'manual entry', group: 'Actions', run: () => setIsManualOpen(true) },
     { id: 'settings', label: 'Open settings', keywords: 'preferences calendar import account', group: 'Actions', run: () => setIsSettingsOpen(true) },
+    { id: 'theme', label: prefs.theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme', keywords: 'appearance mode', group: 'Actions', run: () => setPrefs({ theme: prefs.theme === 'light' ? 'dark' : 'light' }) },
     { id: 'feedback', label: 'Send feedback', group: 'Actions', run: () => setIsFeedbackOpen(true) },
     { id: 'logout', label: 'Sign out', group: 'Actions', run: auth.logout },
   ]

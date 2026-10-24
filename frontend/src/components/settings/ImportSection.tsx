@@ -69,7 +69,7 @@ export const ImportSection: React.FC<{ onImported: () => Promise<void> | void }>
         <Button size="sm" variant="secondary" onClick={exportNow} loading={exporting} icon={<Download className="h-3.5 w-3.5 text-brand-400" aria-hidden="true" />}>
           Export backup
         </Button>
-        <label className="focus-ring inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.06] px-3 text-xs font-medium text-ink-100 shadow-inner-hi transition hover:bg-white/[0.10]">
+        <label className="focus-ring inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-fg/[0.08] bg-fg/[0.06] px-3 text-xs font-medium text-ink-100 shadow-inner-hi transition hover:bg-fg/[0.10]">
           <Upload className="h-3.5 w-3.5 text-brand-400" aria-hidden="true" />
           Choose backup file
           <input ref={fileRef} type="file" accept="application/json,.json" onChange={onFile} className="sr-only" />
