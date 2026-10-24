@@ -24,7 +24,7 @@ jobs:
           test -n "$DATABASE_URL" || { echo "DATABASE_URL secret not set"; exit 1; }
           pg_dump --no-owner --no-privileges --format=custom --file=study-tracker-$(date -u +%F).dump "$DATABASE_URL"
           ls -la *.dump
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: db-backup-${{ github.run_id }}
           path: "*.dump"
