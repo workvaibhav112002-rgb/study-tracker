@@ -60,6 +60,9 @@ export function useTimer({ settings, onFinish, userId, notificationsEnabled }: O
       return
     }
     if (userId === null) return
+    // The transient "running at zero" state is never persisted: another tab
+    // would hydrate into it and report the same completion a second time.
+    if (state.status === 'running' && state.secondsLeft === 0) return
     saveTimer(userId, state)
   }, [state, userId])
 
@@ -111,18 +114,12 @@ export function useTimer({ settings, onFinish, userId, notificationsEnabled }: O
     return () => document.removeEventListener('visibilitychange', onVis)
   }, [state.status, state.mode])
 
-  // Completion: report once, then move to the next interval. Only the tab
-  // whose own countdown crossed zero reports; a hydrated already-finished
-  // state from another tab is ignored, and a timer that finished while the
-  // app was closed is reported as of its target time without auto-starting.
-  const prevRef = useRef<TimerState | null>(null)
+  // Completion: report once, then move to the next interval. A timer that
+  // finished while the app was closed is reported as of its target time
+  // without auto-starting the next interval.
   const finishedRef = useRef<TimerState | null>(null)
   useEffect(() => {
-    const prev = prevRef.current
-    prevRef.current = state
     if (state.status !== 'running' || state.secondsLeft > 0 || finishedRef.current === state) return
-    const receivedFromOtherTab = prev !== null && prev.secondsLeft === 0 && prev !== state && fromStorage.current
-    if (receivedFromOtherTab) return
     finishedRef.current = state
     const endedAtMs = state.targetEndAt ?? Date.now()
     const stale = Date.now() - endedAtMs > STALE_MS
