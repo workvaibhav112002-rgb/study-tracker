@@ -268,11 +268,11 @@ func DefaultSettings() Settings {
 
 // GoalStreak is the run of days where the daily goal was met (or frozen).
 type GoalStreak struct {
-	Days               int      `json:"days"`
-	BestDays           int      `json:"best_days"`
-	TargetMinutes      int      `json:"target_minutes"`
-	TodayMet           bool     `json:"today_met"`
-	YesterdayMet       bool     `json:"yesterday_met"`
+	Days          int  `json:"days"`
+	BestDays      int  `json:"best_days"`
+	TargetMinutes int  `json:"target_minutes"`
+	TodayMet      bool `json:"today_met"`
+	YesterdayMet  bool `json:"yesterday_met"`
 	// DayBeforeMet tells the UI whether a freeze on yesterday would actually
 	// reconnect a streak.
 	DayBeforeMet       bool     `json:"day_before_met"`
