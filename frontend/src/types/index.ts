@@ -14,6 +14,29 @@ export interface AppConfig {
   email_enabled: boolean
   google_client_id: string
   app_url: string
+  vapid_public_key?: string
+}
+
+export interface GoalStreak {
+  days: number
+  best_days: number
+  target_minutes: number
+  today_met: boolean
+  yesterday_met: boolean
+  freeze_available: boolean
+  freeze_days: string[]
+  missed_yesterday: string
+}
+
+export interface Milestone {
+  id: string
+  title: string
+  description: string
+  icon: string
+  target: number
+  progress: number
+  achieved: boolean
+  achieved_at: string | null
 }
 
 export interface AuthResponse {
@@ -153,6 +176,9 @@ export interface Settings {
   long_break_interval: number
   auto_start_breaks: boolean
   sound_enabled: boolean
+  reminder_enabled: boolean
+  reminder_hour: number
+  timezone: string
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -162,6 +188,9 @@ export const DEFAULT_SETTINGS: Settings = {
   long_break_interval: 4,
   auto_start_breaks: false,
   sound_enabled: true,
+  reminder_enabled: false,
+  reminder_hour: 9,
+  timezone: 'UTC',
 }
 
 /** Server-side limits, mirrored for form validation. */

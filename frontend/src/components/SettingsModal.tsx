@@ -8,6 +8,7 @@ import { CalendarSyncSection } from './settings/CalendarSyncSection'
 import { ImportSection } from './settings/ImportSection'
 import { AccountSection } from './settings/AccountSection'
 import { AppearanceSection } from './settings/AppearanceSection'
+import { RemindersSection } from './settings/RemindersSection'
 import { audioService } from '../services/audio'
 import { Modal } from './ui/Modal'
 import { Button } from './ui/Button'
@@ -23,6 +24,7 @@ interface SettingsModalProps {
   onDataChanged: () => Promise<void> | void
   onPasswordChanged: (res: AuthResponse) => void
   onAccountDeleted: () => void
+  vapidPublicKey?: string
 }
 
 type NumericKey = keyof typeof SETTINGS_LIMITS
@@ -48,7 +50,7 @@ const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void; label
   </label>
 )
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, user, onUserChanged, onDataChanged, onPasswordChanged, onAccountDeleted }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, user, onUserChanged, onDataChanged, onPasswordChanged, onAccountDeleted, vapidPublicKey = '' }) => {
   const { prefs, setPrefs } = useLocalPrefs()
   const [form, setForm] = useState<Settings>(settings)
   const [saving, setSaving] = useState(false)
@@ -118,7 +120,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
       onClose={saving ? undefined : onClose}
       dismissible={!saving}
       title="Settings"
-      description="Timer, alerts, calendar, data and account."
+      description="Timer, alerts, reminders, calendar, data and account."
       icon={<SlidersHorizontal className="h-5 w-5" />}
       size="lg"
     >
@@ -165,6 +167,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
             Preview chime
           </button>
         </div>
+
+        {user && <RemindersSection form={form} setForm={setForm} vapidPublicKey={vapidPublicKey} Toggle={Toggle} />}
 
         {error && (
           <p role="alert" className="text-xs font-medium text-rose-400">

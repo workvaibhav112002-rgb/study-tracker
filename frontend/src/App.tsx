@@ -450,9 +450,9 @@ const AppShell: React.FC = () => {
           {activeTab === 'analytics' && (
             <Suspense fallback={<AnalyticsSkeleton />}>
               {data.stats ? (
-                <AnalyticsDashboard stats={data.stats} heatmap={data.heatmap} hours={data.hours} review={data.review} loading={data.loading} error={data.error} onRetry={() => void data.reload()} appUrl={config.app_url} />
+                <AnalyticsDashboard stats={data.stats} heatmap={data.heatmap} hours={data.hours} review={data.review} streak={data.streak} milestones={data.milestones} onFreeze={() => run(() => data.freezeStreak(), 'Yesterday is frozen. Streak saved.')} loading={data.loading} error={data.error} onRetry={() => void data.reload()} appUrl={config.app_url} />
               ) : data.error ? (
-                <AnalyticsDashboard stats={null} heatmap={[]} hours={[]} review={null} loading={false} error={data.error} onRetry={() => void data.reload()} appUrl={config.app_url} />
+                <AnalyticsDashboard stats={null} heatmap={[]} hours={[]} review={null} streak={null} milestones={[]} onFreeze={async () => undefined} loading={false} error={data.error} onRetry={() => void data.reload()} appUrl={config.app_url} />
               ) : (
                 <AnalyticsSkeleton />
               )}
@@ -492,6 +492,7 @@ const AppShell: React.FC = () => {
         onUserChanged={() => auth.refreshUser().catch(() => undefined)}
         onDataChanged={() => data.reload()}
         onPasswordChanged={auth.applyAuth}
+        vapidPublicKey={config.vapid_public_key ?? ''}
         onAccountDeleted={() => {
           setIsSettingsOpen(false)
           auth.logout()

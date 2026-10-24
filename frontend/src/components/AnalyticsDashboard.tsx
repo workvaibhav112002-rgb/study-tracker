@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid } from 'recharts'
 import { Flame, Clock, Sparkles, Download, Calendar, Award, RefreshCw, Zap, TrendingUp, TrendingDown, Minus } from 'lucide-react'
-import type { DailyStat, DashboardStats, HourStat, WeeklyReview } from '../types'
+import type { DailyStat, DashboardStats, GoalStreak, HourStat, Milestone, WeeklyReview } from '../types'
 import { WeeklyReviewCard } from './WeeklyReviewCard'
+import { StreakCard } from './StreakCard'
+import { MilestonesPanel } from './MilestonesPanel'
 import { ShareCardButton } from './ShareCardButton'
 import { HeatmapYear } from './HeatmapYear'
 import { BestHours } from './BestHours'
@@ -16,6 +18,9 @@ interface AnalyticsDashboardProps {
   heatmap: DailyStat[]
   hours: HourStat[]
   review: WeeklyReview | null
+  streak: GoalStreak | null
+  milestones: Milestone[]
+  onFreeze: () => Promise<void>
   appUrl: string
   loading: boolean
   error: string | null
@@ -42,7 +47,7 @@ interface PieDatum {
 
 import { ChartTooltip as TooltipCard } from './ui/ChartTooltip'
 
-export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, heatmap, hours, review, appUrl, loading, error, onRetry }) => {
+export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, heatmap, hours, review, streak, milestones, onFreeze, appUrl, loading, error, onRetry }) => {
   const toast = useToast()
   const [exporting, setExporting] = useState(false)
 
@@ -110,6 +115,12 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, h
           </Button>
         </div>
       </div>
+
+      {streak && (
+        <div className="mb-6">
+          <StreakCard streak={streak} onFreeze={onFreeze} />
+        </div>
+      )}
 
       {review && (
         <div className="mb-6">
@@ -241,6 +252,12 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, h
           <BestHours hours={hours} />
         </section>
       </div>
+
+      {milestones.length > 0 && (
+        <div className="mt-4">
+          <MilestonesPanel milestones={milestones} />
+        </div>
+      )}
     </div>
   )
 }

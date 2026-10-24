@@ -24,6 +24,8 @@ import type {
   TimerSnapshot,
   User,
   WeeklyReview,
+  GoalStreak,
+  Milestone,
 } from '../types'
 import { browserTimeZone } from '../lib/time'
 import { captureException } from '../lib/monitoring'
@@ -289,6 +291,12 @@ export const api = {
   getHeatmap: (days = 365) => request<DailyStat[]>(`/stats/heatmap?tz=${tz()}&days=${days}`),
   getHours: () => request<HourStat[]>(`/stats/hours?tz=${tz()}`),
   getWeeklyReview: () => request<WeeklyReview>(`/stats/weekly-review?tz=${tz()}`),
+  getStreak: () => request<GoalStreak>(`/stats/streak?tz=${tz()}`),
+  freezeStreak: () => request<GoalStreak>(`/stats/streak/freeze?tz=${tz()}`, { method: 'POST' }),
+  getMilestones: () => request<Milestone[]>(`/stats/milestones?tz=${tz()}`),
+  pushSubscribe: (sub: { endpoint: string; keys: { p256dh: string; auth: string } }) =>
+    request<void>('/push/subscribe', { method: 'POST', body: sub }),
+  pushUnsubscribe: (endpoint: string) => request<void>('/push/subscribe', { method: 'DELETE', body: { endpoint } }),
 
   // Cross-device timer snapshot
   getTimer: <T>() => request<TimerSnapshot<T>>('/timer'),

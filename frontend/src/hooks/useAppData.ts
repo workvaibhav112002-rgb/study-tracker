@@ -4,7 +4,9 @@ import {
   DEFAULT_SETTINGS,
   type DailyStat,
   type DashboardStats,
+  type GoalStreak,
   type GoalsStats,
+  type Milestone,
   type HourStat,
   type Project,
   type ProjectInput,
@@ -28,6 +30,8 @@ export function useAppData(userId: number | null) {
   const [heatmap, setHeatmap] = useState<DailyStat[]>([])
   const [hours, setHours] = useState<HourStat[]>([])
   const [review, setReview] = useState<WeeklyReview | null>(null)
+  const [streak, setStreak] = useState<GoalStreak | null>(null)
+  const [milestones, setMilestones] = useState<Milestone[]>([])
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [loaded, setLoaded] = useState(false)
@@ -37,7 +41,7 @@ export function useAppData(userId: number | null) {
     if (userId === null) return
     setLoading(true)
     try {
-      const [p, s, st, se, g, hm, hr, rv] = await Promise.all([
+      const [p, s, st, se, g, hm, hr, rv, sk, ms] = await Promise.all([
         api.getProjects(),
         api.getSettings(),
         api.getDashboardStats(),
@@ -46,6 +50,8 @@ export function useAppData(userId: number | null) {
         api.getHeatmap(),
         api.getHours(),
         api.getWeeklyReview(),
+        api.getStreak(),
+        api.getMilestones(),
       ])
       setProjects(p)
       setSettings(s)
@@ -55,6 +61,8 @@ export function useAppData(userId: number | null) {
       setHeatmap(hm)
       setHours(hr)
       setReview(rv)
+      setStreak(sk)
+      setMilestones(ms)
       setSelectedProjectId((prev) => (prev !== null && p.some((x) => x.id === prev) ? prev : (p[0]?.id ?? null)))
       setError(null)
       setLoaded(true)
@@ -75,6 +83,8 @@ export function useAppData(userId: number | null) {
       setHeatmap([])
       setHours([])
       setReview(null)
+      setStreak(null)
+      setMilestones([])
       setSelectedProjectId(null)
       setLoaded(false)
       setError(null)
@@ -84,7 +94,7 @@ export function useAppData(userId: number | null) {
   }, [userId, reload])
 
   const refreshStats = useCallback(async () => {
-    const [st, se, p, g, hm, hr, rv] = await Promise.all([
+    const [st, se, p, g, hm, hr, rv, sk, ms] = await Promise.all([
       api.getDashboardStats(),
       api.getSessions(),
       api.getProjects(),
@@ -92,6 +102,8 @@ export function useAppData(userId: number | null) {
       api.getHeatmap(),
       api.getHours(),
       api.getWeeklyReview(),
+      api.getStreak(),
+      api.getMilestones(),
     ])
     setStats(st)
     setSessions(se)
@@ -100,6 +112,14 @@ export function useAppData(userId: number | null) {
     setHeatmap(hm)
     setHours(hr)
     setReview(rv)
+    setStreak(sk)
+    setMilestones(ms)
+  }, [])
+
+  const freezeStreak = useCallback(async () => {
+    const next = await api.freezeStreak()
+    setStreak(next)
+    setMilestones(await api.getMilestones())
   }, [])
 
   const createProject = useCallback(
@@ -174,5 +194,8 @@ export function useAppData(userId: number | null) {
     createSession,
     deleteSession,
     updateSettings,
+    streak,
+    milestones,
+    freezeStreak,
   }
 }
