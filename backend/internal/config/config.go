@@ -28,6 +28,8 @@ type Config struct {
 
 	CalendarRateLimit  int
 	CalendarRateWindow time.Duration
+	ProfileRateLimit   int
+	ProfileRateWindow  time.Duration
 
 	RequestTimeout     time.Duration
 	ShutdownTimeout    time.Duration
@@ -126,6 +128,8 @@ func Load(getenv func(string) string) (Config, error) {
 	cfg.FeedbackRateWindow = duration(getenv, "FEEDBACK_RATE_WINDOW", 10*time.Minute, &errs)
 	cfg.CalendarRateLimit = integer(getenv, "CALENDAR_RATE_LIMIT", 30, &errs)
 	cfg.CalendarRateWindow = duration(getenv, "CALENDAR_RATE_WINDOW", time.Minute, &errs)
+	cfg.ProfileRateLimit = integer(getenv, "PROFILE_RATE_LIMIT", 60, &errs)
+	cfg.ProfileRateWindow = duration(getenv, "PROFILE_RATE_WINDOW", time.Minute, &errs)
 	cfg.RequestTimeout = duration(getenv, "REQUEST_TIMEOUT", 20*time.Second, &errs)
 	cfg.ShutdownTimeout = duration(getenv, "SHUTDOWN_TIMEOUT", 15*time.Second, &errs)
 

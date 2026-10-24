@@ -30,6 +30,43 @@ type User struct {
 	HasPassword      bool       `json:"has_password"`
 	GoogleLinked     bool       `json:"google_linked"`
 	EmailVerifiedAt  *time.Time `json:"email_verified_at"`
+	Handle           *string    `json:"handle"`
+	ProfilePublic    bool       `json:"profile_public"`
+	Bio              string     `json:"bio"`
+}
+
+// ProfileInput updates the public-facing part of an account.
+type ProfileInput struct {
+	Handle *string
+	Public bool
+	Bio    string
+}
+
+// PublicProfile is what anyone can see at /u/{handle}. It never carries
+// the email address.
+type PublicProfile struct {
+	Name              string      `json:"name"`
+	Handle            string      `json:"handle"`
+	Bio               string      `json:"bio"`
+	MemberSince       string      `json:"member_since"`
+	TotalMinutes      int         `json:"total_minutes"`
+	Sessions          int         `json:"sessions"`
+	CurrentStreakDays int         `json:"current_streak_days"`
+	GoalStreakDays    int         `json:"goal_streak_days"`
+	WeekMinutes       int         `json:"week_minutes"`
+	Heatmap           []DailyStat `json:"heatmap"`
+	Badges            []Milestone `json:"badges"`
+}
+
+// Friend is another account the user is connected to, with a live summary.
+type Friend struct {
+	ID                int64   `json:"id"`
+	Name              string  `json:"name"`
+	Handle            *string `json:"handle"`
+	Studying          bool    `json:"studying"`
+	TodayMinutes      int     `json:"today_minutes"`
+	WeekMinutes       int     `json:"week_minutes"`
+	CurrentStreakDays int     `json:"current_streak_days"`
 }
 
 // AuthTokenKinds is the closed set of single-use token purposes.
@@ -474,6 +511,14 @@ type Store interface {
 	UpsertSettings(ctx context.Context, userID int64, s Settings) (Settings, error)
 
 	DashboardStats(ctx context.Context, userID int64, loc *time.Location, now time.Time) (DashboardStats, error)
+	UpdateProfile(ctx context.Context, userID int64, in ProfileInput) (User, error)
+	PublicProfile(ctx context.Context, handle string, loc *time.Location, now time.Time) (PublicProfile, error)
+	CreateFriendInvite(ctx context.Context, userID int64, tokenHash string, expires time.Time) error
+	// AcceptFriendInvite links both users and returns the inviter's id.
+	AcceptFriendInvite(ctx context.Context, userID int64, tokenHash string, now time.Time) (int64, error)
+	ListFriends(ctx context.Context, userID int64, loc *time.Location, now time.Time) ([]Friend, error)
+	RemoveFriend(ctx context.Context, userID, friendID int64) error
+
 	GoalStreak(ctx context.Context, userID int64, loc *time.Location, now time.Time) (GoalStreak, error)
 	// AddStreakFreeze records a covered day; the caller validates eligibility.
 	AddStreakFreeze(ctx context.Context, userID int64, day string) error

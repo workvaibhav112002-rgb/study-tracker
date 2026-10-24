@@ -105,6 +105,10 @@ func NewRouter(d Deps) http.Handler {
 		// Scheduled jobs (GitHub Actions cron) authenticate with a shared secret.
 		r.With(body).Post("/cron/reminders", a.cronReminders)
 
+		// Public profiles are anonymous and cached briefly by the browser.
+		r.With(body, limited(d.Config.ProfileRateLimit, d.Config.ProfileRateWindow)).
+			Get("/u/{handle}", a.publicProfile)
+
 		// Public calendar feed: the token is the credential.
 		r.With(body, limited(d.Config.CalendarRateLimit, d.Config.CalendarRateWindow)).
 			Get("/calendar/{token}", a.calendarFeed)
@@ -178,6 +182,12 @@ func NewRouter(d Deps) http.Handler {
 				r.Get("/stats/streak", a.goalStreak)
 				r.Post("/stats/streak/freeze", a.freezeStreak)
 				r.Get("/stats/milestones", a.milestones)
+
+				r.Put("/auth/profile", a.updateProfile)
+				r.Get("/friends", a.listFriends)
+				r.Post("/friends/invite", a.createFriendInvite)
+				r.Post("/friends/accept", a.acceptFriendInvite)
+				r.Delete("/friends/{id}", a.removeFriend)
 
 				r.Post("/push/subscribe", a.pushSubscribe)
 				r.Delete("/push/subscribe", a.pushUnsubscribe)

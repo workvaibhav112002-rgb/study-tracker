@@ -79,12 +79,12 @@ func (s *Store) createUser(ctx context.Context, email, passwordHash, name string
 }
 
 const userColumns = `id, email, COALESCE(password_hash, ''), name, created_at, updated_at, token_version,
-	(calendar_token IS NOT NULL), (google_sub IS NOT NULL), email_verified_at`
+	(calendar_token IS NOT NULL), (google_sub IS NOT NULL), email_verified_at, handle, profile_public, bio`
 
 func scanUser(row pgx.Row) (store.User, error) {
 	var u store.User
 	err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.CreatedAt, &u.UpdatedAt, &u.TokenVersion,
-		&u.HasCalendarToken, &u.GoogleLinked, &u.EmailVerifiedAt)
+		&u.HasCalendarToken, &u.GoogleLinked, &u.EmailVerifiedAt, &u.Handle, &u.ProfilePublic, &u.Bio)
 	u.HasPassword = u.PasswordHash != ""
 	return u, mapErr(err)
 }

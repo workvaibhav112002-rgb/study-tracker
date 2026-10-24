@@ -355,3 +355,27 @@ func TestCronDisabledWithoutSecret(t *testing.T) {
 		t.Fatalf("expected 404 when cron is not configured, got %d", res.StatusCode)
 	}
 }
+
+// Best streak must survive a DST transition (23h/25h days).
+func TestGoalStreakAcrossDST(t *testing.T) {
+	s := newServer(t, nil)
+	token, _ := s.register(t, "dst@example.test")
+	pid := goalProject(t, s, token, 30)
+	loc, _ := time.LoadLocation("America/New_York")
+	// 2026-03-08 is the spring-forward day in New York.
+	for _, day := range []int{6, 7, 8, 9, 10} {
+		start := time.Date(2026, 3, day, 15, 0, 0, 0, loc)
+		if res, body := s.createSession(t, token, pid, start, 1800); res.StatusCode != 201 {
+			t.Fatalf("session: %d %s", res.StatusCode, body)
+		}
+	}
+	res, body := s.do(t, "GET", "/api/stats/streak?tz=America/New_York", token, nil)
+	if res.StatusCode != 200 {
+		t.Fatalf("streak: %d %s", res.StatusCode, body)
+	}
+	var st streakResp
+	decode(t, body, &st)
+	if st.BestDays != 5 {
+		t.Fatalf("best streak across DST: %+v", st)
+	}
+}

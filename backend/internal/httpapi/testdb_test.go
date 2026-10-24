@@ -102,7 +102,7 @@ func testConfig() config.Config {
 		return map[string]string{
 			"DATABASE_URL": "unused", "JWT_SECRET": strings.Repeat("t", 32), "APP_URL": "https://app.test", "GOOGLE_CLIENT_ID": "test-client",
 			"CORS_ORIGINS":    "http://localhost:5173,https://*.vercel.app",
-			"AUTH_RATE_LIMIT": "100000", "FEEDBACK_RATE_LIMIT": "100000", "CALENDAR_RATE_LIMIT": "100000",
+			"AUTH_RATE_LIMIT": "100000", "FEEDBACK_RATE_LIMIT": "100000", "CALENDAR_RATE_LIMIT": "100000", "PROFILE_RATE_LIMIT": "100000",
 			"VAPID_PUBLIC_KEY": "test-public", "VAPID_PRIVATE_KEY": "test-private", "CRON_SECRET": "cron-secret-for-tests",
 		}[k]
 	})

@@ -101,7 +101,7 @@ func (s *Store) GoalStreak(ctx context.Context, userID int64, loc *time.Location
 			run = 0
 			continue
 		}
-		if run > 0 && d.Sub(prev) == 24*time.Hour {
+		if run > 0 && prev.AddDate(0, 0, 1).Format(dateLayout) == k {
 			run++
 		} else {
 			run = 1
