@@ -1,5 +1,9 @@
 import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
-import { MessageSquareHeart } from 'lucide-react'
+import { MessageSquareHeart, Sparkles, X, Minimize2 } from 'lucide-react'
+import { CommandPalette } from './components/CommandPalette'
+import { useZenMode } from './hooks/useZenMode'
+import type { Command } from './lib/commands'
+import type { TimerMode } from './types'
 import confetti from 'canvas-confetti'
 import { Navbar, type Tab } from './components/Navbar'
 import { PomodoroTimer } from './components/PomodoroTimer'
@@ -80,6 +84,15 @@ const AppShell: React.FC = () => {
   const [isManualOpen, setIsManualOpen] = useState(false)
   const [createProjectSignal, setCreateProjectSignal] = useState(0)
   const [completed, setCompleted] = useState<TimerFinish | null>(null)
+  const [paletteOpen, setPaletteOpen] = useState(false)
+  const { zen, toggle: toggleZen, exit: exitZen } = useZenMode()
+  const [reviewSeen, setReviewSeen] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('study_tracker_review_seen')
+    } catch {
+      return null
+    }
+  })
 
   // Wrap a mutation so failures surface as a toast and still reject for the
   // calling form (which keeps itself open).
@@ -159,27 +172,68 @@ const AppShell: React.FC = () => {
     onOfflineReady: () => toast.info('Ready to work offline.'),
   })
 
-  // Keyboard shortcuts on the timer tab: Space toggles, R resets. Ignored
-  // while typing, while a dialog is open, or when the timer cannot start.
+  // Keyboard shortcuts: Ctrl/Cmd+K opens the palette anywhere; on the timer
+  // tab Space toggles, R resets, F toggles zen. Ignored while typing or
+  // while a dialog is open.
   const canStart = !(timer.state.mode === 'work' && data.projects.length === 0)
   useEffect(() => {
-    if (activeTab !== 'timer' || auth.status !== 'authenticated') return
+    if (auth.status !== 'authenticated') return
     const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPaletteOpen((o) => !o)
+        return
+      }
       if (e.metaKey || e.ctrlKey || e.altKey) return
       const target = e.target as HTMLElement | null
       if (target && (INTERACTIVE.has(target.tagName) || target.isContentEditable)) return
       if (document.querySelector('[role="dialog"]')) return
+      if (activeTab !== 'timer') return
       if (e.code === 'Space') {
         e.preventDefault()
         if (canStart) timer.toggle()
       } else if (e.key === 'r' || e.key === 'R') {
         e.preventDefault()
         timer.reset()
+      } else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault()
+        toggleZen()
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [activeTab, auth.status, canStart, timer])
+  }, [activeTab, auth.status, canStart, timer, toggleZen])
+
+  const markReviewSeen = useCallback(() => {
+    const key = data.review?.week_start ?? null
+    setReviewSeen(key)
+    try {
+      if (key) localStorage.setItem('study_tracker_review_seen', key)
+    } catch {
+      /* ignore */
+    }
+  }, [data.review])
+  const reviewReady = Boolean(data.review && data.review.minutes > 0 && data.review.week_start !== reviewSeen)
+
+  const commands: Command[] = [
+    { id: 'start', label: timer.state.status === 'running' ? 'Pause timer' : timer.state.status === 'paused' ? 'Resume timer' : 'Start timer', hint: 'Space', group: 'Timer', run: () => { setActiveTab('timer'); if (canStart) timer.toggle() } },
+    { id: 'reset', label: 'Reset timer', hint: 'R', group: 'Timer', run: timer.reset },
+    { id: 'skip', label: 'Skip to next interval', group: 'Timer', run: timer.skip },
+    ...(['work', 'short_break', 'long_break'] as TimerMode[]).map((m) => ({
+      id: `mode-${m}`, label: m === 'work' ? 'Switch to focus' : m === 'short_break' ? 'Switch to short break' : 'Switch to long break', group: 'Timer' as const, run: () => { setActiveTab('timer'); timer.switchMode(m) },
+    })),
+    { id: 'zen', label: zen ? 'Exit zen mode' : 'Enter zen mode', hint: 'F', keywords: 'fullscreen focus distraction', group: 'Timer', run: () => { setActiveTab('timer'); toggleZen() } },
+    { id: 'nav-timer', label: 'Go to focus', group: 'Navigate', run: () => setActiveTab('timer') },
+    { id: 'nav-projects', label: 'Go to projects', group: 'Navigate', run: () => setActiveTab('projects') },
+    { id: 'nav-history', label: 'Go to history', group: 'Navigate', run: () => setActiveTab('history') },
+    { id: 'nav-analytics', label: 'Go to analytics', keywords: 'stats review heatmap', group: 'Navigate', run: () => setActiveTab('analytics') },
+    ...data.projects.map((p) => ({ id: `project-${p.id}`, label: `Focus on ${p.name}`, keywords: 'project select', group: 'Projects' as const, run: () => { data.setSelectedProjectId(p.id); setActiveTab('timer') } })),
+    { id: 'new-project', label: 'New project', group: 'Projects', run: requestCreateProject },
+    { id: 'log', label: 'Log a past session', keywords: 'manual entry', group: 'Actions', run: () => setIsManualOpen(true) },
+    { id: 'settings', label: 'Open settings', keywords: 'preferences calendar import account', group: 'Actions', run: () => setIsSettingsOpen(true) },
+    { id: 'feedback', label: 'Send feedback', group: 'Actions', run: () => setIsFeedbackOpen(true) },
+    { id: 'logout', label: 'Sign out', group: 'Actions', run: auth.logout },
+  ]
 
   const saveCompletedSession = async (projectId: number, rating: number, notes: string, taskId: number | null) => {
     if (!completed) return
@@ -202,7 +256,7 @@ const AppShell: React.FC = () => {
     if (taskId !== null) void taskState.refresh().catch(() => undefined)
   }
 
-  const requestCreateProject = () => {
+  function requestCreateProject() {
     setActiveTab('projects')
     setCreateProjectSignal((n) => n + 1)
   }
@@ -226,8 +280,9 @@ const AppShell: React.FC = () => {
   const initialLoading = Boolean(signedIn) && data.loading && !data.loaded
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <ServerStatusBanner authStatus={auth.status} onRetry={() => void auth.retry()} />
+    <div className={`flex min-h-screen flex-col ${zen ? 'zen' : ''}`}>
+      {!zen && <ServerStatusBanner authStatus={auth.status} onRetry={() => void auth.retry()} />}
+      {!zen && (
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -238,6 +293,12 @@ const AppShell: React.FC = () => {
         timerRunning={timer.state.status === 'running'}
         timerLabel={timer.formatted}
       />
+      )}
+      {zen && (
+        <button type="button" onClick={exitZen} className="focus-ring glass fixed right-4 top-4 z-40 flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-ink-300 hover:text-ink-50" aria-label="Exit zen mode">
+          <Minimize2 className="h-3.5 w-3.5" aria-hidden="true" /> Exit zen
+        </button>
+      )}
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-28 pt-4 sm:px-6" aria-busy={initialLoading}>
         {signedIn && data.error && !data.loaded && (
@@ -252,6 +313,18 @@ const AppShell: React.FC = () => {
         <div key={activeTab} className="animate-fade-up">
           {activeTab === 'timer' && (
             <>
+              {reviewReady && !zen && (
+                <div className="mx-auto mb-2 flex max-w-2xl items-center justify-between gap-3 rounded-2xl border border-brand-500/20 bg-brand-500/[0.07] px-4 py-2.5 text-xs text-ink-200 animate-fade-up" role="status">
+                  <span className="flex items-center gap-2">
+                    <Sparkles className="h-3.5 w-3.5 text-brand-400" aria-hidden="true" />
+                    Your weekly review is ready: {formatMinutes(data.review?.minutes ?? 0)} last week.
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <button type="button" onClick={() => { markReviewSeen(); setActiveTab('analytics') }} className="focus-ring rounded-lg px-2 py-1 font-semibold text-brand-300 hover:bg-brand-500/10">Read it</button>
+                    <button type="button" onClick={markReviewSeen} aria-label="Dismiss" className="focus-ring rounded-lg p-1 text-ink-500 hover:text-ink-100"><X className="h-3.5 w-3.5" /></button>
+                  </span>
+                </div>
+              )}
               <PomodoroTimer
                 timer={timer}
                 projects={data.projects}
@@ -261,7 +334,7 @@ const AppShell: React.FC = () => {
                 onCreateProject={requestCreateProject}
                 goal={data.goals?.projects.find((g) => g.project_id === data.selectedProjectId)}
               />
-              {signedIn && data.selectedProjectId !== null && timer.state.mode === 'work' && (
+              {signedIn && !zen && data.selectedProjectId !== null && timer.state.mode === 'work' && (
                 <div className="mx-auto max-w-2xl px-2">
                   <TaskPanel
                     projectName={data.projects.find((p) => p.id === data.selectedProjectId)?.name ?? ''}
@@ -303,9 +376,9 @@ const AppShell: React.FC = () => {
           {activeTab === 'analytics' && (
             <Suspense fallback={<AnalyticsSkeleton />}>
               {data.stats ? (
-                <AnalyticsDashboard stats={data.stats} heatmap={data.heatmap} hours={data.hours} loading={data.loading} error={data.error} onRetry={() => void data.reload()} />
+                <AnalyticsDashboard stats={data.stats} heatmap={data.heatmap} hours={data.hours} review={data.review} loading={data.loading} error={data.error} onRetry={() => void data.reload()} />
               ) : data.error ? (
-                <AnalyticsDashboard stats={null} heatmap={[]} hours={[]} loading={false} error={data.error} onRetry={() => void data.reload()} />
+                <AnalyticsDashboard stats={null} heatmap={[]} hours={[]} review={null} loading={false} error={data.error} onRetry={() => void data.reload()} />
               ) : (
                 <AnalyticsSkeleton />
               )}
@@ -371,6 +444,9 @@ const AppShell: React.FC = () => {
         />
       )}
 
+      <CommandPalette isOpen={paletteOpen} onClose={() => setPaletteOpen(false)} commands={commands} />
+
+      {!zen && (
       <button
         type="button"
         onClick={() => setIsFeedbackOpen(true)}
@@ -380,6 +456,7 @@ const AppShell: React.FC = () => {
         <MessageSquareHeart className="h-4 w-4 text-brand-400" aria-hidden="true" />
         Feedback
       </button>
+      )}
 
       <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} userEmail={auth.user?.email} />
     </div>

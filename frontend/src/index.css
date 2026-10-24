@@ -72,6 +72,12 @@
   .chip {
     @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold;
   }
+  /* Zen mode: calm the page so only the ring draws the eye. */
+  .zen main {
+    @apply flex items-center justify-center;
+    min-height: 100vh;
+  }
+  .zen .card { @apply hidden; }
   .stagger > * {
     @apply animate-fade-up;
   }

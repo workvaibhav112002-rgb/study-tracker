@@ -4,6 +4,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"time"
 )
@@ -208,6 +209,33 @@ type HourStat struct {
 	AvgRating    float64 `json:"avg_rating"`
 }
 
+// WeeklyReview summarises the most recent complete Monday–Sunday week.
+type WeeklyReview struct {
+	WeekStart        string       `json:"week_start"`
+	WeekEnd          string       `json:"week_end"`
+	Minutes          int          `json:"minutes"`
+	PreviousMinutes  int          `json:"previous_minutes"`
+	DeltaPercent     *float64     `json:"delta_percent"`
+	Sessions         int          `json:"sessions"`
+	Pomodoros        int          `json:"pomodoros"`
+	ActiveDays       int          `json:"active_days"`
+	AvgRating        float64      `json:"avg_rating"`
+	AvgInterruptions float64      `json:"avg_interruptions"`
+	BestDay          *DailyStat   `json:"best_day"`
+	TopProject       *ProjectStat `json:"top_project"`
+	TopProjectShare  float64      `json:"top_project_share"`
+	BestHour         *int         `json:"best_hour"`
+	StreakDays       int          `json:"streak_days"`
+	Days             []DailyStat  `json:"days"`
+	Insights         []string     `json:"insights"`
+}
+
+// TimerSnapshot is the client's timer state, stored opaquely for cross-device sync.
+type TimerSnapshot struct {
+	State     json.RawMessage `json:"state"`
+	UpdatedAt int64           `json:"updated_at"`
+}
+
 // FeedbackTypes is the closed set of accepted feedback types.
 var FeedbackTypes = []string{"feature", "bug", "praise", "general"}
 
@@ -301,6 +329,12 @@ type Store interface {
 	GoalsStats(ctx context.Context, userID int64, loc *time.Location, now time.Time) (GoalsStats, error)
 	Heatmap(ctx context.Context, userID int64, loc *time.Location, now time.Time, days int) ([]DailyStat, error)
 	HourlyStats(ctx context.Context, userID int64, loc *time.Location) ([]HourStat, error)
+	WeeklyReview(ctx context.Context, userID int64, loc *time.Location, now time.Time) (WeeklyReview, error)
+
+	GetTimer(ctx context.Context, userID int64) (TimerSnapshot, error)
+	// PutTimer stores the snapshot only if it is newer than the stored one;
+	// it returns the snapshot that is current afterwards.
+	PutTimer(ctx context.Context, userID int64, snap TimerSnapshot) (TimerSnapshot, error)
 
 	ExportAll(ctx context.Context, userID int64) (Export, error)
 	ImportAll(ctx context.Context, userID int64, in ImportInput) (ImportResult, error)

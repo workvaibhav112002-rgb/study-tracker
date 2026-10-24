@@ -170,6 +170,31 @@ export interface HourStat {
   avg_rating: number
 }
 
+export interface WeeklyReview {
+  week_start: string
+  week_end: string
+  minutes: number
+  previous_minutes: number
+  delta_percent: number | null
+  sessions: number
+  pomodoros: number
+  active_days: number
+  avg_rating: number
+  avg_interruptions: number
+  best_day: DailyStat | null
+  top_project: ProjectStat | null
+  top_project_share: number
+  best_hour: number | null
+  streak_days: number
+  days: DailyStat[]
+  insights: string[]
+}
+
+export interface TimerSnapshot<T = unknown> {
+  state: T | null
+  updated_at: number
+}
+
 export interface CalendarToken {
   token: string
   url: string

@@ -274,6 +274,12 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
         <span>
           <kbd className="rounded-md border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-ink-400">R</kbd> reset
         </span>
+        <span>
+          <kbd className="rounded-md border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-ink-400">F</kbd> zen
+        </span>
+        <span>
+          <kbd className="rounded-md border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-ink-400">Ctrl K</kbd> commands
+        </span>
       </p>
 
       {/* Active project */}

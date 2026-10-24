@@ -460,7 +460,7 @@ func TestMigrateIsIdempotent(t *testing.T) {
 		t.Fatal(err)
 	}
 	var n int
-	if err := testPool.QueryRow(ctx, `SELECT count(*) FROM schema_migrations`).Scan(&n); err != nil || n != 3 {
+	if err := testPool.QueryRow(ctx, `SELECT count(*) FROM schema_migrations`).Scan(&n); err != nil || n != 4 {
 		t.Fatalf("schema_migrations rows=%d err=%v", n, err)
 	}
 }
