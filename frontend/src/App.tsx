@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
+import React, { useMemo, Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import { MessageSquareHeart, Sparkles, X, Minimize2 } from 'lucide-react'
 import { CommandPalette } from './components/CommandPalette'
 import { ShortcutsModal } from './components/ShortcutsModal'
@@ -28,6 +28,10 @@ import { CardsPanel } from './components/CardsPanel'
 import { NotesPanel } from './components/NotesPanel'
 import { useCards } from './hooks/useCards'
 import { useNotes } from './hooks/useNotes'
+import { useFriends } from './hooks/useFriends'
+import { FriendsPanel } from './components/FriendsPanel'
+import { PublicProfilePage } from './components/PublicProfilePage'
+import { suggestWorkDuration } from './lib/adaptive'
 import { useAuth } from './hooks/useAuth'
 import { useAppData } from './hooks/useAppData'
 import { useTimer, type TimerFinish } from './hooks/useTimer'
@@ -43,7 +47,7 @@ import { errorMessage } from './api/client'
 import { audioService } from './services/audio'
 
 // Recharts is heavy; load it only when the analytics tab is opened.
-const TAB_ORDER: Tab[] = ['timer', 'projects', 'cards', 'notes', 'history', 'analytics']
+const TAB_ORDER: Tab[] = ['timer', 'projects', 'cards', 'notes', 'history', 'analytics', 'friends']
 
 const AnalyticsDashboard = lazy(() =>
   import('./components/AnalyticsDashboard').then((m) => ({ default: m.AnalyticsDashboard })),
@@ -93,10 +97,14 @@ const AppShell: React.FC = () => {
   useAppearance()
 
   const [activeTab, setActiveTab] = useState<Tab>('timer')
+  const friendState = useFriends(userId, activeTab === 'friends')
+  const suggestion = useMemo(() => suggestWorkDuration(data.sessions, data.settings), [data.sessions, data.settings])
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
   const [isManualOpen, setIsManualOpen] = useState(false)
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false)
+  const [pendingFriendToken, setPendingFriendToken] = useState<string | null>(null)
+  const [profileHandle, setProfileHandle] = useState<string | null>(() => (entry?.kind === 'profile' ? entry.handle : null))
   const [createProjectSignal, setCreateProjectSignal] = useState(0)
   const [completed, setCompleted] = useState<TimerFinish | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -169,9 +177,14 @@ const AppShell: React.FC = () => {
   // Emailed magic link: redeem it once, then clean the address bar.
   const magicHandled = useRef(false)
   useEffect(() => {
-    if (!entry || magicHandled.current) return
+    if (!entry || magicHandled.current || entry.kind === 'profile') return
     magicHandled.current = true
     cleanEntryLink()
+    if (entry.kind === 'friend') {
+      // Keep the token until the user is signed in, then accept it once.
+      setPendingFriendToken(entry.token)
+      return
+    }
     if (entry.kind !== 'magic') return
     api
       .magicSignIn(entry.token)
@@ -181,6 +194,20 @@ const AppShell: React.FC = () => {
       })
       .catch((err) => toast.error(errorMessage(err, 'This sign-in link is invalid or has expired.')))
   }, [entry, auth, toast])
+
+  // Friend invite: accept once signed in (the link may have opened the landing page first).
+  useEffect(() => {
+    if (!pendingFriendToken || auth.status !== 'authenticated') return
+    const token = pendingFriendToken
+    setPendingFriendToken(null)
+    friendState
+      .accept(token)
+      .then((f) => {
+        setActiveTab('friends')
+        toast.success(f ? `You and ${f.name} are now friends.` : 'Invite accepted.')
+      })
+      .catch((err) => toast.error(errorMessage(err, 'This invite link is invalid or has expired.')))
+  }, [pendingFriendToken, auth.status, friendState, toast])
 
   useServiceWorker({
     onNeedRefresh: (reload) => toast.action('A new version is available.', 'Reload', reload),
@@ -204,7 +231,7 @@ const AppShell: React.FC = () => {
       if (target && (INTERACTIVE.has(target.tagName) || target.isContentEditable)) return
       if (document.querySelector('[role="dialog"]')) return
       const key = e.key
-      const tabIndex = ['1', '2', '3', '4', '5', '6'].indexOf(key)
+      const tabIndex = ['1', '2', '3', '4', '5', '6', '7'].indexOf(key)
       if (tabIndex >= 0) {
         e.preventDefault()
         setActiveTab(TAB_ORDER[tabIndex])
@@ -275,6 +302,7 @@ const AppShell: React.FC = () => {
     { id: 'nav-notes', label: 'Go to notes', hint: '4', group: 'Navigate', run: () => setActiveTab('notes') },
     { id: 'nav-history', label: 'Go to history', hint: '5', group: 'Navigate', run: () => setActiveTab('history') },
     { id: 'nav-analytics', label: 'Go to analytics', hint: '6', keywords: 'stats review heatmap', group: 'Navigate', run: () => setActiveTab('analytics') },
+    { id: 'nav-friends', label: 'Go to friends', hint: '7', keywords: 'leaderboard invite study together', group: 'Navigate', run: () => setActiveTab('friends') },
     ...data.projects.map((p) => ({ id: `project-${p.id}`, label: `Focus on ${p.name}`, keywords: 'project select', group: 'Projects' as const, run: () => { data.setSelectedProjectId(p.id); setActiveTab('timer') } })),
     { id: 'new-project', label: 'New project', group: 'Projects', run: requestCreateProject },
     { id: 'review', label: cardState.stats.due > 0 ? `Review ${cardState.stats.due} due cards` : 'Open flashcards', keywords: 'flashcards srs study', group: 'Actions', run: () => { setActiveTab('cards'); setReviewSignal((n) => n + 1) } },
@@ -325,6 +353,20 @@ const AppShell: React.FC = () => {
           </svg>
         </div>
         <span className="text-sm text-ink-500">Signing you in…</span>
+      </div>
+    )
+  }
+
+  if (profileHandle) {
+    return (
+      <div className="min-h-screen">
+        <PublicProfilePage
+          handle={profileHandle}
+          onHome={() => {
+            cleanEntryLink()
+            setProfileHandle(null)
+          }}
+        />
       </div>
     )
   }
@@ -390,6 +432,8 @@ const AppShell: React.FC = () => {
                 settings={data.settings}
                 onCreateProject={requestCreateProject}
                 goal={data.goals?.projects.find((g) => g.project_id === data.selectedProjectId)}
+                suggestion={suggestion}
+                onApplySuggestion={(minutes) => void run(() => data.updateSettings({ ...data.settings, work_duration: minutes }), `Focus sessions are now ${minutes} minutes.`)}
               />
               {signedIn && !zen && data.selectedProjectId !== null && timer.state.mode === 'work' && (
                 <div className="mx-auto max-w-2xl px-2">
@@ -476,6 +520,18 @@ const AppShell: React.FC = () => {
             />
           )}
 
+          {activeTab === 'friends' && auth.user && (
+            <FriendsPanel
+              user={auth.user}
+              stats={data.stats}
+              friends={friendState.friends}
+              loaded={friendState.loaded}
+              error={friendState.error}
+              onInvite={friendState.invite}
+              onRemove={friendState.remove}
+              onRefresh={friendState.refresh}
+            />
+          )}
           {activeTab === 'history' && (
             <HistoryTable
               sessions={data.sessions}
@@ -489,9 +545,9 @@ const AppShell: React.FC = () => {
           {activeTab === 'analytics' && (
             <Suspense fallback={<AnalyticsSkeleton />}>
               {data.stats ? (
-                <AnalyticsDashboard stats={data.stats} heatmap={data.heatmap} hours={data.hours} review={data.review} streak={data.streak} milestones={data.milestones} onFreeze={() => run(() => data.freezeStreak(), 'Yesterday is frozen. Streak saved.')} loading={data.loading} error={data.error} onRetry={() => void data.reload()} appUrl={config.app_url} />
+                <AnalyticsDashboard stats={data.stats} heatmap={data.heatmap} hours={data.hours} review={data.review} streak={data.streak} milestones={data.milestones} projects={data.projects} onFreeze={() => run(() => data.freezeStreak(), 'Yesterday is frozen. Streak saved.')} loading={data.loading} error={data.error} onRetry={() => void data.reload()} appUrl={config.app_url} />
               ) : data.error ? (
-                <AnalyticsDashboard stats={null} heatmap={[]} hours={[]} review={null} streak={null} milestones={[]} onFreeze={async () => undefined} loading={false} error={data.error} onRetry={() => void data.reload()} appUrl={config.app_url} />
+                <AnalyticsDashboard stats={null} heatmap={[]} hours={[]} review={null} streak={null} milestones={[]} projects={[]} onFreeze={async () => undefined} loading={false} error={data.error} onRetry={() => void data.reload()} appUrl={config.app_url} />
               ) : (
                 <AnalyticsSkeleton />
               )}
@@ -532,6 +588,7 @@ const AppShell: React.FC = () => {
         onDataChanged={() => data.reload()}
         onPasswordChanged={auth.applyAuth}
         vapidPublicKey={config.vapid_public_key ?? ''}
+        appUrl={config.app_url}
         onAccountDeleted={() => {
           setIsSettingsOpen(false)
           auth.logout()

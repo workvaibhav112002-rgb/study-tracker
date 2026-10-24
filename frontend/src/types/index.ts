@@ -8,6 +8,45 @@ export interface User {
   has_password?: boolean
   google_linked?: boolean
   email_verified_at?: string | null
+  handle?: string | null
+  profile_public?: boolean
+  bio?: string
+}
+
+export interface ProfileInput {
+  handle: string | null
+  profile_public: boolean
+  bio: string
+}
+
+export interface PublicProfile {
+  name: string
+  handle: string
+  bio: string
+  member_since: string
+  total_minutes: number
+  sessions: number
+  current_streak_days: number
+  goal_streak_days: number
+  week_minutes: number
+  heatmap: DailyStat[]
+  badges: Milestone[]
+}
+
+export interface Friend {
+  id: number
+  name: string
+  handle: string | null
+  studying: boolean
+  today_minutes: number
+  week_minutes: number
+  current_streak_days: number
+}
+
+export interface FriendInvite {
+  token: string
+  url: string
+  expires_at: string
 }
 
 export interface AppConfig {

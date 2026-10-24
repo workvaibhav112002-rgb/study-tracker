@@ -10,7 +10,7 @@ interface Props {
 const SHORTCUTS: { keys: string[]; label: string; scope: 'Anywhere' | 'Timer tab' }[] = [
   { keys: ['Ctrl', 'K'], label: 'Command palette', scope: 'Anywhere' },
   { keys: ['?'], label: 'This cheat sheet', scope: 'Anywhere' },
-  { keys: ['1', '…', '6'], label: 'Switch tabs (Focus, Projects, Cards, Notes, History, Analytics)', scope: 'Anywhere' },
+  { keys: ['1', '…', '7'], label: 'Switch tabs (Focus, Projects, Cards, Notes, History, Analytics, Friends)', scope: 'Anywhere' },
   { keys: ['N'], label: 'Log a past session', scope: 'Anywhere' },
   { keys: [','], label: 'Open settings', scope: 'Anywhere' },
   { keys: ['Space'], label: 'Start or pause', scope: 'Timer tab' },

@@ -9,6 +9,7 @@ import { ImportSection } from './settings/ImportSection'
 import { AccountSection } from './settings/AccountSection'
 import { AppearanceSection } from './settings/AppearanceSection'
 import { RemindersSection } from './settings/RemindersSection'
+import { ProfileSection } from './settings/ProfileSection'
 import { audioService } from '../services/audio'
 import { Modal } from './ui/Modal'
 import { Button } from './ui/Button'
@@ -25,6 +26,7 @@ interface SettingsModalProps {
   onPasswordChanged: (res: AuthResponse) => void
   onAccountDeleted: () => void
   vapidPublicKey?: string
+  appUrl?: string
 }
 
 type NumericKey = keyof typeof SETTINGS_LIMITS
@@ -50,7 +52,7 @@ const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void; label
   </label>
 )
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, user, onUserChanged, onDataChanged, onPasswordChanged, onAccountDeleted, vapidPublicKey = '' }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, user, onUserChanged, onDataChanged, onPasswordChanged, onAccountDeleted, vapidPublicKey = '', appUrl = '' }) => {
   const { prefs, setPrefs } = useLocalPrefs()
   const [form, setForm] = useState<Settings>(settings)
   const [saving, setSaving] = useState(false)
@@ -189,6 +191,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
       {user && (
         <div className="mt-6 space-y-6 border-t border-fg/[0.06] pt-6">
           <AppearanceSection />
+          <ProfileSection user={user} appUrl={appUrl} onChanged={onUserChanged} />
           <CalendarSyncSection hasToken={Boolean(user.has_calendar_token)} onChanged={onUserChanged} />
           <ImportSection onImported={onDataChanged} />
           <AccountSection email={user.email} hasPassword={Boolean(user.has_password)} googleLinked={Boolean(user.google_linked)} onPasswordChanged={onPasswordChanged} onDeleted={onAccountDeleted} />

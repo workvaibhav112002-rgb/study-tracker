@@ -26,6 +26,10 @@ import type {
   WeeklyReview,
   GoalStreak,
   Milestone,
+  ProfileInput,
+  PublicProfile,
+  Friend,
+  FriendInvite,
 } from '../types'
 import { browserTimeZone } from '../lib/time'
 import { captureException } from '../lib/monitoring'
@@ -296,6 +300,12 @@ export const api = {
   getMilestones: () => request<Milestone[]>(`/stats/milestones?tz=${tz()}`),
   pushSubscribe: (sub: { endpoint: string; keys: { p256dh: string; auth: string } }) =>
     request<void>('/push/subscribe', { method: 'POST', body: sub }),
+  updateProfile: (input: ProfileInput) => request<User>('/auth/profile', { method: 'PUT', body: input }),
+  getPublicProfile: (handle: string) => request<PublicProfile>(`/u/${encodeURIComponent(handle)}?tz=${tz()}`, { auth: false }),
+  getFriends: () => request<Friend[]>(`/friends?tz=${tz()}`),
+  createFriendInvite: () => request<FriendInvite>('/friends/invite', { method: 'POST' }),
+  acceptFriendInvite: (token: string) => request<{ friend: Friend | null; friends: Friend[] }>(`/friends/accept?tz=${tz()}`, { method: 'POST', body: { token } }),
+  removeFriend: (id: number) => request<void>(`/friends/${id}`, { method: 'DELETE' }),
   pushUnsubscribe: (endpoint: string) => request<void>('/push/subscribe', { method: 'DELETE', body: { endpoint } }),
 
   // Cross-device timer snapshot

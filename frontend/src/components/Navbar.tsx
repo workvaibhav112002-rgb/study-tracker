@@ -1,9 +1,9 @@
 import React from 'react'
-import { Timer, BarChart3, FolderKanban, History, Settings as SettingsIcon, Flame, LogOut, Layers, NotebookPen } from 'lucide-react'
+import { Timer, BarChart3, FolderKanban, History, Settings as SettingsIcon, Flame, LogOut, Layers, NotebookPen, Users } from 'lucide-react'
 import type { DashboardStats, User } from '../types'
 import { formatMinutes } from '../lib/time'
 
-export type Tab = 'timer' | 'projects' | 'cards' | 'notes' | 'history' | 'analytics'
+export type Tab = 'timer' | 'projects' | 'cards' | 'notes' | 'history' | 'analytics' | 'friends'
 
 interface NavbarProps {
   activeTab: Tab
@@ -23,6 +23,7 @@ const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'notes', label: 'Notes', icon: NotebookPen },
   { id: 'history', label: 'History', icon: History },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { id: 'friends', label: 'Friends', icon: Users },
 ]
 
 const Logo: React.FC = () => (
@@ -77,7 +78,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               aria-current={isActive ? 'page' : undefined}
               aria-label={tab.label}
               title={tab.label}
-              className={`focus-ring flex items-center gap-2 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all duration-200 ease-premium ${
+              className={`focus-ring flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] sm:px-3 font-medium transition-all duration-200 ease-premium ${
                 isActive ? 'bg-fg/[0.08] text-ink-50 shadow-inner-hi' : 'text-ink-400 hover:bg-fg/[0.04] hover:text-ink-100'
               }`}
             >

@@ -30,6 +30,9 @@ Go API on Postgres, React frontend. Runs entirely on free tiers.
   hours, streaks, cards and notes, and opt-in **push reminders** at the hour you choose, in your timezone.
 - **Floating timer** (picture-in-picture) that stays on top of other windows, **keyboard shortcuts** for every
   tab and timer action (press `?`), and **CSV export / import** of sessions, including files from other apps.
+- **Friends**: invite links, a live "focusing now" list, and a weekly leaderboard. **Public profile** at `/u/handle`
+  (opt-in; totals, streaks and badges only, never your email or notes). **Adaptive session length** suggestions
+  from your last two weeks, and a **bring-your-own-key AI coach** that reads your stats (key stays in your browser).
 - **Export / import** your data as JSON. Change password and delete account. **Feedback** widget with rate limiting.
 - Installable **PWA** with offline shell. Accessible dialogs (focus trap, Escape, ARIA), toasts for every error,
   cold-start banner for the free tier. Optional Sentry error reporting on both ends.
@@ -101,6 +104,12 @@ All routes are under `/api`. Authenticated routes need `Authorization: Bearer <t
 | POST   | /push/subscribe       | yes  | `{endpoint,keys:{p256dh,auth}}` Web Push subscription     |
 | DELETE | /push/subscribe       | yes  | `{endpoint}`                                              |
 | POST   | /cron/reminders       | secret | `Authorization: Bearer $CRON_SECRET`; called hourly by GitHub Actions |
+| PUT    | /auth/profile         | yes  | `{handle,profile_public,bio}`; 409 if the handle is taken       |
+| GET    | /u/{handle}           | no   | public profile (404 for unknown and private alike), rate limited |
+| POST   | /friends/invite       | yes  | one-time link, 7 days                                      |
+| POST   | /friends/accept       | yes  | `{token}` links both accounts                              |
+| GET    | /friends              | yes  | friends with presence, today and week minutes, streak       |
+| DELETE | /friends/{id}         | yes  | removes both directions                                    |
 | POST   | /auth/change-password | yes  | returns a new token; all older tokens stop working        |
 | DELETE | /auth/me              | yes  | `{password}` deletes the account and everything it owns   |
 | POST   | /auth/calendar-token  | yes  | creates/rotates the feed token (shown once)               |
@@ -198,6 +207,7 @@ Set `TEST_DATABASE_URL` to run the backend suite against an existing database in
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | no | enables push reminders; generate with `go run ./cmd/vapid` |
 | `VAPID_SUBJECT`       | no       | contact for push services (`mailto:` or URL; defaults to `APP_URL`) |
 | `CRON_SECRET`         | no       | shared secret for `/cron/reminders`; without it the route is hidden |
+| `PROFILE_RATE_LIMIT`  | no       | `60` per `PROFILE_RATE_WINDOW` (`1m`) for public profiles |
 
 Frontend (Vercel): `VITE_API_URL` (optional override), `VITE_SENTRY_DSN` (optional).
 
@@ -216,6 +226,10 @@ Create credentials → OAuth client ID → Web application*. Authorised JavaScri
 `CRON_SECRET` on Render. Add the same `CRON_SECRET` as a GitHub Actions secret; the `reminders` workflow then
 calls `/api/cron/reminders` every hour and the API nudges users whose local clock has reached their chosen
 hour and who have not studied yet that day. Users opt in from *Settings → Reminders*.
+
+**AI coach.** No server configuration. A user pastes their own Anthropic API key under *Analytics → AI coach*; it is
+kept in that browser's localStorage and requests go directly to `api.anthropic.com` (allowed in the CSP). The app
+never sees or stores the key server-side.
 
 ## Known trade-offs
 

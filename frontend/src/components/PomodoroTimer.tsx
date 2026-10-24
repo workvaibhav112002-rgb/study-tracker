@@ -8,6 +8,7 @@ import { longBreakInterval } from '../lib/timer'
 import { audioService } from '../services/audio'
 import { AmbientControl } from './AmbientControl'
 import { usePictureInPicture } from '../hooks/usePictureInPicture'
+import type { Suggestion } from '../lib/adaptive'
 
 interface PomodoroTimerProps {
   timer: ReturnType<typeof useTimer>
@@ -17,6 +18,8 @@ interface PomodoroTimerProps {
   settings: Settings
   onCreateProject: () => void
   goal?: GoalStat
+  suggestion?: Suggestion | null
+  onApplySuggestion?: (minutes: number) => void
 }
 
 interface ModeStyle {
@@ -75,6 +78,8 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
   settings,
   onCreateProject,
   goal,
+  suggestion,
+  onApplySuggestion,
 }) => {
   const gradId = useId()
   const { state, formatted, progress } = timer
@@ -284,6 +289,16 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
           </button>
         )}
       </div>
+
+      {suggestion && state.status === 'idle' && state.mode === 'work' && onApplySuggestion && (
+        <div className="mt-5 flex max-w-md flex-wrap items-center justify-center gap-2 rounded-2xl border border-brand-500/20 bg-brand-500/[0.06] px-4 py-2.5 text-center text-[12px] text-ink-200" role="status">
+          <Sparkles className="h-3.5 w-3.5 text-brand-400" aria-hidden="true" />
+          <span>{suggestion.reason}</span>
+          <button type="button" onClick={() => onApplySuggestion(suggestion.minutes)} className="focus-ring rounded-lg px-2 py-0.5 font-semibold text-brand-300 hover:bg-brand-500/10">
+            Use {suggestion.minutes} min
+          </button>
+        </div>
+      )}
 
       <p className="mt-5 hidden items-center gap-3 text-[11px] text-ink-600 sm:flex" aria-hidden="true">
         <span>

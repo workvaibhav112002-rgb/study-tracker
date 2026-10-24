@@ -1,10 +1,11 @@
 import React, { useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid } from 'recharts'
 import { Flame, Clock, Sparkles, Download, Calendar, Award, RefreshCw, Zap, TrendingUp, TrendingDown, Minus } from 'lucide-react'
-import type { DailyStat, DashboardStats, GoalStreak, HourStat, Milestone, WeeklyReview } from '../types'
+import type { DailyStat, DashboardStats, GoalStreak, HourStat, Milestone, Project, WeeklyReview } from '../types'
 import { WeeklyReviewCard } from './WeeklyReviewCard'
 import { StreakCard } from './StreakCard'
 import { MilestonesPanel } from './MilestonesPanel'
+import { CoachPanel } from './CoachPanel'
 import { ShareCardButton } from './ShareCardButton'
 import { HeatmapYear } from './HeatmapYear'
 import { BestHours } from './BestHours'
@@ -20,6 +21,7 @@ interface AnalyticsDashboardProps {
   review: WeeklyReview | null
   streak: GoalStreak | null
   milestones: Milestone[]
+  projects: Project[]
   onFreeze: () => Promise<void>
   appUrl: string
   loading: boolean
@@ -47,7 +49,7 @@ interface PieDatum {
 
 import { ChartTooltip as TooltipCard } from './ui/ChartTooltip'
 
-export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, heatmap, hours, review, streak, milestones, onFreeze, appUrl, loading, error, onRetry }) => {
+export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, heatmap, hours, review, streak, milestones, projects, onFreeze, appUrl, loading, error, onRetry }) => {
   const toast = useToast()
   const [exporting, setExporting] = useState(false)
 
@@ -258,6 +260,10 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, h
           <MilestonesPanel milestones={milestones} />
         </div>
       )}
+
+      <div className="mt-4">
+        <CoachPanel stats={stats} review={review} streak={streak} projects={projects} />
+      </div>
     </div>
   )
 }
