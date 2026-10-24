@@ -34,3 +34,9 @@ services:
         sync: false
       - key: SMTP_FROM
         sync: false
+      - key: VAPID_PUBLIC_KEY  # optional; enables push reminders (go run ./cmd/vapid)
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: CRON_SECRET       # optional; same value as the GitHub secret for the hourly reminders job
+        sync: false

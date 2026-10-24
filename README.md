@@ -26,6 +26,8 @@ Go API on Postgres, React frontend. Runs entirely on free tiers.
 - **Weekly review** every Monday, a **command palette** (Ctrl/Cmd+K), **zen mode** (F), a **landing page**,
   **shareable stat cards**, **ambient sounds** synthesized in the browser, **light theme** and five accents,
   and a timer that follows you **across devices**.
+- **Goal streak** with one **freeze** per week to cover a missed day, **milestones** (badges) for sessions,
+  hours, streaks, cards and notes, and opt-in **push reminders** at the hour you choose, in your timezone.
 - **Export / import** your data as JSON. Change password and delete account. **Feedback** widget with rate limiting.
 - Installable **PWA** with offline shell. Accessible dialogs (focus trap, Escape, ARIA), toasts for every error,
   cold-start banner for the free tier. Optional Sentry error reporting on both ends.
@@ -90,6 +92,12 @@ All routes are under `/api`. Authenticated routes need `Authorization: Bearer <t
 | GET    | /stats/goals          | yes  | today vs each project's daily target (`?tz=`)             |
 | GET    | /stats/heatmap        | yes  | `?tz=&days=365` dense day series                          |
 | GET    | /stats/hours          | yes  | 24 local hour buckets                                     |
+| GET    | /stats/streak         | yes  | goal streak, best streak, freeze availability (`?tz=`)    |
+| POST   | /stats/streak/freeze  | yes  | spend this week's freeze on a missed yesterday            |
+| GET    | /stats/milestones     | yes  | badges with progress                                      |
+| POST   | /push/subscribe       | yes  | `{endpoint,keys:{p256dh,auth}}` Web Push subscription     |
+| DELETE | /push/subscribe       | yes  | `{endpoint}`                                              |
+| POST   | /cron/reminders       | secret | `Authorization: Bearer $CRON_SECRET`; called hourly by GitHub Actions |
 | POST   | /auth/change-password | yes  | returns a new token; all older tokens stop working        |
 | DELETE | /auth/me              | yes  | `{password}` deletes the account and everything it owns   |
 | POST   | /auth/calendar-token  | yes  | creates/rotates the feed token (shown once)               |
@@ -184,6 +192,9 @@ Set `TEST_DATABASE_URL` to run the backend suite against an existing database in
 | `APP_URL`             | no       | frontend origin used in emailed links (defaults to the Vercel URL) |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | no | enables password reset and magic links (any STARTTLS relay; Brevo's free tier works) |
 | `GOOGLE_CLIENT_ID`    | no       | enables "Continue with Google"           |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | no | enables push reminders; generate with `go run ./cmd/vapid` |
+| `VAPID_SUBJECT`       | no       | contact for push services (`mailto:` or URL; defaults to `APP_URL`) |
+| `CRON_SECRET`         | no       | shared secret for `/cron/reminders`; without it the route is hidden |
 
 Frontend (Vercel): `VITE_API_URL` (optional override), `VITE_SENTRY_DSN` (optional).
 
@@ -197,6 +208,11 @@ The free tier allows 300 emails a day.
 **Google sign-in.** In <https://console.cloud.google.com> create a project, *APIs & Services → Credentials →
 Create credentials → OAuth client ID → Web application*. Authorised JavaScript origins: your Vercel URL and
 `http://localhost:5173`. No redirect URIs are needed. Copy the client ID into `GOOGLE_CLIENT_ID` on Render.
+
+**Push reminders.** Run `cd backend && go run ./cmd/vapid` and set the two printed keys plus a random
+`CRON_SECRET` on Render. Add the same `CRON_SECRET` as a GitHub Actions secret; the `reminders` workflow then
+calls `/api/cron/reminders` every hour and the API nudges users whose local clock has reached their chosen
+hour and who have not studied yet that day. Users opt in from *Settings → Reminders*.
 
 ## Known trade-offs
 

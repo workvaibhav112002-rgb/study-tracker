@@ -47,7 +47,17 @@ type Config struct {
 	SMTPUser string
 	SMTPPass string
 	SMTPFrom string
+
+	// VAPID keys enable Web Push reminders when both are set.
+	VAPIDPublicKey  string
+	VAPIDPrivateKey string
+	VAPIDSubject    string
+	// CronSecret authorises the scheduled reminder endpoint.
+	CronSecret string
 }
+
+// PushEnabled reports whether Web Push reminders can be sent.
+func (c Config) PushEnabled() bool { return c.VAPIDPublicKey != "" && c.VAPIDPrivateKey != "" }
 
 // EmailEnabled reports whether transactional email can be sent.
 func (c Config) EmailEnabled() bool { return c.SMTPHost != "" && c.SMTPFrom != "" }
@@ -75,6 +85,13 @@ func Load(getenv func(string) string) (Config, error) {
 		SMTPUser:           strings.TrimSpace(getenv("SMTP_USER")),
 		SMTPPass:           getenv("SMTP_PASS"),
 		SMTPFrom:           strings.TrimSpace(getenv("SMTP_FROM")),
+		VAPIDPublicKey:     strings.TrimSpace(getenv("VAPID_PUBLIC_KEY")),
+		VAPIDPrivateKey:    strings.TrimSpace(getenv("VAPID_PRIVATE_KEY")),
+		CronSecret:         strings.TrimSpace(getenv("CRON_SECRET")),
+	}
+	cfg.VAPIDSubject = orDefault(getenv("VAPID_SUBJECT"), cfg.AppURL)
+	if (cfg.VAPIDPublicKey == "") != (cfg.VAPIDPrivateKey == "") {
+		errs = append(errs, errors.New("VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY must be set together"))
 	}
 	cfg.SMTPPort = integer(getenv, "SMTP_PORT", 587, &errs)
 	if cfg.SMTPHost != "" && cfg.SMTPFrom == "" {

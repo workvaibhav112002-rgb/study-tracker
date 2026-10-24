@@ -306,7 +306,7 @@ func TestRateLimit(t *testing.T) {
 func TestSettingsRoundTrip(t *testing.T) {
 	s := newServer(t, nil)
 	token, _ := s.register(t, "set@example.com")
-	want := store.Settings{WorkDuration: 50, ShortBreakDuration: 10, LongBreakDuration: 30, LongBreakInterval: 3, AutoStartBreaks: true, SoundEnabled: false}
+	want := store.Settings{WorkDuration: 50, ShortBreakDuration: 10, LongBreakDuration: 30, LongBreakInterval: 3, AutoStartBreaks: true, SoundEnabled: false, ReminderHour: 8, Timezone: "UTC"}
 	res, body := s.do(t, "POST", "/api/settings", token, want)
 	wantStatus(t, res.StatusCode, 200, body)
 	res, body = s.do(t, "GET", "/api/settings", token, nil)
@@ -460,7 +460,7 @@ func TestMigrateIsIdempotent(t *testing.T) {
 		t.Fatal(err)
 	}
 	var n int
-	if err := testPool.QueryRow(ctx, `SELECT count(*) FROM schema_migrations`).Scan(&n); err != nil || n != 5 {
+	if err := testPool.QueryRow(ctx, `SELECT count(*) FROM schema_migrations`).Scan(&n); err != nil || n != 6 {
 		t.Fatalf("schema_migrations rows=%d err=%v", n, err)
 	}
 }

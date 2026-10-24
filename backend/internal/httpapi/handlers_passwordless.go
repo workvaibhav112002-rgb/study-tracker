@@ -29,6 +29,7 @@ func (a *api) config(w http.ResponseWriter, r *http.Request) {
 		"email_enabled":    a.mailer.Enabled(),
 		"google_client_id": a.cfg.GoogleClientID,
 		"app_url":          a.cfg.AppURL,
+		"vapid_public_key": a.cfg.VAPIDPublicKey,
 	})
 }
 

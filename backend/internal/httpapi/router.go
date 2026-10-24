@@ -13,6 +13,7 @@ import (
 	"study-tracker-backend/internal/auth"
 	"study-tracker-backend/internal/config"
 	"study-tracker-backend/internal/mail"
+	"study-tracker-backend/internal/push"
 	"study-tracker-backend/internal/store"
 )
 
@@ -26,6 +27,8 @@ type Deps struct {
 	Mailer mail.Mailer
 	// Google may be nil (Google sign-in disabled).
 	Google auth.GoogleVerifier
+	// Push may be nil (reminders disabled).
+	Push push.Sender
 }
 
 type api struct {
@@ -34,6 +37,8 @@ type api struct {
 	issuer *auth.Issuer
 	mailer mail.Mailer
 	google auth.GoogleVerifier
+	push   push.Sender
+	logger *slog.Logger
 }
 
 // NewRouter assembles middleware and routes. It is the single place that
@@ -43,7 +48,11 @@ func NewRouter(d Deps) http.Handler {
 	if mailer == nil {
 		mailer = mail.Nop{}
 	}
-	a := &api{cfg: d.Config, store: d.Store, issuer: d.Issuer, mailer: mailer, google: d.Google}
+	pusher := d.Push
+	if pusher == nil {
+		pusher = push.Nop{}
+	}
+	a := &api{cfg: d.Config, store: d.Store, issuer: d.Issuer, mailer: mailer, google: d.Google, push: pusher, logger: d.Logger}
 
 	authn := &auth.Authenticator{
 		Issuer: d.Issuer,
@@ -93,6 +102,8 @@ func NewRouter(d Deps) http.Handler {
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/health", a.health)
 		r.With(body).Get("/config", a.config)
+		// Scheduled jobs (GitHub Actions cron) authenticate with a shared secret.
+		r.With(body).Post("/cron/reminders", a.cronReminders)
 
 		// Public calendar feed: the token is the credential.
 		r.With(body, limited(d.Config.CalendarRateLimit, d.Config.CalendarRateWindow)).
@@ -164,6 +175,12 @@ func NewRouter(d Deps) http.Handler {
 				r.Get("/stats/heatmap", a.heatmapStats)
 				r.Get("/stats/hours", a.hourlyStats)
 				r.Get("/stats/weekly-review", a.weeklyReview)
+				r.Get("/stats/streak", a.goalStreak)
+				r.Post("/stats/streak/freeze", a.freezeStreak)
+				r.Get("/stats/milestones", a.milestones)
+
+				r.Post("/push/subscribe", a.pushSubscribe)
+				r.Delete("/push/subscribe", a.pushUnsubscribe)
 				r.Get("/timer", a.getTimer)
 				r.Put("/timer", a.putTimer)
 				r.Get("/settings", a.getSettings)

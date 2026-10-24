@@ -213,17 +213,63 @@ type TaskFilter struct {
 
 // Settings holds a user's timer preferences (one row per user).
 type Settings struct {
-	WorkDuration       int  `json:"work_duration"`
-	ShortBreakDuration int  `json:"short_break_duration"`
-	LongBreakDuration  int  `json:"long_break_duration"`
-	LongBreakInterval  int  `json:"long_break_interval"`
-	AutoStartBreaks    bool `json:"auto_start_breaks"`
-	SoundEnabled       bool `json:"sound_enabled"`
+	WorkDuration       int    `json:"work_duration"`
+	ShortBreakDuration int    `json:"short_break_duration"`
+	LongBreakDuration  int    `json:"long_break_duration"`
+	LongBreakInterval  int    `json:"long_break_interval"`
+	AutoStartBreaks    bool   `json:"auto_start_breaks"`
+	SoundEnabled       bool   `json:"sound_enabled"`
+	ReminderEnabled    bool   `json:"reminder_enabled"`
+	ReminderHour       int    `json:"reminder_hour"`
+	Timezone           string `json:"timezone"`
 }
 
 // DefaultSettings are applied to every new account.
 func DefaultSettings() Settings {
-	return Settings{WorkDuration: 25, ShortBreakDuration: 5, LongBreakDuration: 15, LongBreakInterval: 4, SoundEnabled: true}
+	return Settings{WorkDuration: 25, ShortBreakDuration: 5, LongBreakDuration: 15, LongBreakInterval: 4, SoundEnabled: true, ReminderHour: 9, Timezone: "UTC"}
+}
+
+// GoalStreak is the run of days where the daily goal was met (or frozen).
+type GoalStreak struct {
+	Days               int      `json:"days"`
+	BestDays           int      `json:"best_days"`
+	TargetMinutes      int      `json:"target_minutes"`
+	TodayMet           bool     `json:"today_met"`
+	YesterdayMet       bool     `json:"yesterday_met"`
+	FreezeAvailable    bool     `json:"freeze_available"`
+	FreezeDays         []string `json:"freeze_days"`
+	MissedYesterdayISO string   `json:"missed_yesterday"`
+}
+
+// Milestone is an achievement with progress toward it.
+type Milestone struct {
+	ID          string  `json:"id"`
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	Icon        string  `json:"icon"`
+	Target      int     `json:"target"`
+	Progress    int     `json:"progress"`
+	Achieved    bool    `json:"achieved"`
+	AchievedAt  *string `json:"achieved_at"`
+}
+
+// PushSubscription is a Web Push endpoint for one browser.
+type PushSubscription struct {
+	ID       int64  `json:"id"`
+	UserID   int64  `json:"user_id"`
+	Endpoint string `json:"endpoint"`
+	P256dh   string `json:"-"`
+	Auth     string `json:"-"`
+}
+
+// ReminderCandidate is a user who may need a nudge right now.
+type ReminderCandidate struct {
+	UserID        int64
+	Name          string
+	Timezone      string
+	ReminderHour  int
+	LastReminded  *time.Time
+	Subscriptions []PushSubscription
 }
 
 // ProjectStat is per-project aggregate time.
@@ -428,6 +474,20 @@ type Store interface {
 	UpsertSettings(ctx context.Context, userID int64, s Settings) (Settings, error)
 
 	DashboardStats(ctx context.Context, userID int64, loc *time.Location, now time.Time) (DashboardStats, error)
+	GoalStreak(ctx context.Context, userID int64, loc *time.Location, now time.Time) (GoalStreak, error)
+	// AddStreakFreeze records a covered day; the caller validates eligibility.
+	AddStreakFreeze(ctx context.Context, userID int64, day string) error
+	Milestones(ctx context.Context, userID int64, loc *time.Location, now time.Time) ([]Milestone, error)
+
+	UpsertPushSubscription(ctx context.Context, userID int64, endpoint, p256dh, auth string) error
+	DeletePushSubscription(ctx context.Context, userID int64, endpoint string) error
+	DeleteSubscriptionByEndpoint(ctx context.Context, endpoint string) error
+	// ReminderCandidates lists users with reminders on and a subscription;
+	// filtering by local hour and last reminder day happens in the caller.
+	ReminderCandidates(ctx context.Context) ([]ReminderCandidate, error)
+	MarkReminded(ctx context.Context, userID int64, day string) error
+	// StudiedOn reports whether the user logged any session on the local day.
+	StudiedOn(ctx context.Context, userID int64, loc *time.Location, day time.Time) (bool, error)
 	GoalsStats(ctx context.Context, userID int64, loc *time.Location, now time.Time) (GoalsStats, error)
 	Heatmap(ctx context.Context, userID int64, loc *time.Location, now time.Time, days int) ([]DailyStat, error)
 	HourlyStats(ctx context.Context, userID int64, loc *time.Location) ([]HourStat, error)

@@ -22,6 +22,7 @@ import (
 	"study-tracker-backend/internal/auth"
 	"study-tracker-backend/internal/config"
 	"study-tracker-backend/internal/httpapi"
+	"study-tracker-backend/internal/push"
 	"study-tracker-backend/internal/store/postgres"
 )
 
@@ -102,6 +103,7 @@ func testConfig() config.Config {
 			"DATABASE_URL": "unused", "JWT_SECRET": strings.Repeat("t", 32), "APP_URL": "https://app.test", "GOOGLE_CLIENT_ID": "test-client",
 			"CORS_ORIGINS":    "http://localhost:5173,https://*.vercel.app",
 			"AUTH_RATE_LIMIT": "100000", "FEEDBACK_RATE_LIMIT": "100000", "CALENDAR_RATE_LIMIT": "100000",
+			"VAPID_PUBLIC_KEY": "test-public", "VAPID_PRIVATE_KEY": "test-private", "CRON_SECRET": "cron-secret-for-tests",
 		}[k]
 	})
 	if err != nil {
@@ -115,6 +117,32 @@ type testServer struct {
 	issuer *auth.Issuer
 	mail   *fakeMailer
 	google *fakeGoogle
+	push   *fakePush
+}
+
+// fakePush records payloads; endpoints containing "gone" are reported dead.
+type fakePush struct {
+	mu   sync.Mutex
+	sent map[string][]string
+}
+
+func (f *fakePush) Enabled() bool { return true }
+func (f *fakePush) Send(_ context.Context, sub push.Subscription, payload []byte) error {
+	if strings.Contains(sub.Endpoint, "gone") {
+		return push.ErrGone
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.sent == nil {
+		f.sent = map[string][]string{}
+	}
+	f.sent[sub.Endpoint] = append(f.sent[sub.Endpoint], string(payload))
+	return nil
+}
+func (f *fakePush) count(endpoint string) int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return len(f.sent[endpoint])
 }
 
 // fakeMailer records outgoing mail so tests can pull links out of it.
@@ -180,14 +208,15 @@ func newServer(t *testing.T, mod func(*config.Config)) *testServer {
 	issuer := auth.NewIssuer(cfg.JWTSecret, cfg.JWTTTL)
 	mailer := &fakeMailer{on: true}
 	google := &fakeGoogle{tokens: map[string]auth.GoogleClaims{}}
+	pusher := &fakePush{}
 	h := httpapi.NewRouter(httpapi.Deps{
 		Config: cfg, Store: postgres.New(testPool), Issuer: issuer,
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
-		Mailer: mailer, Google: google,
+		Mailer: mailer, Google: google, Push: pusher,
 	})
 	srv := httptest.NewServer(h)
 	t.Cleanup(srv.Close)
-	return &testServer{Server: srv, issuer: issuer, mail: mailer, google: google}
+	return &testServer{Server: srv, issuer: issuer, mail: mailer, google: google, push: pusher}
 }
 
 func (s *testServer) do(t *testing.T, method, path, token string, body any) (*http.Response, []byte) {

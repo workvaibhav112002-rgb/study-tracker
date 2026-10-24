@@ -18,6 +18,7 @@ import (
 	"study-tracker-backend/internal/config"
 	"study-tracker-backend/internal/httpapi"
 	"study-tracker-backend/internal/mail"
+	"study-tracker-backend/internal/push"
 	"study-tracker-backend/internal/store/postgres"
 )
 
@@ -76,6 +77,14 @@ func main() {
 		}
 	}
 
+	var pusher push.Sender = push.Nop{}
+	if cfg.PushEnabled() {
+		pusher = push.VAPID{PublicKey: cfg.VAPIDPublicKey, PrivateKey: cfg.VAPIDPrivateKey, Subject: cfg.VAPIDSubject}
+		logger.Info("push reminders enabled")
+	} else {
+		logger.Info("push reminders disabled: set VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY and CRON_SECRET to enable")
+	}
+
 	router := httpapi.NewRouter(httpapi.Deps{
 		Config: cfg,
 		Store:  postgres.New(pool),
@@ -83,6 +92,7 @@ func main() {
 		Logger: logger,
 		Mailer: mailer,
 		Google: google,
+		Push:   pusher,
 	})
 
 	srv := &http.Server{

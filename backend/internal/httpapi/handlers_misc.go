@@ -159,11 +159,19 @@ func (a *api) updateSettings(w http.ResponseWriter, r *http.Request) {
 		{"short_break_duration", s.ShortBreakDuration, 1, 60},
 		{"long_break_duration", s.LongBreakDuration, 1, 120},
 		{"long_break_interval", s.LongBreakInterval, 1, 12},
+		{"reminder_hour", s.ReminderHour, 0, 23},
 	} {
 		if err := inRange(c.name, c.v, c.lo, c.hi); err != nil {
 			handleErr(w, r, err)
 			return
 		}
+	}
+	if s.Timezone == "" {
+		s.Timezone = "UTC"
+	}
+	if loc, err := parseLocation(s.Timezone); err != nil || loc.String() != s.Timezone || len(s.Timezone) > 64 {
+		handleErr(w, r, invalid("timezone must be an IANA zone name"))
+		return
 	}
 	saved, err := a.store.UpsertSettings(r.Context(), userID(r), s)
 	if err != nil {
