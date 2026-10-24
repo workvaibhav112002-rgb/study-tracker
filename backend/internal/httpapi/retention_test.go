@@ -297,12 +297,14 @@ func TestPushSubscribeAndReminders(t *testing.T) {
 		t.Fatalf("settings: %d %s", res.StatusCode, body)
 	}
 
-	// Wrong hour: skipped.
-	if _, out := cron("cron-secret-for-tests", at.Add(-2*time.Hour)); out["sent"].(float64) != 0 || out["skipped"].(float64) != 1 {
-		t.Fatalf("wrong hour: %v", out)
+	// Too early, or far too late: skipped.
+	for _, off := range []time.Duration{-2 * time.Hour, 3 * time.Hour} {
+		if _, out := cron("cron-secret-for-tests", at.Add(off)); out["sent"].(float64) != 0 || out["skipped"].(float64) != 1 {
+			t.Fatalf("outside window (%v): %v", off, out)
+		}
 	}
-	// Right hour: one push delivered to the live endpoint, dead one pruned.
-	if _, out := cron("cron-secret-for-tests", at); out["sent"].(float64) != 1 {
+	// A late scheduler run (within three hours) still delivers once; dead endpoint pruned.
+	if _, out := cron("cron-secret-for-tests", at.Add(50*time.Minute)); out["sent"].(float64) != 1 {
 		t.Fatalf("right hour: %v", out)
 	}
 	if n := s.push.count(live); n != 1 {

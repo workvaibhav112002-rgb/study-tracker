@@ -47,7 +47,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => (
   <header className="sticky top-0 z-40 px-3 pt-3 sm:px-6">
     <div className="glass mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 rounded-2xl px-2.5 shadow-card sm:px-3">
-      <div className="flex min-w-0 items-center gap-3 pl-1">
+      <div className="flex shrink-0 items-center gap-3 pl-1">
         <Logo />
         <span className="hidden items-center gap-1 text-[15px] font-semibold tracking-tight text-ink-50 md:flex">
           Study<span className="text-brand-400">Tracker</span>
@@ -66,7 +66,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       {user && (
-      <nav aria-label="Primary" className="flex items-center gap-0.5 rounded-xl border border-fg/[0.06] bg-surface-950/60 p-1">
+      <nav aria-label="Primary" className="flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-xl border border-fg/[0.06] bg-surface-950/60 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {tabs.map((tab) => {
           const Icon = tab.icon
           const isActive = activeTab === tab.id
@@ -78,7 +78,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               aria-current={isActive ? 'page' : undefined}
               aria-label={tab.label}
               title={tab.label}
-              className={`focus-ring flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] sm:px-3 font-medium transition-all duration-200 ease-premium ${
+              className={`focus-ring flex shrink-0 items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] sm:px-3 font-medium transition-all duration-200 ease-premium ${
                 isActive ? 'bg-fg/[0.08] text-ink-50 shadow-inner-hi' : 'text-ink-400 hover:bg-fg/[0.04] hover:text-ink-100'
               }`}
             >
@@ -90,7 +90,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       </nav>
       )}
 
-      <div className="flex items-center gap-1.5 sm:gap-2">
+      <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
         {stats && user && (
           <div className="hidden items-center gap-1.5 lg:flex">
             <div className="chip border-orange-400/20 bg-orange-400/10 text-orange-300" title="Current streak">
@@ -107,7 +107,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {user && (
           <div className="flex items-center gap-1">
             <div
-              className="flex items-center gap-2 rounded-xl border border-fg/[0.06] bg-fg/[0.04] py-1 pl-1 pr-2.5 text-xs"
+              className="hidden items-center gap-2 rounded-xl border border-fg/[0.06] bg-fg/[0.04] py-1 pl-1 pr-2.5 text-xs sm:flex"
               title={user.email}
             >
               <div

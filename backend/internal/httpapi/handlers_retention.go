@@ -186,7 +186,9 @@ func (a *api) runReminders(ctx context.Context, now time.Time) (sent, skipped, f
 		}
 		local := now.In(loc)
 		day := local.Format("2006-01-02")
-		if local.Hour() != c.ReminderHour || (c.LastReminded != nil && c.LastReminded.Format("2006-01-02") == day) {
+		// Schedulers run late; accept a three-hour window after the chosen hour.
+		late := local.Hour() - c.ReminderHour
+		if late < 0 || late >= 3 || (c.LastReminded != nil && c.LastReminded.Format("2006-01-02") == day) {
 			skipped++
 			continue
 		}

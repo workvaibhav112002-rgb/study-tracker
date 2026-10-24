@@ -11,7 +11,9 @@ import (
 func TestProfileAndPublicPage(t *testing.T) {
 	s := newServer(t, nil)
 	token, _ := s.register(t, "alex@example.test")
-	profile := func(body map[string]any) (*http.Response, []byte) { return s.do(t, "PUT", "/api/auth/profile", token, body) }
+	profile := func(body map[string]any) (*http.Response, []byte) {
+		return s.do(t, "PUT", "/api/auth/profile", token, body)
+	}
 
 	for _, bad := range []map[string]any{
 		{"handle": "ab", "profile_public": false, "bio": ""},
@@ -104,7 +106,7 @@ func TestFriendsFlow(t *testing.T) {
 		t.Fatalf("accept: %d %s", res.StatusCode, body)
 	}
 	var acc struct {
-		Friend  *struct{ ID int64 } `json:"friend"`
+		Friend  *struct{ ID int64 }  `json:"friend"`
 		Friends []struct{ ID int64 } `json:"friends"`
 	}
 	decode(t, body, &acc)

@@ -88,7 +88,8 @@ export async function askCoach(apiKey: string, prompt: { system: string; user: s
   const stream = client.beta.messages.stream(
     {
       model: COACH_MODEL,
-      max_tokens: 1024,
+      max_tokens: 4096,
+      output_config: { effort: 'low' },
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
       system: prompt.system,
