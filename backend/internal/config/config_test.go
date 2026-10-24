@@ -67,9 +67,21 @@ func TestProductionRequiresCORSOrigins(t *testing.T) {
 func TestLoadRejectsBadNumbers(t *testing.T) {
 	_, err := Load(env(map[string]string{
 		"DATABASE_URL": "postgres://x", "JWT_SECRET": strings.Repeat("s", 32),
-		"AUTH_RATE_LIMIT": "-1", "REQUEST_TIMEOUT": "soon",
+		"AUTH_RATE_LIMIT": "-1", "REQUEST_TIMEOUT": "soon", "CALENDAR_RATE_LIMIT": "0",
 	}))
-	if err == nil || !strings.Contains(err.Error(), "AUTH_RATE_LIMIT") || !strings.Contains(err.Error(), "REQUEST_TIMEOUT") {
-		t.Fatalf("expected both errors, got %v", err)
+	for _, want := range []string{"AUTH_RATE_LIMIT", "REQUEST_TIMEOUT", "CALENDAR_RATE_LIMIT"} {
+		if err == nil || !strings.Contains(err.Error(), want) {
+			t.Fatalf("expected %s error, got %v", want, err)
+		}
+	}
+}
+
+func TestLoadOptionalSentryAndDefaults(t *testing.T) {
+	cfg, err := Load(env(map[string]string{"DATABASE_URL": "postgres://x", "JWT_SECRET": strings.Repeat("s", 32), "SENTRY_DSN": " https://k@o.ingest.sentry.io/1 "}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.SentryDSN != "https://k@o.ingest.sentry.io/1" || cfg.CalendarRateLimit != 30 || cfg.ImportMaxBodyBytes != 2<<20 {
+		t.Errorf("unexpected: %+v", cfg)
 	}
 }

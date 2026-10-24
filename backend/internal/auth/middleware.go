@@ -10,7 +10,7 @@ type ctxKey struct{}
 
 // UserChecker is the slice of the store the middleware needs.
 type UserChecker interface {
-	UserExists(ctx context.Context, id int64) (bool, error)
+	AuthState(ctx context.Context, id int64) (exists bool, tokenVersion int, err error)
 }
 
 // Authenticator turns bearer tokens into a user id in the request context.
@@ -24,21 +24,21 @@ type Authenticator struct {
 	OnError func(w http.ResponseWriter, r *http.Request, err error)
 }
 
-// Require rejects requests without a valid token for an existing user.
+// Require rejects requests without a valid, current token for an existing user.
 func (a *Authenticator) Require(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		uid, ok := a.fromRequest(r)
+		uid, ver, ok := a.fromRequest(r)
 		if !ok {
 			w.Header().Set("WWW-Authenticate", `Bearer realm="study-tracker"`)
 			a.OnUnauthorized(w, r)
 			return
 		}
-		exists, err := a.Users.UserExists(r.Context(), uid)
+		exists, current, err := a.Users.AuthState(r.Context(), uid)
 		if err != nil {
 			a.OnError(w, r, err)
 			return
 		}
-		if !exists {
+		if !exists || current != ver {
 			a.OnUnauthorized(w, r)
 			return
 		}
@@ -50,8 +50,8 @@ func (a *Authenticator) Require(next http.Handler) http.Handler {
 // continues anonymously.
 func (a *Authenticator) Optional(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if uid, ok := a.fromRequest(r); ok {
-			if exists, err := a.Users.UserExists(r.Context(), uid); err == nil && exists {
+		if uid, ver, ok := a.fromRequest(r); ok {
+			if exists, current, err := a.Users.AuthState(r.Context(), uid); err == nil && exists && current == ver {
 				r = r.WithContext(WithUserID(r.Context(), uid))
 			}
 		}
@@ -59,17 +59,17 @@ func (a *Authenticator) Optional(next http.Handler) http.Handler {
 	})
 }
 
-func (a *Authenticator) fromRequest(r *http.Request) (int64, bool) {
+func (a *Authenticator) fromRequest(r *http.Request) (int64, int, bool) {
 	scheme, token, ok := strings.Cut(r.Header.Get("Authorization"), " ")
 	if !ok || !strings.EqualFold(scheme, "Bearer") {
-		return 0, false
+		return 0, 0, false
 	}
 	token = strings.TrimSpace(token)
 	if token == "" {
-		return 0, false
+		return 0, 0, false
 	}
-	uid, err := a.Issuer.Parse(token)
-	return uid, err == nil
+	uid, ver, err := a.Issuer.Parse(token)
+	return uid, ver, err == nil
 }
 
 // WithUserID stores the id in ctx (exported for tests).

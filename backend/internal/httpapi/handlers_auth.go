@@ -69,7 +69,7 @@ func (a *api) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := a.issuer.Sign(user.ID)
+	token, err := a.issuer.Sign(user.ID, user.TokenVersion)
 	if err != nil {
 		handleErr(w, r, err)
 		return
@@ -101,7 +101,7 @@ func (a *api) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := a.issuer.Sign(user.ID)
+	token, err := a.issuer.Sign(user.ID, user.TokenVersion)
 	if err != nil {
 		handleErr(w, r, err)
 		return
@@ -116,4 +116,79 @@ func (a *api) me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, user)
+}
+
+type changePasswordRequest struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+}
+
+// changePassword re-hashes the password and bumps the token version, so every
+// previously issued token stops working. The response carries a fresh token.
+func (a *api) changePassword(w http.ResponseWriter, r *http.Request) {
+	var req changePasswordRequest
+	if err := decodeJSON(r, &req); err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	user, err := a.store.GetUserByID(r.Context(), userID(r))
+	if err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	if !auth.CheckPassword(user.PasswordHash, req.CurrentPassword) {
+		writeError(w, r, http.StatusUnauthorized, "invalid credentials")
+		return
+	}
+	if err := validatePassword(req.NewPassword); err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	if req.NewPassword == req.CurrentPassword {
+		handleErr(w, r, invalid("new password must differ from the current one"))
+		return
+	}
+	hash, err := auth.HashPassword(req.NewPassword)
+	if err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	version, err := a.store.UpdatePassword(r.Context(), user.ID, hash)
+	if err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	user.TokenVersion = version
+	user.PasswordHash = ""
+	token, err := a.issuer.Sign(user.ID, version)
+	if err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, authResponse{Token: token, User: user})
+}
+
+// deleteAccount removes the user and everything they own after a password check.
+func (a *api) deleteAccount(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Password string `json:"password"`
+	}
+	if err := decodeJSON(r, &req); err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	user, err := a.store.GetUserByID(r.Context(), userID(r))
+	if err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	if !auth.CheckPassword(user.PasswordHash, req.Password) {
+		writeError(w, r, http.StatusUnauthorized, "invalid credentials")
+		return
+	}
+	if err := a.store.DeleteUser(r.Context(), user.ID); err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

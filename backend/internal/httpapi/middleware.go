@@ -6,6 +6,7 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
@@ -40,6 +41,7 @@ func recoverer(logger *slog.Logger) func(http.Handler) http.Handler {
 					if rec == http.ErrAbortHandler {
 						panic(rec)
 					}
+					sentry.CurrentHub().Recover(rec)
 					logger.Error("panic", "err", rec, "stack", string(debug.Stack()),
 						"request_id", middleware.GetReqID(r.Context()), "path", r.URL.Path)
 					writeError(w, r, http.StatusInternalServerError, "internal server error")

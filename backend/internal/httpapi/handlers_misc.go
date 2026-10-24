@@ -34,6 +34,54 @@ func (a *api) dashboardStats(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, stats)
 }
 
+func (a *api) goalsStats(w http.ResponseWriter, r *http.Request) {
+	loc, err := parseLocation(r.URL.Query().Get("tz"))
+	if err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	out, err := a.store.GoalsStats(r.Context(), userID(r), loc, time.Now())
+	if err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+func (a *api) heatmapStats(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	loc, err := parseLocation(q.Get("tz"))
+	if err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	days, err := parseDays(q.Get("days"))
+	if err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	out, err := a.store.Heatmap(r.Context(), userID(r), loc, time.Now(), days)
+	if err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+func (a *api) hourlyStats(w http.ResponseWriter, r *http.Request) {
+	loc, err := parseLocation(r.URL.Query().Get("tz"))
+	if err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	out, err := a.store.HourlyStats(r.Context(), userID(r), loc)
+	if err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
 func (a *api) getSettings(w http.ResponseWriter, r *http.Request) {
 	s, err := a.store.GetSettings(r.Context(), userID(r))
 	if err != nil {

@@ -26,9 +26,16 @@ type Config struct {
 	FeedbackRateLimit  int
 	FeedbackRateWindow time.Duration
 
-	RequestTimeout  time.Duration
-	ShutdownTimeout time.Duration
-	MaxBodyBytes    int64
+	CalendarRateLimit  int
+	CalendarRateWindow time.Duration
+
+	RequestTimeout     time.Duration
+	ShutdownTimeout    time.Duration
+	MaxBodyBytes       int64
+	ImportMaxBodyBytes int64
+
+	// SentryDSN enables error reporting when set.
+	SentryDSN string
 }
 
 // IsProduction reports whether the server runs with production settings.
@@ -41,11 +48,13 @@ func Load(getenv func(string) string) (Config, error) {
 	var errs []error
 
 	cfg := Config{
-		Port:         orDefault(getenv("PORT"), "8080"),
-		Env:          orDefault(getenv("APP_ENV"), "development"),
-		DatabaseURL:  strings.TrimSpace(getenv("DATABASE_URL")),
-		JWTSecret:    []byte(getenv("JWT_SECRET")),
-		MaxBodyBytes: 64 << 10,
+		Port:               orDefault(getenv("PORT"), "8080"),
+		Env:                orDefault(getenv("APP_ENV"), "development"),
+		DatabaseURL:        strings.TrimSpace(getenv("DATABASE_URL")),
+		JWTSecret:          []byte(getenv("JWT_SECRET")),
+		MaxBodyBytes:       64 << 10,
+		ImportMaxBodyBytes: 2 << 20,
+		SentryDSN:          strings.TrimSpace(getenv("SENTRY_DSN")),
 	}
 
 	if cfg.DatabaseURL == "" {
@@ -74,6 +83,8 @@ func Load(getenv func(string) string) (Config, error) {
 	cfg.AuthRateWindow = duration(getenv, "AUTH_RATE_WINDOW", time.Minute, &errs)
 	cfg.FeedbackRateLimit = integer(getenv, "FEEDBACK_RATE_LIMIT", 5, &errs)
 	cfg.FeedbackRateWindow = duration(getenv, "FEEDBACK_RATE_WINDOW", 10*time.Minute, &errs)
+	cfg.CalendarRateLimit = integer(getenv, "CALENDAR_RATE_LIMIT", 30, &errs)
+	cfg.CalendarRateWindow = duration(getenv, "CALENDAR_RATE_WINDOW", time.Minute, &errs)
 	cfg.RequestTimeout = duration(getenv, "REQUEST_TIMEOUT", 20*time.Second, &errs)
 	cfg.ShutdownTimeout = duration(getenv, "SHUTDOWN_TIMEOUT", 15*time.Second, &errs)
 
