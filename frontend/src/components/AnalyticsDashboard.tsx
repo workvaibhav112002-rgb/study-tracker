@@ -1,7 +1,9 @@
 import React, { useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid } from 'recharts'
-import { Flame, Clock, Sparkles, Download, Calendar, Award, RefreshCw } from 'lucide-react'
-import type { DashboardStats } from '../types'
+import { Flame, Clock, Sparkles, Download, Calendar, Award, RefreshCw, Zap, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import type { DailyStat, DashboardStats, HourStat } from '../types'
+import { HeatmapYear } from './HeatmapYear'
+import { BestHours } from './BestHours'
 import { api, errorMessage } from '../api/client'
 import { useToast } from './ui/Toast'
 import { Button } from './ui/Button'
@@ -9,6 +11,8 @@ import { formatMinutes } from '../lib/time'
 
 interface AnalyticsDashboardProps {
   stats: DashboardStats | null
+  heatmap: DailyStat[]
+  hours: HourStat[]
   loading: boolean
   error: string | null
   onRetry: () => void
@@ -32,17 +36,9 @@ interface PieDatum {
   color: string
 }
 
-const TooltipCard: React.FC<{ title: string; value: string; swatch?: string }> = ({ title, value, swatch }) => (
-  <div className="glass rounded-xl px-3 py-2 text-xs shadow-modal">
-    <div className="flex items-center gap-1.5 font-medium text-ink-50">
-      {swatch && <span className="h-2 w-2 rounded-full" style={{ backgroundColor: swatch }} aria-hidden="true" />}
-      {title}
-    </div>
-    <div className="mt-0.5 font-mono tabular-nums text-ink-300">{value}</div>
-  </div>
-)
+import { ChartTooltip as TooltipCard } from './ui/ChartTooltip'
 
-export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, loading, error, onRetry }) => {
+export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, heatmap, hours, loading, error, onRetry }) => {
   const toast = useToast()
   const [exporting, setExporting] = useState(false)
 
@@ -83,11 +79,16 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, l
   })
   const peak = Math.max(0, ...barData.map((b) => b.minutes))
 
+  const wow = stats.week_over_week
+  const wowText = !wow ? 'Rolling week' : wow.delta_percent === null ? 'No data last week' : `${wow.delta_minutes >= 0 ? '+' : '−'}${formatMinutes(Math.abs(wow.delta_minutes))} vs last week`
+  const WowIcon = !wow || wow.delta_minutes === 0 ? Minus : wow.delta_minutes > 0 ? TrendingUp : TrendingDown
   const cards = [
     { label: 'Today', value: formatMinutes(stats.today_minutes), hint: 'Resets at your local midnight', icon: <Clock className="h-4 w-4" aria-hidden="true" />, tone: 'text-brand-400 bg-brand-500/10 border-brand-500/20' },
     { label: 'Streak', value: `${stats.current_streak_days}d`, hint: 'Consecutive study days', icon: <Flame className="h-4 w-4 fill-current" aria-hidden="true" />, tone: 'text-orange-400 bg-orange-400/10 border-orange-400/20' },
-    { label: 'Last 7 days', value: formatMinutes(stats.weekly_minutes), hint: 'Rolling week', icon: <Calendar className="h-4 w-4" aria-hidden="true" />, tone: 'text-accent-sky bg-accent-sky/10 border-accent-sky/20' },
+    { label: 'Last 7 days', value: formatMinutes(stats.weekly_minutes), hint: wowText, icon: <WowIcon className="h-4 w-4" aria-hidden="true" />, tone: 'text-accent-sky bg-accent-sky/10 border-accent-sky/20' },
     { label: 'Pomodoros', value: String(stats.completed_pomodoros), hint: 'Completed focus cycles', icon: <Sparkles className="h-4 w-4" aria-hidden="true" />, tone: 'text-accent-amber bg-accent-amber/10 border-accent-amber/20' },
+    { label: 'Interruptions', value: (stats.avg_interruptions ?? 0).toFixed(1), hint: 'Average per session', icon: <Zap className="h-4 w-4" aria-hidden="true" />, tone: 'text-accent-amber bg-accent-amber/10 border-accent-amber/20' },
+    { label: 'Week over week', value: wow && wow.delta_percent !== null ? `${wow.delta_percent >= 0 ? '+' : ''}${Math.round(wow.delta_percent)}%` : '—', hint: wow ? `${formatMinutes(wow.previous_week_minutes)} the week before` : 'Needs two weeks of data', icon: <Calendar className="h-4 w-4" aria-hidden="true" />, tone: 'text-accent-violet bg-accent-violet/10 border-accent-violet/20' },
   ]
 
   return (
@@ -103,7 +104,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, l
         </Button>
       </div>
 
-      <div className="stagger mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="stagger mb-6 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
         {cards.map((c) => (
           <div key={c.label} className="card card-hover p-5">
             <div className="flex items-center justify-between">
@@ -213,6 +214,18 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, l
               </ul>
             </>
           )}
+        </section>
+
+        <section className="card p-5 sm:p-6 lg:col-span-5" aria-label="Last twelve months">
+          <h3 className="text-base font-semibold text-ink-50">Last twelve months</h3>
+          <p className="mb-4 mt-0.5 text-xs text-ink-500">Every day you studied, darker means more minutes</p>
+          <HeatmapYear days={heatmap} />
+        </section>
+
+        <section className="card p-5 sm:p-6 lg:col-span-5" aria-label="Best hours">
+          <h3 className="text-base font-semibold text-ink-50">Best hours</h3>
+          <p className="mb-4 mt-0.5 text-xs text-ink-500">When your focus sessions start, across all time</p>
+          <BestHours hours={hours} />
         </section>
       </div>
     </div>

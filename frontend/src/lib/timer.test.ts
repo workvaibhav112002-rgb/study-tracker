@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_SETTINGS } from '../types'
-import { elapsedSeconds, initialState, isLongBreakDue, nextBreak, reducer } from './timer'
+import { elapsedSeconds, initialState, isLongBreakDue, isTimerState, nextBreak, reducer } from './timer'
 
 const s = DEFAULT_SETTINGS
 const t0 = 1_000_000
@@ -93,5 +93,45 @@ describe('timer reducer', () => {
     expect(isLongBreakDue(4, s)).toBe(true)
     expect(nextBreak(3, s)).toBe('short_break')
     expect(nextBreak(8, s)).toBe('long_break')
+  })
+})
+
+describe('timer persistence and interruptions', () => {
+  it('hydrate recomputes remaining time for a running timer', () => {
+    let st = reducer(initialState(s), { type: 'start', now: t0 })
+    const later = reducer(st, { type: 'hydrate', state: st, now: t0 + 10 * 60_000 })
+    expect(later.secondsLeft).toBe(15 * 60)
+    expect(later.status).toBe('running')
+    const past = reducer(st, { type: 'hydrate', state: st, now: t0 + 60 * 60_000 })
+    expect(past.secondsLeft).toBe(0)
+    st = reducer(st, { type: 'pause', now: t0 + 60_000 })
+    expect(reducer(st, { type: 'hydrate', state: st, now: t0 + 999_000 })).toEqual(st)
+  })
+
+  it('counts pauses and interruptions only in work mode while running', () => {
+    let st = reducer(initialState(s), { type: 'start', now: t0 })
+    st = reducer(st, { type: 'interrupt' })
+    st = reducer(st, { type: 'pause', now: t0 + 1000 })
+    expect(st.interruptions).toBe(2)
+    st = reducer(st, { type: 'interrupt' }) // paused: ignored
+    expect(st.interruptions).toBe(2)
+    st = reducer(st, { type: 'switch', mode: 'short_break', settings: s, autoStart: true, now: t0, advanceCycle: true })
+    expect(st.interruptions).toBe(0)
+    st = reducer(st, { type: 'interrupt' })
+    st = reducer(st, { type: 'pause', now: t0 + 1000 })
+    expect(st.interruptions).toBe(0)
+  })
+
+  it('reset clears interruptions', () => {
+    let st = reducer(initialState(s), { type: 'start', now: t0 })
+    st = reducer(st, { type: 'interrupt' })
+    expect(reducer(st, { type: 'reset', settings: s }).interruptions).toBe(0)
+  })
+
+  it('isTimerState validates shape', () => {
+    expect(isTimerState(initialState(s))).toBe(true)
+    expect(isTimerState({ ...initialState(s), mode: 'nap' })).toBe(false)
+    expect(isTimerState({ ...initialState(s), secondsLeft: 'x' })).toBe(false)
+    expect(isTimerState(null)).toBe(false)
   })
 })

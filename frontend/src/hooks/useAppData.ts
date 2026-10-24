@@ -2,7 +2,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { api, errorMessage } from '../api/client'
 import {
   DEFAULT_SETTINGS,
+  type DailyStat,
   type DashboardStats,
+  type GoalsStats,
+  type HourStat,
   type Project,
   type ProjectInput,
   type Session,
@@ -20,6 +23,9 @@ export function useAppData(userId: number | null) {
   const [sessions, setSessions] = useState<Session[]>([])
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
   const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [goals, setGoals] = useState<GoalsStats | null>(null)
+  const [heatmap, setHeatmap] = useState<DailyStat[]>([])
+  const [hours, setHours] = useState<HourStat[]>([])
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [loaded, setLoaded] = useState(false)
@@ -29,16 +35,22 @@ export function useAppData(userId: number | null) {
     if (userId === null) return
     setLoading(true)
     try {
-      const [p, s, st, se] = await Promise.all([
+      const [p, s, st, se, g, hm, hr] = await Promise.all([
         api.getProjects(),
         api.getSettings(),
         api.getDashboardStats(),
         api.getSessions(),
+        api.getGoals(),
+        api.getHeatmap(),
+        api.getHours(),
       ])
       setProjects(p)
       setSettings(s)
       setStats(st)
       setSessions(se)
+      setGoals(g)
+      setHeatmap(hm)
+      setHours(hr)
       setSelectedProjectId((prev) => (prev !== null && p.some((x) => x.id === prev) ? prev : (p[0]?.id ?? null)))
       setError(null)
       setLoaded(true)
@@ -55,6 +67,9 @@ export function useAppData(userId: number | null) {
       setSessions([])
       setSettings(DEFAULT_SETTINGS)
       setStats(null)
+      setGoals(null)
+      setHeatmap([])
+      setHours([])
       setSelectedProjectId(null)
       setLoaded(false)
       setError(null)
@@ -64,10 +79,20 @@ export function useAppData(userId: number | null) {
   }, [userId, reload])
 
   const refreshStats = useCallback(async () => {
-    const [st, se, p] = await Promise.all([api.getDashboardStats(), api.getSessions(), api.getProjects()])
+    const [st, se, p, g, hm, hr] = await Promise.all([
+      api.getDashboardStats(),
+      api.getSessions(),
+      api.getProjects(),
+      api.getGoals(),
+      api.getHeatmap(),
+      api.getHours(),
+    ])
     setStats(st)
     setSessions(se)
     setProjects(p)
+    setGoals(g)
+    setHeatmap(hm)
+    setHours(hr)
   }, [])
 
   const createProject = useCallback(
@@ -125,6 +150,10 @@ export function useAppData(userId: number | null) {
     sessions,
     settings,
     stats,
+    goals,
+    heatmap,
+    hours,
+    refreshStats,
     selectedProjectId,
     setSelectedProjectId,
     loading,

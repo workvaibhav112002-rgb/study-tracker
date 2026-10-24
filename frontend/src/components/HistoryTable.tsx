@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Star, Trash2, Plus, BookOpen, ChevronDown } from 'lucide-react'
+import { Star, Trash2, Plus, BookOpen, ChevronDown, Zap } from 'lucide-react'
 import type { Project, Session } from '../types'
 import { Button } from './ui/Button'
 import { ConfirmDialog } from './ui/ConfirmDialog'
@@ -106,6 +106,12 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({ sessions, projects, 
                     </td>
                     <td className="whitespace-nowrap px-5 py-3.5">
                       <span className="chip border-brand-500/20 bg-brand-500/10 font-mono tabular-nums text-brand-300">{formatDurationSeconds(session.duration_seconds)}</span>
+                      {(session.interruptions ?? 0) > 0 && (
+                        <span className="chip ml-1.5 border-accent-amber/20 bg-accent-amber/10 text-amber-200" aria-label={`${session.interruptions} interruptions`} title="Pauses and tab switches">
+                          <Zap className="h-3 w-3" aria-hidden="true" />
+                          {session.interruptions}
+                        </span>
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-5 py-3.5">
                       <div className="flex items-center gap-0.5" aria-label={`${session.focus_rating} out of 5`} role="img">

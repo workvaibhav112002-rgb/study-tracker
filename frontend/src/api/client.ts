@@ -1,15 +1,25 @@
 import type {
   AuthResponse,
+  CalendarToken,
+  DailyStat,
   DashboardStats,
   FeedbackSubmission,
+  GoalsStats,
+  HourStat,
+  ImportResult,
   Project,
   ProjectInput,
   Session,
   SessionInput,
   Settings,
+  Task,
+  TaskInput,
   User,
 } from '../types'
 import { browserTimeZone } from '../lib/time'
+import { captureException } from '../lib/monitoring'
+
+const tz = () => encodeURIComponent(browserTimeZone())
 
 /**
  * API origin resolution:
@@ -174,7 +184,9 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
       if (res.status === 401 && token) unauthorizedEvents.emit()
       if (!res.ok) {
         const { message, requestId } = await parseError(res)
-        throw new ApiError(res.status, message, requestId)
+        const apiErr = new ApiError(res.status, message, requestId)
+        if (res.status >= 500) captureException(apiErr, { path, requestId })
+        throw apiErr
       }
       if (res.status === 204) return undefined as T
       return (await res.json()) as T
@@ -217,9 +229,33 @@ export const api = {
   createSession: (data: SessionInput) => request<Session>('/sessions', { method: 'POST', body: data }),
   deleteSession: (id: number) => request<void>(`/sessions/${id}`, { method: 'DELETE' }),
 
+  // Tasks
+  getTasks: (projectId?: number) => request<Task[]>(projectId ? `/tasks?project_id=${projectId}` : '/tasks'),
+  createTask: (data: TaskInput) => request<Task>('/tasks', { method: 'POST', body: data }),
+  updateTask: (id: number, data: { title: string; estimate_pomodoros: number }) =>
+    request<Task>(`/tasks/${id}`, { method: 'PUT', body: data }),
+  setTaskDone: (id: number, done: boolean) => request<Task>(`/tasks/${id}/done`, { method: 'PUT', body: { done } }),
+  reorderTasks: (ids: number[]) => request<void>('/tasks/order', { method: 'PUT', body: { ids } }),
+  deleteTask: (id: number) => request<void>(`/tasks/${id}`, { method: 'DELETE' }),
+
   // Stats (computed in the viewer's timezone)
-  getDashboardStats: () =>
-    request<DashboardStats>(`/stats/dashboard?tz=${encodeURIComponent(browserTimeZone())}`),
+  getDashboardStats: () => request<DashboardStats>(`/stats/dashboard?tz=${tz()}`),
+  getGoals: () => request<GoalsStats>(`/stats/goals?tz=${tz()}`),
+  getHeatmap: (days = 365) => request<DailyStat[]>(`/stats/heatmap?tz=${tz()}&days=${days}`),
+  getHours: () => request<HourStat[]>(`/stats/hours?tz=${tz()}`),
+
+  // Calendar feed
+  createCalendarToken: () => request<CalendarToken>('/auth/calendar-token', { method: 'POST' }),
+  revokeCalendarToken: () => request<void>('/auth/calendar-token', { method: 'DELETE' }),
+  calendarUrl: (token: string) => `${BASE_URL}/calendar/${token}.ics`,
+
+  // Account
+  changePassword: (current_password: string, new_password: string) =>
+    request<AuthResponse>('/auth/change-password', { method: 'POST', body: { current_password, new_password } }),
+  deleteAccount: (password: string) => request<void>('/auth/me', { method: 'DELETE', body: { password } }),
+
+  // Import
+  importBackup: (payload: unknown) => request<ImportResult>('/import', { method: 'POST', body: payload }),
 
   // Settings
   getSettings: () => request<Settings>('/settings'),

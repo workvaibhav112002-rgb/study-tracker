@@ -18,3 +18,5 @@ services:
         generateValue: true
       - key: CORS_ORIGINS     # comma separated; wildcard subdomains allowed
         value: https://*.vercel.app,http://localhost:5173
+      - key: SENTRY_DSN       # optional; leave empty to disable error reporting
+        sync: false

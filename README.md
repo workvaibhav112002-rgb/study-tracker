@@ -16,8 +16,14 @@ Go API on Postgres, React frontend. Runs entirely on free tiers.
 - **Projects** with colours and daily targets; **sessions** with 1–5 focus rating and notes; manual back-dated entries.
 - **Analytics** computed in *your* timezone: today, rolling 7 days, 14-day trend, per-project split, streak.
 - **Accounts**: per-user isolation enforced in SQL and at the database level (a session can only reference a project owned by the same user).
-- **Export** your data as JSON. **Feedback** widget with per-IP rate limiting.
-- Accessible dialogs (focus trap, Escape, ARIA), toasts for every error, cold-start banner for the free tier.
+- **Resilient timer**: survives reloads and closed tabs, syncs across tabs, counts pauses and tab switches as an
+  honest **interruption score**, and finishes with an OS notification, a favicon countdown and a screen wake lock.
+- **Daily goal rings** per project, a **year heatmap**, **best hours of the day**, week-over-week delta.
+- **Tasks** per project with pomodoro estimates, linked to sessions.
+- **Calendar feed**: a private iCal URL so sessions appear in Google or Apple Calendar.
+- **Export / import** your data as JSON. Change password and delete account. **Feedback** widget with rate limiting.
+- Installable **PWA** with offline shell. Accessible dialogs (focus trap, Escape, ARIA), toasts for every error,
+  cold-start banner for the free tier. Optional Sentry error reporting on both ends.
 
 ## Architecture
 
@@ -63,6 +69,21 @@ All routes are under `/api`. Authenticated routes need `Authorization: Bearer <t
 | GET    | /settings             | yes  |                                                           |
 | POST   | /settings             | yes  | validated ranges                                          |
 | GET    | /export               | yes  | JSON download of everything you own                       |
+| POST   | /import               | yes  | restore an export; upserts projects, skips duplicate sessions (2 MB) |
+| GET    | /tasks                | yes  | `?project_id=&done=`                                      |
+| POST   | /tasks                | yes  | `{project_id,title,estimate_pomodoros}`                   |
+| PUT    | /tasks/{id}           | yes  | `{title,estimate_pomodoros}`                              |
+| PUT    | /tasks/{id}/done      | yes  | `{done:bool}`                                             |
+| PUT    | /tasks/order          | yes  | `{ids:[...]}` reorder                                     |
+| DELETE | /tasks/{id}           | yes  |                                                           |
+| GET    | /stats/goals          | yes  | today vs each project's daily target (`?tz=`)             |
+| GET    | /stats/heatmap        | yes  | `?tz=&days=365` dense day series                          |
+| GET    | /stats/hours          | yes  | 24 local hour buckets                                     |
+| POST   | /auth/change-password | yes  | returns a new token; all older tokens stop working        |
+| DELETE | /auth/me              | yes  | `{password}` deletes the account and everything it owns   |
+| POST   | /auth/calendar-token  | yes  | creates/rotates the feed token (shown once)               |
+| DELETE | /auth/calendar-token  | yes  | revokes the feed                                          |
+| GET    | /calendar/{token}.ics | no   | iCal feed, last 180 days, rate limited                    |
 | POST   | /feedback             | opt. | rate limited; attaches user id if a token is present      |
 
 ## Deploy (zero cost)
@@ -135,8 +156,12 @@ Set `TEST_DATABASE_URL` to run the backend suite against an existing database in
 | `JWT_TTL`             | no       | `168h`                                   |
 | `AUTH_RATE_LIMIT`     | no       | `10` per `AUTH_RATE_WINDOW` (`1m`)       |
 | `FEEDBACK_RATE_LIMIT` | no       | `5` per `FEEDBACK_RATE_WINDOW` (`10m`)   |
+| `CALENDAR_RATE_LIMIT` | no       | `30` per `CALENDAR_RATE_WINDOW` (`1m`)   |
 | `REQUEST_TIMEOUT`     | no       | `20s`                                    |
 | `SHUTDOWN_TIMEOUT`    | no       | `15s`                                    |
+| `SENTRY_DSN`          | no       | enables error reporting when set         |
+
+Frontend (Vercel): `VITE_API_URL` (optional override), `VITE_SENTRY_DSN` (optional).
 
 ## Known trade-offs
 

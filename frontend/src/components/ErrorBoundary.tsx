@@ -1,4 +1,5 @@
 import React from 'react'
+import { captureException } from '../lib/monitoring'
 
 interface State {
   error: Error | null
@@ -14,6 +15,7 @@ export class ErrorBoundary extends React.Component<React.PropsWithChildren, Stat
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error('Unhandled render error', error, info.componentStack)
+    captureException(error, { componentStack: info.componentStack })
   }
 
   render() {

@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { SlidersHorizontal, Volume2 } from 'lucide-react'
-import { SETTINGS_LIMITS, type Settings } from '../types'
+import { SETTINGS_LIMITS, type AuthResponse, type Settings, type User } from '../types'
+import { useLocalPrefs } from '../hooks/useLocalPrefs'
+import { permission, requestPermission, supportsNotifications } from '../lib/notify'
+import { CalendarSyncSection } from './settings/CalendarSyncSection'
+import { ImportSection } from './settings/ImportSection'
+import { AccountSection } from './settings/AccountSection'
 import { audioService } from '../services/audio'
 import { Modal } from './ui/Modal'
 import { Button } from './ui/Button'
@@ -11,6 +16,11 @@ interface SettingsModalProps {
   onClose: () => void
   settings: Settings
   onSave: (settings: Settings) => Promise<void>
+  user: User | null
+  onUserChanged: () => Promise<void> | void
+  onDataChanged: () => Promise<void> | void
+  onPasswordChanged: (res: AuthResponse) => void
+  onAccountDeleted: () => void
 }
 
 type NumericKey = keyof typeof SETTINGS_LIMITS
@@ -36,7 +46,8 @@ const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void; label
   </label>
 )
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onSave, user, onUserChanged, onDataChanged, onPasswordChanged, onAccountDeleted }) => {
+  const { prefs, setPrefs } = useLocalPrefs()
   const [form, setForm] = useState<Settings>(settings)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -104,11 +115,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
       isOpen={isOpen}
       onClose={saving ? undefined : onClose}
       dismissible={!saving}
-      title="Preferences"
-      description="Intervals, breaks and sounds."
+      title="Settings"
+      description="Timer, alerts, calendar, data and account."
       icon={<SlidersHorizontal className="h-5 w-5" />}
+      size="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-5">
+        <h3 className="eyebrow">Intervals</h3>
         <div className="grid grid-cols-3 gap-3">
           {numberField('work_duration', 'min')}
           {numberField('short_break_duration', 'min')}
@@ -116,9 +129,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
         </div>
         {numberField('long_break_interval', 'cycles')}
 
+        <h3 className="eyebrow pt-2">Sounds & alerts</h3>
         <div className="space-y-2.5">
           <Toggle checked={form.auto_start_breaks} onChange={(v) => setForm({ ...form, auto_start_breaks: v })} label="Auto-start next interval" hint="Breaks and focus sessions begin on their own." />
           <Toggle checked={form.sound_enabled} onChange={(v) => setForm({ ...form, sound_enabled: v })} label="Sound" hint="Chimes on completion and soft ticks on controls." />
+          {supportsNotifications() && (
+            <Toggle
+              checked={prefs.notifications_enabled && permission() !== 'denied'}
+              onChange={async (v) => {
+                if (v && permission() === 'default') await requestPermission()
+                setPrefs({ notifications_enabled: v && permission() === 'granted' })
+              }}
+              label="Desktop notifications"
+              hint={permission() === 'denied' ? 'Blocked in your browser settings.' : 'Get alerted when a session ends, even in another tab.'}
+            />
+          )}
           <button
             type="button"
             onClick={() => audioService.playWorkCompleteChime()}
@@ -137,13 +162,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
 
         <div className="flex items-center justify-end gap-2 border-t border-white/[0.06] pt-5">
           <Button variant="ghost" onClick={onClose} disabled={saving}>
-            Cancel
+            Close
           </Button>
           <Button type="submit" loading={saving}>
-            Save preferences
+            Save timer settings
           </Button>
         </div>
       </form>
+
+      {user && (
+        <div className="mt-6 space-y-6 border-t border-white/[0.06] pt-6">
+          <CalendarSyncSection hasToken={Boolean(user.has_calendar_token)} onChanged={onUserChanged} />
+          <ImportSection onImported={onDataChanged} />
+          <AccountSection email={user.email} onPasswordChanged={onPasswordChanged} onDeleted={onAccountDeleted} />
+        </div>
+      )}
     </Modal>
   )
 }

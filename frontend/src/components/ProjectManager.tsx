@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Plus, Trash2, Pencil, FolderKanban, Target, Clock, Check } from 'lucide-react'
-import type { Project, ProjectInput } from '../types'
+import type { GoalStat, Project, ProjectInput } from '../types'
+import { GoalRing } from './ui/GoalRing'
 import { Modal } from './ui/Modal'
 import { Button } from './ui/Button'
 import { Field, inputClass } from './ui/Field'
@@ -10,6 +11,7 @@ import { formatMinutes } from '../lib/time'
 
 interface ProjectManagerProps {
   projects: Project[]
+  goals?: GoalStat[]
   loading?: boolean
   onCreateProject: (project: ProjectInput) => Promise<void>
   onUpdateProject: (id: number, project: ProjectInput) => Promise<void>
@@ -23,6 +25,7 @@ const PRESET_COLORS = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#
 
 export const ProjectManager: React.FC<ProjectManagerProps> = ({
   projects,
+  goals = [],
   loading = false,
   onCreateProject,
   onUpdateProject,
@@ -152,15 +155,21 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                 <p className="mt-3 line-clamp-2 min-h-[36px] text-[13px] leading-relaxed text-ink-400">{p.description || 'No description yet.'}</p>
               </div>
 
-              <div className="relative mt-5 flex items-center justify-between border-t border-white/[0.06] pt-4 text-xs">
-                <span className="flex items-center gap-1.5 text-ink-400">
-                  <Target className="h-3.5 w-3.5 text-brand-400" aria-hidden="true" />
-                  <span className="font-semibold text-ink-100">{p.target_minutes_per_day}m</span> / day
-                </span>
-                <span className="flex items-center gap-1.5 text-ink-400">
-                  <Clock className="h-3.5 w-3.5 text-accent-sky" aria-hidden="true" />
-                  <span className="font-semibold text-ink-100">{formatMinutes(p.total_minutes ?? 0)}</span> logged
-                </span>
+              <div className="relative mt-5 flex items-center justify-between gap-3 border-t border-white/[0.06] pt-4 text-xs">
+                <div className="flex items-center gap-3">
+                  <GoalRing today={goals.find((g) => g.project_id === p.id)?.today_minutes ?? 0} target={p.target_minutes_per_day} color={p.color} size={44} />
+                  <div>
+                    <p className="flex items-center gap-1 text-ink-400">
+                      <Target className="h-3.5 w-3.5 text-brand-400" aria-hidden="true" />
+                      <span className="font-mono font-semibold tabular-nums text-ink-100">{goals.find((g) => g.project_id === p.id)?.today_minutes ?? 0}</span>
+                      <span>/ {p.target_minutes_per_day} min today</span>
+                    </p>
+                    <p className="mt-0.5 flex items-center gap-1 text-ink-500">
+                      <Clock className="h-3.5 w-3.5 text-accent-sky" aria-hidden="true" />
+                      {formatMinutes(p.total_minutes ?? 0)} logged in total
+                    </p>
+                  </div>
+                </div>
               </div>
             </li>
           ))}

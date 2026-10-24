@@ -13,9 +13,18 @@ import { FeedbackModal } from './components/FeedbackModal'
 import { ToastProvider, useToast } from './components/ui/Toast'
 import { ServerStatusBanner } from './components/ui/ServerStatusBanner'
 import { Skeleton } from './components/ui/Skeleton'
+import { TaskPanel } from './components/TaskPanel'
 import { useAuth } from './hooks/useAuth'
 import { useAppData } from './hooks/useAppData'
 import { useTimer, type TimerFinish } from './hooks/useTimer'
+import { useTasks, clearCurrentTask } from './hooks/useTasks'
+import { useLocalPrefs } from './hooks/useLocalPrefs'
+import { useWakeLock } from './hooks/useWakeLock'
+import { useServiceWorker, clearApiCache } from './hooks/useServiceWorker'
+import { notify } from './lib/notify'
+import { createFavicon } from './lib/favicon'
+import { clearTimer } from './lib/timerStorage'
+import { formatMinutes } from './lib/time'
 import { errorMessage } from './api/client'
 import { audioService } from './services/audio'
 
@@ -31,6 +40,8 @@ export const App: React.FC = () => (
 )
 
 const INTERACTIVE = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'])
+const favicon = typeof document !== 'undefined' ? createFavicon() : null
+const MODE_COLORS = { work: '#34d399', short_break: '#7dd3fc', long_break: '#c4b5fd' } as const
 
 const AnalyticsSkeleton: React.FC = () => (
   <div className="mx-auto max-w-5xl px-4 py-8" role="status" aria-label="Loading analytics">
@@ -50,7 +61,10 @@ const AnalyticsSkeleton: React.FC = () => (
 const AppShell: React.FC = () => {
   const toast = useToast()
   const auth = useAuth()
-  const data = useAppData(auth.user?.id ?? null)
+  const userId = auth.user?.id ?? null
+  const data = useAppData(userId)
+  const taskState = useTasks(userId, data.selectedProjectId)
+  const { prefs } = useLocalPrefs()
 
   const [activeTab, setActiveTab] = useState<Tab>('timer')
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -76,24 +90,50 @@ const AppShell: React.FC = () => {
 
   const onTimerFinish = useCallback(
     (result: TimerFinish) => {
+      const hidden = document.visibilityState === 'hidden' || !document.hasFocus()
       if (result.mode === 'work') {
-        if (data.settings.sound_enabled) audioService.playWorkCompleteChime()
-        confetti({ particleCount: 90, spread: 70, origin: { y: 0.7 }, colors: ['#34d399', '#4cc2f5', '#f5b63d', '#8b7cf6'] })
+        if (data.settings.sound_enabled && !result.stale) audioService.playWorkCompleteChime()
+        if (!result.stale) confetti({ particleCount: 90, spread: 70, origin: { y: 0.7 }, colors: ['#34d399', '#4cc2f5', '#f5b63d', '#8b7cf6'] })
+        if (hidden || result.stale) {
+          notify('Focus session done', `${formatMinutes(result.elapsedSeconds / 60)} logged${result.interruptions ? `, ${result.interruptions} interruption${result.interruptions === 1 ? '' : 's'}` : ''}. Rate it when you're back.`)
+        }
         setCompleted(result)
-      } else if (data.settings.sound_enabled) {
-        audioService.playBreakCompleteChime()
+      } else {
+        if (data.settings.sound_enabled && !result.stale) audioService.playBreakCompleteChime()
+        if (hidden) notify('Break over', 'Back to it when you are ready.')
       }
     },
     [data.settings.sound_enabled],
   )
 
-  // The timer lives here so it keeps running while other tabs are open.
-  const timer = useTimer({ settings: data.settings, onFinish: onTimerFinish })
+  // The timer lives here so it keeps running while other tabs are open, and
+  // persists to localStorage so it survives reloads.
+  const timer = useTimer({ settings: data.settings, onFinish: onTimerFinish, userId, notificationsEnabled: prefs.notifications_enabled })
+  const running = timer.state.status === 'running'
+  useWakeLock(running)
 
   useEffect(() => {
     const label = timer.state.mode === 'work' ? 'Focus' : 'Break'
-    document.title = timer.state.status === 'running' ? `${timer.formatted} · ${label} · Study Tracker` : 'Study Tracker & Pomodoro'
-  }, [timer.formatted, timer.state.mode, timer.state.status])
+    document.title = running ? `${timer.formatted} · ${label} · Study Tracker` : 'Study Tracker & Pomodoro'
+    if (running) favicon?.update(timer.formatted, timer.progress / 100, MODE_COLORS[timer.state.mode])
+    else favicon?.restore()
+  }, [timer.formatted, timer.state.mode, running, timer.progress])
+
+  // Nothing from a previous user may linger on this device. Only an explicit
+  // signed-out state clears; the initial "loading" state must leave the
+  // persisted timer untouched so it can be rehydrated once the user is known.
+  useEffect(() => {
+    if (auth.status === 'anonymous') {
+      clearTimer()
+      clearCurrentTask()
+      void clearApiCache()
+    }
+  }, [auth.status])
+
+  useServiceWorker({
+    onNeedRefresh: (reload) => toast.action('A new version is available.', 'Reload', reload),
+    onOfflineReady: () => toast.info('Ready to work offline.'),
+  })
 
   // Keyboard shortcuts on the timer tab: Space toggles, R resets. Ignored
   // while typing, while a dialog is open, or when the timer cannot start.
@@ -117,7 +157,7 @@ const AppShell: React.FC = () => {
     return () => window.removeEventListener('keydown', onKey)
   }, [activeTab, auth.status, canStart, timer])
 
-  const saveCompletedSession = async (projectId: number, rating: number, notes: string) => {
+  const saveCompletedSession = async (projectId: number, rating: number, notes: string, taskId: number | null) => {
     if (!completed) return
     await run(
       () =>
@@ -129,10 +169,13 @@ const AppShell: React.FC = () => {
           session_type: 'pomodoro',
           focus_rating: rating,
           notes,
+          interruptions: completed.interruptions,
+          task_id: taskId,
         }),
       'Session saved.',
     )
     setCompleted(null)
+    if (taskId !== null) void taskState.refresh().catch(() => undefined)
   }
 
   const requestCreateProject = () => {
@@ -184,19 +227,37 @@ const AppShell: React.FC = () => {
 
         <div key={activeTab} className="animate-fade-up">
           {activeTab === 'timer' && (
-            <PomodoroTimer
-              timer={timer}
-              projects={data.projects}
-              selectedProjectId={data.selectedProjectId}
-              setSelectedProjectId={data.setSelectedProjectId}
-              settings={data.settings}
-              onCreateProject={requestCreateProject}
-            />
+            <>
+              <PomodoroTimer
+                timer={timer}
+                projects={data.projects}
+                selectedProjectId={data.selectedProjectId}
+                setSelectedProjectId={data.setSelectedProjectId}
+                settings={data.settings}
+                onCreateProject={requestCreateProject}
+                goal={data.goals?.projects.find((g) => g.project_id === data.selectedProjectId)}
+              />
+              {signedIn && data.selectedProjectId !== null && timer.state.mode === 'work' && (
+                <div className="mx-auto max-w-2xl px-2">
+                  <TaskPanel
+                    projectName={data.projects.find((p) => p.id === data.selectedProjectId)?.name ?? ''}
+                    tasks={taskState.tasks}
+                    currentTaskId={taskState.currentTaskId}
+                    onAdd={(title, estimate) => run(() => taskState.add(title, estimate))}
+                    onToggle={(id, done) => run(() => taskState.toggle(id, done))}
+                    onRemove={(id) => run(() => taskState.remove(id), 'Task deleted.')}
+                    onMove={(id, dir) => run(() => taskState.move(id, dir))}
+                    onSetCurrent={taskState.setCurrentTask}
+                  />
+                </div>
+              )}
+            </>
           )}
 
           {activeTab === 'projects' && (
             <ProjectManager
               projects={data.projects}
+              goals={data.goals?.projects}
               loading={initialLoading}
               openCreateSignal={createProjectSignal}
               onCreateProject={(p) => run(() => data.createProject(p), 'Project created.')}
@@ -218,9 +279,9 @@ const AppShell: React.FC = () => {
           {activeTab === 'analytics' && (
             <Suspense fallback={<AnalyticsSkeleton />}>
               {data.stats ? (
-                <AnalyticsDashboard stats={data.stats} loading={data.loading} error={data.error} onRetry={() => void data.reload()} />
+                <AnalyticsDashboard stats={data.stats} heatmap={data.heatmap} hours={data.hours} loading={data.loading} error={data.error} onRetry={() => void data.reload()} />
               ) : data.error ? (
-                <AnalyticsDashboard stats={null} loading={false} error={data.error} onRetry={() => void data.reload()} />
+                <AnalyticsDashboard stats={null} heatmap={[]} hours={[]} loading={false} error={data.error} onRetry={() => void data.reload()} />
               ) : (
                 <AnalyticsSkeleton />
               )}
@@ -237,8 +298,11 @@ const AppShell: React.FC = () => {
         }}
         onSave={saveCompletedSession}
         durationSeconds={completed?.elapsedSeconds ?? 0}
+        interruptions={completed?.interruptions ?? 0}
         projects={data.projects}
+        tasks={taskState.allTasks}
         defaultProjectId={data.selectedProjectId}
+        defaultTaskId={taskState.currentTaskId}
       />
 
       <ManualSessionModal
@@ -253,6 +317,15 @@ const AppShell: React.FC = () => {
         onClose={() => setIsSettingsOpen(false)}
         settings={data.settings}
         onSave={(s) => run(() => data.updateSettings(s), 'Preferences saved.')}
+        user={auth.user}
+        onUserChanged={() => auth.refreshUser().catch(() => undefined)}
+        onDataChanged={() => data.reload()}
+        onPasswordChanged={auth.applyAuth}
+        onAccountDeleted={() => {
+          setIsSettingsOpen(false)
+          auth.logout()
+          toast.info('Your account has been deleted.')
+        }}
       />
 
       <AuthModal isOpen={auth.status === 'anonymous'} onLogin={auth.login} onRegister={auth.register} />
