@@ -99,7 +99,7 @@ func testConfig() config.Config {
 		return map[string]string{
 			"DATABASE_URL": "unused", "JWT_SECRET": strings.Repeat("t", 32),
 			"CORS_ORIGINS":    "http://localhost:5173,https://*.vercel.app",
-			"AUTH_RATE_LIMIT": "100000", "FEEDBACK_RATE_LIMIT": "100000",
+			"AUTH_RATE_LIMIT": "100000", "FEEDBACK_RATE_LIMIT": "100000", "CALENDAR_RATE_LIMIT": "100000",
 		}[k]
 	})
 	if err != nil {
@@ -195,4 +195,30 @@ func (s *testServer) createSession(t *testing.T, token string, projectID int64, 
 		"end_time":         start.Add(time.Duration(seconds) * time.Second).UTC().Format(time.RFC3339),
 		"duration_seconds": seconds, "session_type": "pomodoro", "focus_rating": 4,
 	})
+}
+
+func (s *testServer) createTask(t *testing.T, token string, projectID int64, title string) int64 {
+	t.Helper()
+	res, body := s.do(t, "POST", "/api/tasks", token, map[string]any{"project_id": projectID, "title": title})
+	if res.StatusCode != 201 {
+		t.Fatalf("create task: %d %s", res.StatusCode, body)
+	}
+	var out struct {
+		ID int64 `json:"id"`
+	}
+	decode(t, body, &out)
+	return out.ID
+}
+
+func (s *testServer) sessionWith(t *testing.T, token string, extra map[string]any) (*http.Response, []byte) {
+	t.Helper()
+	now := time.Now().UTC()
+	payload := map[string]any{
+		"duration_seconds": 1500, "session_type": "pomodoro", "focus_rating": 4,
+		"start_time": now.Add(-25 * time.Minute).Format(time.RFC3339), "end_time": now.Format(time.RFC3339),
+	}
+	for k, v := range extra {
+		payload[k] = v
+	}
+	return s.do(t, "POST", "/api/sessions", token, payload)
 }

@@ -12,6 +12,8 @@ import (
 	"time"
 	_ "time/tzdata" // embed the IANA database so ?tz= works in minimal images
 
+	"github.com/getsentry/sentry-go"
+
 	"study-tracker-backend/internal/auth"
 	"study-tracker-backend/internal/config"
 	"study-tracker-backend/internal/httpapi"
@@ -27,6 +29,15 @@ func main() {
 
 	logger := newLogger(cfg)
 	slog.SetDefault(logger)
+
+	if cfg.SentryDSN != "" {
+		if err := sentry.Init(sentry.ClientOptions{Dsn: cfg.SentryDSN, Environment: cfg.Env, Release: os.Getenv("RENDER_GIT_COMMIT")}); err != nil {
+			logger.Warn("sentry disabled", "err", err)
+		} else {
+			defer sentry.Flush(2 * time.Second)
+			logger.Info("sentry enabled")
+		}
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

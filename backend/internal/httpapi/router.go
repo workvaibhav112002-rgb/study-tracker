@@ -49,7 +49,6 @@ func NewRouter(d Deps) http.Handler {
 	r.Use(requestLogger(d.Logger))
 	r.Use(recoverer(d.Logger))
 	r.Use(middleware.Timeout(d.Config.RequestTimeout))
-	r.Use(maxBody(d.Config.MaxBodyBytes))
 	// go-chi/cors treats an empty AllowedOrigins as "allow everything", so the
 	// middleware is only mounted when an explicit allow-list exists. Without
 	// it no CORS headers are emitted and browsers deny cross-origin calls.
@@ -78,35 +77,66 @@ func NewRouter(d Deps) http.Handler {
 		writeError(w, r, http.StatusMethodNotAllowed, "method not allowed")
 	})
 
+	body := maxBody(d.Config.MaxBodyBytes)
+
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/health", a.health)
 
+		// Public calendar feed: the token is the credential.
+		r.With(body, limited(d.Config.CalendarRateLimit, d.Config.CalendarRateWindow)).
+			Get("/calendar/{token}", a.calendarFeed)
+
 		r.Group(func(r chi.Router) {
-			r.Use(limited(d.Config.AuthRateLimit, d.Config.AuthRateWindow))
+			r.Use(body, limited(d.Config.AuthRateLimit, d.Config.AuthRateWindow))
 			r.Post("/auth/register", a.register)
 			r.Post("/auth/login", a.login)
 		})
 
-		r.With(limited(d.Config.FeedbackRateLimit, d.Config.FeedbackRateWindow), authn.Optional).
+		r.With(body, limited(d.Config.FeedbackRateLimit, d.Config.FeedbackRateWindow), authn.Optional).
 			Post("/feedback", a.createFeedback)
 
 		r.Group(func(r chi.Router) {
 			r.Use(authn.Require)
-			r.Get("/auth/me", a.me)
 
-			r.Get("/projects", a.listProjects)
-			r.Post("/projects", a.createProject)
-			r.Put("/projects/{id}", a.updateProject)
-			r.Delete("/projects/{id}", a.deleteProject)
+			// bcrypt-cost account operations share the auth limiter.
+			r.Group(func(r chi.Router) {
+				r.Use(body, limited(d.Config.AuthRateLimit, d.Config.AuthRateWindow))
+				r.Post("/auth/change-password", a.changePassword)
+				r.Delete("/auth/me", a.deleteAccount)
+			})
 
-			r.Get("/sessions", a.listSessions)
-			r.Post("/sessions", a.createSession)
-			r.Delete("/sessions/{id}", a.deleteSession)
+			r.With(maxBody(d.Config.ImportMaxBodyBytes)).Post("/import", a.importAll)
 
-			r.Get("/stats/dashboard", a.dashboardStats)
-			r.Get("/settings", a.getSettings)
-			r.Post("/settings", a.updateSettings)
-			r.Get("/export", a.export)
+			r.Group(func(r chi.Router) {
+				r.Use(body)
+				r.Get("/auth/me", a.me)
+				r.Post("/auth/calendar-token", a.createCalendarToken)
+				r.Delete("/auth/calendar-token", a.deleteCalendarToken)
+
+				r.Get("/projects", a.listProjects)
+				r.Post("/projects", a.createProject)
+				r.Put("/projects/{id}", a.updateProject)
+				r.Delete("/projects/{id}", a.deleteProject)
+
+				r.Get("/sessions", a.listSessions)
+				r.Post("/sessions", a.createSession)
+				r.Delete("/sessions/{id}", a.deleteSession)
+
+				r.Get("/tasks", a.listTasks)
+				r.Post("/tasks", a.createTask)
+				r.Put("/tasks/order", a.reorderTasks)
+				r.Put("/tasks/{id}", a.updateTask)
+				r.Put("/tasks/{id}/done", a.setTaskDone)
+				r.Delete("/tasks/{id}", a.deleteTask)
+
+				r.Get("/stats/dashboard", a.dashboardStats)
+				r.Get("/stats/goals", a.goalsStats)
+				r.Get("/stats/heatmap", a.heatmapStats)
+				r.Get("/stats/hours", a.hourlyStats)
+				r.Get("/settings", a.getSettings)
+				r.Post("/settings", a.updateSettings)
+				r.Get("/export", a.export)
+			})
 		})
 	})
 

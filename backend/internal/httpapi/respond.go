@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/go-chi/chi/v5/middleware"
 
 	"study-tracker-backend/internal/store"
@@ -61,6 +62,7 @@ func handleErr(w http.ResponseWriter, r *http.Request, err error) {
 	case errors.Is(err, context.DeadlineExceeded), errors.Is(err, context.Canceled):
 		writeError(w, r, http.StatusServiceUnavailable, "request timed out")
 	default:
+		captureError(r, err)
 		slog.ErrorContext(r.Context(), "internal error",
 			"err", err, "request_id", middleware.GetReqID(r.Context()), "method", r.Method, "path", r.URL.Path)
 		writeError(w, r, http.StatusInternalServerError, "internal server error")
@@ -82,4 +84,14 @@ func decodeJSON(r *http.Request, dst any) error {
 		return invalid("invalid JSON body")
 	}
 	return nil
+}
+
+// captureError reports to Sentry when it is configured; a no-op otherwise.
+func captureError(r *http.Request, err error) {
+	sentry.WithScope(func(scope *sentry.Scope) {
+		scope.SetTag("request_id", middleware.GetReqID(r.Context()))
+		scope.SetTag("method", r.Method)
+		scope.SetTag("path", r.URL.Path)
+		sentry.CaptureException(err)
+	})
 }

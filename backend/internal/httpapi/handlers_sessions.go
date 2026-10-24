@@ -2,7 +2,6 @@ package httpapi
 
 import (
 	"net/http"
-	"strconv"
 	"time"
 
 	"study-tracker-backend/internal/store"
@@ -16,6 +15,8 @@ type sessionRequest struct {
 	SessionType     string     `json:"session_type"`
 	FocusRating     *int       `json:"focus_rating"`
 	Notes           string     `json:"notes"`
+	Interruptions   *int       `json:"interruptions"`
+	TaskID          *int64     `json:"task_id"`
 }
 
 const (
@@ -25,6 +26,7 @@ const (
 	// maxDurationMismatch bounds how far duration_seconds may differ from
 	// end-start; pauses make them legitimately diverge.
 	maxDurationMismatch = 2 * time.Hour
+	maxInterruptions    = 100
 )
 
 func (s sessionRequest) validate(now time.Time) (store.SessionInput, error) {
@@ -51,6 +53,16 @@ func (s sessionRequest) validate(now time.Time) (store.SessionInput, error) {
 	notes, err := cleanText("notes", s.Notes, maxNotesLen, false)
 	if err != nil {
 		return store.SessionInput{}, err
+	}
+	interruptions := 0
+	if s.Interruptions != nil {
+		interruptions = *s.Interruptions
+	}
+	if err := inRange("interruptions", interruptions, 0, maxInterruptions); err != nil {
+		return store.SessionInput{}, err
+	}
+	if s.TaskID != nil && *s.TaskID <= 0 {
+		return store.SessionInput{}, invalid("task_id must be a positive integer")
 	}
 
 	dur := time.Duration(s.DurationSeconds) * time.Second
@@ -81,6 +93,7 @@ func (s sessionRequest) validate(now time.Time) (store.SessionInput, error) {
 	return store.SessionInput{
 		ProjectID: s.ProjectID, StartTime: start.UTC(), EndTime: end.UTC(),
 		DurationSeconds: s.DurationSeconds, SessionType: sessionType, FocusRating: rating, Notes: notes,
+		Interruptions: interruptions, TaskID: s.TaskID,
 	}, nil
 }
 
@@ -91,15 +104,12 @@ func (a *api) listSessions(w http.ResponseWriter, r *http.Request) {
 		handleErr(w, r, err)
 		return
 	}
-	f := store.SessionFilter{Limit: limit}
-	if raw := q.Get("project_id"); raw != "" {
-		pid, err := strconv.ParseInt(raw, 10, 64)
-		if err != nil || pid <= 0 {
-			handleErr(w, r, invalid("project_id must be a positive integer"))
-			return
-		}
-		f.ProjectID = &pid
+	pid, err := parseOptionalID(q.Get("project_id"), "project_id")
+	if err != nil {
+		handleErr(w, r, err)
+		return
 	}
+	f := store.SessionFilter{Limit: limit, ProjectID: pid}
 	sessions, err := a.store.ListSessions(r.Context(), userID(r), f)
 	if err != nil {
 		handleErr(w, r, err)

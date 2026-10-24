@@ -119,6 +119,44 @@ func parseLimit(raw string) (int, error) {
 	return min(n, maxLimit), nil
 }
 
+func parseOptionalID(raw, field string) (*int64, error) {
+	if raw == "" {
+		return nil, nil
+	}
+	id, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil || id <= 0 {
+		return nil, invalid("%s must be a positive integer", field)
+	}
+	return &id, nil
+}
+
+func parseOptionalBool(raw, field string) (*bool, error) {
+	if raw == "" {
+		return nil, nil
+	}
+	b, err := strconv.ParseBool(raw)
+	if err != nil {
+		return nil, invalid("%s must be true or false", field)
+	}
+	return &b, nil
+}
+
+const (
+	defaultHeatmapDays = 365
+	maxHeatmapDays     = 730
+)
+
+func parseDays(raw string) (int, error) {
+	if raw == "" {
+		return defaultHeatmapDays, nil
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n < 1 || n > maxHeatmapDays {
+		return 0, invalid("days must be between 1 and %d", maxHeatmapDays)
+	}
+	return n, nil
+}
+
 func parseLocation(raw string) (*time.Location, error) {
 	if raw == "" {
 		return time.UTC, nil
