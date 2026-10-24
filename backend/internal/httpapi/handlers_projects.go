@@ -2,15 +2,19 @@ package httpapi
 
 import (
 	"net/http"
+	"strings"
+	"time"
 
 	"study-tracker-backend/internal/store"
 )
 
 type projectRequest struct {
-	Name                string `json:"name"`
-	Color               string `json:"color"`
-	Description         string `json:"description"`
-	TargetMinutesPerDay *int   `json:"target_minutes_per_day"`
+	Name                string  `json:"name"`
+	Color               string  `json:"color"`
+	Description         string  `json:"description"`
+	TargetMinutesPerDay *int    `json:"target_minutes_per_day"`
+	ExamDate            *string `json:"exam_date"`
+	PlannedHoursPerWeek *int    `json:"planned_hours_per_week"`
 }
 
 func (p projectRequest) validate() (store.ProjectInput, error) {
@@ -33,7 +37,23 @@ func (p projectRequest) validate() (store.ProjectInput, error) {
 	if err := inRange("target_minutes_per_day", target, 1, 1440); err != nil {
 		return store.ProjectInput{}, err
 	}
-	return store.ProjectInput{Name: name, Color: color, Description: desc, TargetMinutesPerDay: target}, nil
+	var exam *string
+	if p.ExamDate != nil && strings.TrimSpace(*p.ExamDate) != "" {
+		d := strings.TrimSpace(*p.ExamDate)
+		if _, err := time.Parse("2006-01-02", d); err != nil {
+			return store.ProjectInput{}, invalid("exam_date must be YYYY-MM-DD")
+		}
+		exam = &d
+	}
+	var planned *int
+	if p.PlannedHoursPerWeek != nil && *p.PlannedHoursPerWeek != 0 {
+		if err := inRange("planned_hours_per_week", *p.PlannedHoursPerWeek, 1, 168); err != nil {
+			return store.ProjectInput{}, err
+		}
+		v := *p.PlannedHoursPerWeek
+		planned = &v
+	}
+	return store.ProjectInput{Name: name, Color: color, Description: desc, TargetMinutesPerDay: target, ExamDate: exam, PlannedHoursPerWeek: planned}, nil
 }
 
 func (a *api) listProjects(w http.ResponseWriter, r *http.Request) {

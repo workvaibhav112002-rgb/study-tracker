@@ -146,6 +146,19 @@ func NewRouter(d Deps) http.Handler {
 				r.Put("/tasks/{id}/done", a.setTaskDone)
 				r.Delete("/tasks/{id}", a.deleteTask)
 
+				r.Get("/cards", a.listCards)
+				r.Post("/cards", a.createCard)
+				r.Get("/cards/stats", a.cardStats)
+				r.Put("/cards/{id}", a.updateCard)
+				r.Put("/cards/{id}/archive", a.archiveCard)
+				r.Post("/cards/{id}/review", a.reviewCard)
+				r.Delete("/cards/{id}", a.deleteCard)
+
+				r.Get("/notes", a.listNotes)
+				r.Post("/notes", a.createNote)
+				r.Put("/notes/{id}", a.updateNote)
+				r.Delete("/notes/{id}", a.deleteNote)
+
 				r.Get("/stats/dashboard", a.dashboardStats)
 				r.Get("/stats/goals", a.goalsStats)
 				r.Get("/stats/heatmap", a.heatmapStats)

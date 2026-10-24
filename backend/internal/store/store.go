@@ -43,8 +43,11 @@ type Project struct {
 	Color               string    `json:"color"`
 	Description         string    `json:"description"`
 	TargetMinutesPerDay int       `json:"target_minutes_per_day"`
+	ExamDate            *string   `json:"exam_date"`
+	PlannedHoursPerWeek *int      `json:"planned_hours_per_week"`
 	CreatedAt           time.Time `json:"created_at"`
 	TotalMinutes        int       `json:"total_minutes"`
+	WeekMinutes         int       `json:"week_minutes"`
 }
 
 // ProjectInput is the validated payload for creating or replacing a project.
@@ -53,6 +56,90 @@ type ProjectInput struct {
 	Color               string
 	Description         string
 	TargetMinutesPerDay int
+	ExamDate            *string // YYYY-MM-DD
+	PlannedHoursPerWeek *int
+}
+
+// Card is a flashcard scheduled with SM-2.
+type Card struct {
+	ID           int64     `json:"id"`
+	UserID       int64     `json:"user_id"`
+	ProjectID    int64     `json:"project_id"`
+	Front        string    `json:"front"`
+	Back         string    `json:"back"`
+	Tags         []string  `json:"tags"`
+	Ease         float64   `json:"ease"`
+	IntervalDays int       `json:"interval_days"`
+	Repetitions  int       `json:"repetitions"`
+	Lapses       int       `json:"lapses"`
+	DueAt        time.Time `json:"due_at"`
+	Archived     bool      `json:"archived"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+// CardInput is the validated payload for creating or editing a card.
+type CardInput struct {
+	ProjectID int64
+	Front     string
+	Back      string
+	Tags      []string
+}
+
+// CardFilter narrows ListCards.
+type CardFilter struct {
+	ProjectID *int64
+	DueOnly   bool
+	Archived  *bool
+	Limit     int
+}
+
+// CardStats summarises a deck.
+type CardStats struct {
+	Total     int `json:"total"`
+	Due       int `json:"due"`
+	New       int `json:"new"`
+	Mastered  int `json:"mastered"`
+	Reviewed7 int `json:"reviewed_last_7_days"`
+}
+
+// CardSchedule is the SM-2 outcome of a review.
+type CardSchedule struct {
+	Ease         float64
+	IntervalDays int
+	Repetitions  int
+	Lapses       int
+	DueAt        time.Time
+}
+
+// Note is free-form study text.
+type Note struct {
+	ID        int64     `json:"id"`
+	UserID    int64     `json:"user_id"`
+	ProjectID *int64    `json:"project_id"`
+	Title     string    `json:"title"`
+	Body      string    `json:"body"`
+	Tags      []string  `json:"tags"`
+	Pinned    bool      `json:"pinned"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// NoteInput is the validated payload for a note.
+type NoteInput struct {
+	ProjectID *int64
+	Title     string
+	Body      string
+	Tags      []string
+	Pinned    bool
+}
+
+// NoteFilter narrows ListNotes.
+type NoteFilter struct {
+	ProjectID *int64
+	Tag       string
+	Query     string
+	Limit     int
 }
 
 // Session is one block of study time.
@@ -321,6 +408,21 @@ type Store interface {
 	SetTaskDone(ctx context.Context, userID, id int64, done bool) (Task, error)
 	DeleteTask(ctx context.Context, userID, id int64) error
 	ReorderTasks(ctx context.Context, userID int64, ids []int64) error
+
+	ListCards(ctx context.Context, userID int64, f CardFilter) ([]Card, error)
+	CreateCard(ctx context.Context, userID int64, in CardInput) (Card, error)
+	UpdateCard(ctx context.Context, userID, id int64, in CardInput) (Card, error)
+	SetCardArchived(ctx context.Context, userID, id int64, archived bool) (Card, error)
+	DeleteCard(ctx context.Context, userID, id int64) error
+	// ReviewCard applies the new schedule and records the review atomically.
+	ReviewCard(ctx context.Context, userID, id int64, rating int, next CardSchedule) (Card, error)
+	GetCard(ctx context.Context, userID, id int64) (Card, error)
+	CardStats(ctx context.Context, userID int64, projectID *int64) (CardStats, error)
+
+	ListNotes(ctx context.Context, userID int64, f NoteFilter) ([]Note, error)
+	CreateNote(ctx context.Context, userID int64, in NoteInput) (Note, error)
+	UpdateNote(ctx context.Context, userID, id int64, in NoteInput) (Note, error)
+	DeleteNote(ctx context.Context, userID, id int64) error
 
 	GetSettings(ctx context.Context, userID int64) (Settings, error)
 	UpsertSettings(ctx context.Context, userID int64, s Settings) (Settings, error)
