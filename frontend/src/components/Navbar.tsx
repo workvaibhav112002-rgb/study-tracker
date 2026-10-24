@@ -62,6 +62,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         )}
       </div>
 
+      {user && (
       <nav aria-label="Primary" className="flex items-center gap-0.5 rounded-xl border border-fg/[0.06] bg-surface-950/60 p-1">
         {tabs.map((tab) => {
           const Icon = tab.icon
@@ -84,6 +85,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           )
         })}
       </nav>
+      )}
 
       <div className="flex items-center gap-1.5 sm:gap-2">
         {stats && user && (
@@ -125,6 +127,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         )}
 
+        {user && (
         <button
           type="button"
           onClick={onOpenSettings}
@@ -134,6 +137,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           <SettingsIcon className="h-[18px] w-[18px]" />
         </button>
+        )}
       </div>
     </div>
   </header>
