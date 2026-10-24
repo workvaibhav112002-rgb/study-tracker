@@ -10,6 +10,8 @@ import { GoogleSignInButton } from './GoogleSignInButton'
 interface AuthModalProps {
   isOpen: boolean
   config: AppConfig
+  initialView?: 'login' | 'register'
+  onClose?: () => void
   onLogin: (email: string, password: string) => Promise<void>
   onRegister: (email: string, password: string, name: string) => Promise<void>
   onGoogle: (credential: string) => Promise<void>
@@ -33,9 +35,14 @@ const COPY: Record<View, { title: string; description: string }> = {
   sent: { title: 'Check your inbox', description: 'If that address is right, a link is on its way. It may take a minute.' },
 }
 
-/** Sign-in gate. Not dismissible: the app needs an account to store data. */
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, config, onLogin, onRegister, onGoogle }) => {
-  const [view, setView] = useState<View>('login')
+/** Sign-in dialog, opened from the landing page or an emailed link. */
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, config, initialView = 'login', onClose, onLogin, onRegister, onGoogle }) => {
+  const [view, setView] = useState<View>(initialView)
+  const [openedWith, setOpenedWith] = useState(initialView)
+  if (isOpen && openedWith !== initialView) {
+    setOpenedWith(initialView)
+    setView(initialView)
+  }
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
@@ -82,7 +89,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, config, onLogin, o
   )
 
   return (
-    <Modal isOpen={isOpen} dismissible={false} align="center" title={copy.title} description={copy.description} icon={view === 'sent' ? <Inbox className="h-6 w-6 text-surface-950" aria-hidden="true" /> : <Mark />} iconClassName="bg-gradient-to-br from-brand-300 via-brand-500 to-brand-700 shadow-glow-lg">
+    <Modal isOpen={isOpen} dismissible={Boolean(onClose) && !loading} onClose={onClose} align="center" title={copy.title} description={copy.description} icon={view === 'sent' ? <Inbox className="h-6 w-6 text-surface-950" aria-hidden="true" /> : <Mark />} iconClassName="bg-gradient-to-br from-brand-300 via-brand-500 to-brand-700 shadow-glow-lg">
       {(view === 'login' || view === 'register') && (
         <div role="tablist" aria-label="Authentication mode" className="mb-6 flex rounded-xl border border-white/[0.06] bg-surface-950/60 p-1">
           {(['login', 'register'] as const).map((m) => (
