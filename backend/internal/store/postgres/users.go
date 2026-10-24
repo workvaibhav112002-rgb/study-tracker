@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 
@@ -25,16 +26,35 @@ var seedProjects = []seedProject{
 // CreateUser inserts the user, a default settings row and seed projects in
 // one transaction. A duplicate email yields store.ErrConflict.
 func (s *Store) CreateUser(ctx context.Context, email, passwordHash, name string) (store.User, error) {
+	return s.createUser(ctx, email, passwordHash, name, nil, false)
+}
+
+// CreateGoogleUser creates a password-less account linked to a Google subject.
+func (s *Store) CreateGoogleUser(ctx context.Context, email, name, googleSub string, verified bool) (store.User, error) {
+	return s.createUser(ctx, email, "", name, &googleSub, verified)
+}
+
+func (s *Store) createUser(ctx context.Context, email, passwordHash, name string, googleSub *string, verified bool) (store.User, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return store.User{}, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	u := store.User{Email: email, Name: name}
+	u := store.User{Email: email, Name: name, HasPassword: passwordHash != "", GoogleLinked: googleSub != nil}
+	var hash *string
+	if passwordHash != "" {
+		hash = &passwordHash
+	}
+	var verifiedAt *time.Time
+	if verified {
+		now := time.Now().UTC()
+		verifiedAt = &now
+		u.EmailVerifiedAt = verifiedAt
+	}
 	err = tx.QueryRow(ctx,
-		`INSERT INTO users (email, password_hash, name) VALUES ($1, $2, $3) RETURNING id, created_at, updated_at`,
-		email, passwordHash, name,
+		`INSERT INTO users (email, password_hash, name, google_sub, email_verified_at) VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at, updated_at`,
+		email, hash, name, googleSub, verifiedAt,
 	).Scan(&u.ID, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		return store.User{}, mapErr(err)
@@ -58,12 +78,59 @@ func (s *Store) CreateUser(ctx context.Context, email, passwordHash, name string
 	return u, nil
 }
 
-const userColumns = `id, email, password_hash, name, created_at, updated_at, token_version, (calendar_token IS NOT NULL)`
+const userColumns = `id, email, COALESCE(password_hash, ''), name, created_at, updated_at, token_version,
+	(calendar_token IS NOT NULL), (google_sub IS NOT NULL), email_verified_at`
 
 func scanUser(row pgx.Row) (store.User, error) {
 	var u store.User
-	err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.CreatedAt, &u.UpdatedAt, &u.TokenVersion, &u.HasCalendarToken)
+	err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Name, &u.CreatedAt, &u.UpdatedAt, &u.TokenVersion,
+		&u.HasCalendarToken, &u.GoogleLinked, &u.EmailVerifiedAt)
+	u.HasPassword = u.PasswordHash != ""
 	return u, mapErr(err)
+}
+
+// GetUserByGoogleSub finds the account linked to a Google subject.
+func (s *Store) GetUserByGoogleSub(ctx context.Context, sub string) (store.User, error) {
+	return scanUser(s.pool.QueryRow(ctx, `SELECT `+userColumns+` FROM users WHERE google_sub = $1`, sub))
+}
+
+// LinkGoogle attaches a Google subject to an existing account.
+func (s *Store) LinkGoogle(ctx context.Context, userID int64, sub string, verified bool) error {
+	tag, err := s.pool.Exec(ctx, `
+		UPDATE users SET google_sub = $2,
+		       email_verified_at = CASE WHEN $3 THEN COALESCE(email_verified_at, now()) ELSE email_verified_at END,
+		       updated_at = now()
+		WHERE id = $1`, userID, sub, verified)
+	if err != nil {
+		return mapErr(err)
+	}
+	if tag.RowsAffected() == 0 {
+		return store.ErrNotFound
+	}
+	return nil
+}
+
+// MarkEmailVerified records that the user proved control of their mailbox.
+func (s *Store) MarkEmailVerified(ctx context.Context, userID int64) error {
+	_, err := s.pool.Exec(ctx, `UPDATE users SET email_verified_at = COALESCE(email_verified_at, now()), updated_at = now() WHERE id = $1`, userID)
+	return mapErr(err)
+}
+
+// CreateAuthToken stores a hashed single-use token.
+func (s *Store) CreateAuthToken(ctx context.Context, userID int64, kind, tokenHash string, expiresAt time.Time) error {
+	_, err := s.pool.Exec(ctx, `INSERT INTO auth_tokens (user_id, kind, token_hash, expires_at) VALUES ($1, $2, $3, $4)`, userID, kind, tokenHash, expiresAt)
+	return mapErr(err)
+}
+
+// ConsumeAuthToken marks a live token as used and returns its owner, in one
+// statement so a token can never be redeemed twice.
+func (s *Store) ConsumeAuthToken(ctx context.Context, kind, tokenHash string) (int64, error) {
+	var userID int64
+	err := s.pool.QueryRow(ctx, `
+		UPDATE auth_tokens SET used_at = now()
+		WHERE kind = $1 AND token_hash = $2 AND used_at IS NULL AND expires_at > now()
+		RETURNING user_id`, kind, tokenHash).Scan(&userID)
+	return userID, mapErr(err)
 }
 
 // GetUserByEmail returns the user including the password hash.

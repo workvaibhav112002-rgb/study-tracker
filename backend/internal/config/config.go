@@ -36,7 +36,21 @@ type Config struct {
 
 	// SentryDSN enables error reporting when set.
 	SentryDSN string
+
+	// AppURL is the public frontend origin used in emailed links.
+	AppURL string
+	// GoogleClientID enables "Sign in with Google" when set.
+	GoogleClientID string
+	// SMTP settings; email features are disabled when Host is empty.
+	SMTPHost string
+	SMTPPort int
+	SMTPUser string
+	SMTPPass string
+	SMTPFrom string
 }
+
+// EmailEnabled reports whether transactional email can be sent.
+func (c Config) EmailEnabled() bool { return c.SMTPHost != "" && c.SMTPFrom != "" }
 
 // IsProduction reports whether the server runs with production settings.
 func (c Config) IsProduction() bool { return c.Env == "production" }
@@ -55,6 +69,16 @@ func Load(getenv func(string) string) (Config, error) {
 		MaxBodyBytes:       64 << 10,
 		ImportMaxBodyBytes: 2 << 20,
 		SentryDSN:          strings.TrimSpace(getenv("SENTRY_DSN")),
+		AppURL:             strings.TrimRight(orDefault(getenv("APP_URL"), "https://study-tracker-olive-nine.vercel.app"), "/"),
+		GoogleClientID:     strings.TrimSpace(getenv("GOOGLE_CLIENT_ID")),
+		SMTPHost:           strings.TrimSpace(getenv("SMTP_HOST")),
+		SMTPUser:           strings.TrimSpace(getenv("SMTP_USER")),
+		SMTPPass:           getenv("SMTP_PASS"),
+		SMTPFrom:           strings.TrimSpace(getenv("SMTP_FROM")),
+	}
+	cfg.SMTPPort = integer(getenv, "SMTP_PORT", 587, &errs)
+	if cfg.SMTPHost != "" && cfg.SMTPFrom == "" {
+		errs = append(errs, errors.New("SMTP_FROM is required when SMTP_HOST is set"))
 	}
 
 	if cfg.DatabaseURL == "" {

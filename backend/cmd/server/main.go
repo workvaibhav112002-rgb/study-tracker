@@ -17,6 +17,7 @@ import (
 	"study-tracker-backend/internal/auth"
 	"study-tracker-backend/internal/config"
 	"study-tracker-backend/internal/httpapi"
+	"study-tracker-backend/internal/mail"
 	"study-tracker-backend/internal/store/postgres"
 )
 
@@ -57,11 +58,31 @@ func main() {
 	cancel()
 	logger.Info("database ready")
 
+	var mailer mail.Mailer = mail.Nop{}
+	if cfg.EmailEnabled() {
+		mailer = mail.SMTP{Host: cfg.SMTPHost, Port: cfg.SMTPPort, User: cfg.SMTPUser, Pass: cfg.SMTPPass, From: cfg.SMTPFrom}
+		logger.Info("email enabled", "host", cfg.SMTPHost, "from", cfg.SMTPFrom)
+	} else {
+		logger.Info("email disabled: set SMTP_HOST, SMTP_USER, SMTP_PASS and SMTP_FROM to enable password reset and magic links")
+	}
+	var google auth.GoogleVerifier
+	if cfg.GoogleClientID != "" {
+		g, err := auth.NewGoogleVerifier(ctx, cfg.GoogleClientID)
+		if err != nil {
+			logger.Warn("google sign-in disabled", "err", err)
+		} else {
+			google = g
+			logger.Info("google sign-in enabled")
+		}
+	}
+
 	router := httpapi.NewRouter(httpapi.Deps{
 		Config: cfg,
 		Store:  postgres.New(pool),
 		Issuer: auth.NewIssuer(cfg.JWTSecret, cfg.JWTTTL),
 		Logger: logger,
+		Mailer: mailer,
+		Google: google,
 	})
 
 	srv := &http.Server{

@@ -12,6 +12,7 @@ import (
 
 	"study-tracker-backend/internal/auth"
 	"study-tracker-backend/internal/config"
+	"study-tracker-backend/internal/mail"
 	"study-tracker-backend/internal/store"
 )
 
@@ -21,18 +22,28 @@ type Deps struct {
 	Store  store.Store
 	Issuer *auth.Issuer
 	Logger *slog.Logger
+	// Mailer may be nil (treated as disabled).
+	Mailer mail.Mailer
+	// Google may be nil (Google sign-in disabled).
+	Google auth.GoogleVerifier
 }
 
 type api struct {
 	cfg    config.Config
 	store  store.Store
 	issuer *auth.Issuer
+	mailer mail.Mailer
+	google auth.GoogleVerifier
 }
 
 // NewRouter assembles middleware and routes. It is the single place that
 // knows the URL layout.
 func NewRouter(d Deps) http.Handler {
-	a := &api{cfg: d.Config, store: d.Store, issuer: d.Issuer}
+	mailer := d.Mailer
+	if mailer == nil {
+		mailer = mail.Nop{}
+	}
+	a := &api{cfg: d.Config, store: d.Store, issuer: d.Issuer, mailer: mailer, google: d.Google}
 
 	authn := &auth.Authenticator{
 		Issuer: d.Issuer,
@@ -81,6 +92,7 @@ func NewRouter(d Deps) http.Handler {
 
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/health", a.health)
+		r.With(body).Get("/config", a.config)
 
 		// Public calendar feed: the token is the credential.
 		r.With(body, limited(d.Config.CalendarRateLimit, d.Config.CalendarRateWindow)).
@@ -90,6 +102,11 @@ func NewRouter(d Deps) http.Handler {
 			r.Use(body, limited(d.Config.AuthRateLimit, d.Config.AuthRateWindow))
 			r.Post("/auth/register", a.register)
 			r.Post("/auth/login", a.login)
+			r.Post("/auth/forgot-password", a.forgotPassword)
+			r.Post("/auth/reset-password", a.resetPassword)
+			r.Post("/auth/magic-link", a.requestMagicLink)
+			r.Post("/auth/magic", a.magicSignIn)
+			r.Post("/auth/google", a.googleSignIn)
 		})
 
 		r.With(body, limited(d.Config.FeedbackRateLimit, d.Config.FeedbackRateWindow), authn.Optional).
