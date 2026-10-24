@@ -6,6 +6,7 @@ import { permission, requestPermission, supportsNotifications } from '../lib/not
 import { CalendarSyncSection } from './settings/CalendarSyncSection'
 import { ImportSection } from './settings/ImportSection'
 import { AccountSection } from './settings/AccountSection'
+import { AppearanceSection } from './settings/AppearanceSection'
 import { audioService } from '../services/audio'
 import { Modal } from './ui/Modal'
 import { Button } from './ui/Button'
@@ -33,14 +34,14 @@ const labels: Record<NumericKey, string> = {
 }
 
 const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void; label: string; hint?: string }> = ({ checked, onChange, label, hint }) => (
-  <label className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-3 transition-colors hover:bg-white/[0.05]">
+  <label className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-fg/[0.06] bg-fg/[0.03] px-4 py-3 transition-colors hover:bg-fg/[0.05]">
     <span>
       <span className="block text-[13px] font-medium text-ink-100">{label}</span>
       {hint && <span className="block text-[11px] text-ink-500">{hint}</span>}
     </span>
     <span className="relative inline-flex shrink-0 items-center">
       <input type="checkbox" className="peer sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-      <span className="h-6 w-11 rounded-full bg-white/[0.08] transition-colors duration-200 peer-checked:bg-brand-500 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400/70 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-surface-900" />
+      <span className="h-6 w-11 rounded-full bg-fg/[0.08] transition-colors duration-200 peer-checked:bg-brand-500 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400/70 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-surface-900" />
       <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ease-premium peer-checked:translate-x-5" />
     </span>
   </label>
@@ -160,7 +161,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
           </p>
         )}
 
-        <div className="flex items-center justify-end gap-2 border-t border-white/[0.06] pt-5">
+        <div className="flex items-center justify-end gap-2 border-t border-fg/[0.06] pt-5">
           <Button variant="ghost" onClick={onClose} disabled={saving}>
             Close
           </Button>
@@ -171,7 +172,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
       </form>
 
       {user && (
-        <div className="mt-6 space-y-6 border-t border-white/[0.06] pt-6">
+        <div className="mt-6 space-y-6 border-t border-fg/[0.06] pt-6">
+          <AppearanceSection />
           <CalendarSyncSection hasToken={Boolean(user.has_calendar_token)} onChanged={onUserChanged} />
           <ImportSection onImported={onDataChanged} />
           <AccountSection email={user.email} hasPassword={Boolean(user.has_password)} googleLinked={Boolean(user.google_linked)} onPasswordChanged={onPasswordChanged} onDeleted={onAccountDeleted} />

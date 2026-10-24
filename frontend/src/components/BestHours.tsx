@@ -5,8 +5,8 @@ import type { HourStat } from '../types'
 import { formatMinutes } from '../lib/time'
 import { ChartTooltip } from './ui/ChartTooltip'
 
-const GRID = 'rgba(255,255,255,0.06)'
-const AXIS = '#6b7388'
+const GRID = 'rgb(var(--fg) / 0.08)'
+const AXIS = 'rgb(var(--ink-500))'
 
 const hourLabel = (h: number) => `${h.toString().padStart(2, '0')}:00`
 
@@ -39,7 +39,7 @@ export const BestHours: React.FC<{ hours: HourStat[] }> = ({ hours }) => {
             <XAxis dataKey="hour" tickFormatter={(h: number) => (h % 3 === 0 ? `${h}h` : '')} interval={0} stroke="transparent" tick={{ fill: AXIS, fontSize: 11 }} tickLine={false} axisLine={{ stroke: GRID }} />
             <YAxis stroke="transparent" tick={{ fill: AXIS, fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} unit="m" />
             <Tooltip
-              cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+              cursor={{ fill: 'rgb(var(--fg) / 0.05)' }}
               content={({ active, payload }) => {
                 if (!active || !payload?.length) return null
                 const d = payload[0].payload as HourStat
@@ -48,7 +48,7 @@ export const BestHours: React.FC<{ hours: HourStat[] }> = ({ hours }) => {
             />
             <Bar dataKey="minutes" radius={[4, 4, 0, 0]} maxBarSize={24}>
               {hours.map((h) => (
-                <Cell key={h.hour} fill={top.includes(h.hour) ? '#34d399' : 'rgba(110,231,183,0.35)'} />
+                <Cell key={h.hour} fill={top.includes(h.hour) ? 'rgb(var(--brand-400))' : 'rgb(var(--brand-400) / 0.35)'} />
               ))}
             </Bar>
           </BarChart>

@@ -15,8 +15,8 @@ const variants: Record<Variant, string> = {
   primary:
     'bg-gradient-to-b from-brand-400 to-brand-600 text-surface-950 font-semibold shadow-glow hover:from-brand-300 hover:to-brand-500 hover:-translate-y-px active:translate-y-0',
   secondary:
-    'bg-white/[0.06] border border-white/[0.08] text-ink-100 font-medium shadow-inner-hi hover:bg-white/[0.10] hover:border-white/[0.14]',
-  ghost: 'text-ink-400 font-medium hover:text-ink-50 hover:bg-white/[0.06]',
+    'bg-fg/[0.06] border border-fg/[0.08] text-ink-100 font-medium shadow-inner-hi hover:bg-fg/[0.10] hover:border-fg/[0.14]',
+  ghost: 'text-ink-400 font-medium hover:text-ink-50 hover:bg-fg/[0.06]',
   danger: 'bg-gradient-to-b from-rose-500 to-rose-600 text-white font-semibold shadow-[0_12px_32px_-12px_rgb(244_63_94/0.6)] hover:from-rose-400 hover:to-rose-500',
 }
 

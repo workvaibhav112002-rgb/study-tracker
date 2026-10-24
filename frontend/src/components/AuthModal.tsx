@@ -91,9 +91,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, config, initialVie
   return (
     <Modal isOpen={isOpen} dismissible={Boolean(onClose) && !loading} onClose={onClose} align="center" title={copy.title} description={copy.description} icon={view === 'sent' ? <Inbox className="h-6 w-6 text-surface-950" aria-hidden="true" /> : <Mark />} iconClassName="bg-gradient-to-br from-brand-300 via-brand-500 to-brand-700 shadow-glow-lg">
       {(view === 'login' || view === 'register') && (
-        <div role="tablist" aria-label="Authentication mode" className="mb-6 flex rounded-xl border border-white/[0.06] bg-surface-950/60 p-1">
+        <div role="tablist" aria-label="Authentication mode" className="mb-6 flex rounded-xl border border-fg/[0.06] bg-surface-950/60 p-1">
           {(['login', 'register'] as const).map((m) => (
-            <button key={m} type="button" role="tab" aria-selected={view === m} onClick={() => go(m)} className={`focus-ring flex-1 rounded-lg py-2 text-[13px] font-medium transition-all duration-200 ease-premium ${view === m ? 'bg-white/[0.08] text-ink-50 shadow-inner-hi' : 'text-ink-400 hover:text-ink-100'}`}>
+            <button key={m} type="button" role="tab" aria-selected={view === m} onClick={() => go(m)} className={`focus-ring flex-1 rounded-lg py-2 text-[13px] font-medium transition-all duration-200 ease-premium ${view === m ? 'bg-fg/[0.08] text-ink-50 shadow-inner-hi' : 'text-ink-400 hover:text-ink-100'}`}>
               {m === 'login' ? 'Sign in' : 'Register'}
             </button>
           ))}
@@ -162,9 +162,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, config, initialVie
       {(view === 'login' || view === 'register') && (config.google_client_id || config.email_enabled) && (
         <div className="mt-5 space-y-3">
           <div className="flex items-center gap-3 text-[11px] uppercase tracking-[0.14em] text-ink-600" aria-hidden="true">
-            <span className="h-px flex-1 bg-white/[0.06]" />
+            <span className="h-px flex-1 bg-fg/[0.06]" />
             or
-            <span className="h-px flex-1 bg-white/[0.06]" />
+            <span className="h-px flex-1 bg-fg/[0.06]" />
           </div>
           <GoogleSignInButton clientId={config.google_client_id} disabled={loading} onCredential={(cred) => void run(() => onGoogle(cred), 'Google sign-in failed.')} />
           {config.email_enabled && (

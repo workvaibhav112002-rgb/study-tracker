@@ -49,7 +49,7 @@ export const AmbientControl: React.FC = () => {
           aria-pressed={kind === o.id}
           title={o.hint}
           onClick={() => pick(o.id)}
-          className={`focus-ring chip transition ${kind === o.id ? 'border-brand-500/30 bg-brand-500/15 text-brand-300' : 'border-white/[0.06] bg-white/[0.04] text-ink-400 hover:text-ink-100'}`}
+          className={`focus-ring chip transition ${kind === o.id ? 'border-brand-500/30 bg-brand-500/15 text-brand-300' : 'border-fg/[0.06] bg-fg/[0.04] text-ink-400 hover:text-ink-100'}`}
         >
           {kind === o.id ? <Volume2 className="h-3.5 w-3.5" aria-hidden="true" /> : <VolumeX className="h-3.5 w-3.5 opacity-50" aria-hidden="true" />}
           {o.label}

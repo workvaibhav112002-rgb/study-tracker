@@ -50,12 +50,12 @@ export const HeatmapYear: React.FC<Props> = ({ days, end }) => {
           onMouseLeave={() => setHover(null)}
         >
           {model.monthLabels.map((m) => (
-            <text key={`${m.col}-${m.label}`} x={LEFT + m.col * STEP} y={11} className="fill-ink-500" fontSize={10}>
+            <text key={`${m.col}-${m.label}`} x={LEFT + m.col * STEP} y={11} fill="rgb(var(--ink-500))" fontSize={10}>
               {m.label}
             </text>
           ))}
           {Object.entries(DAY_LABELS).map(([row, label]) => (
-            <text key={row} x={0} y={TOP + Number(row) * STEP + CELL - 2} className="fill-ink-600" fontSize={9}>
+            <text key={row} x={0} y={TOP + Number(row) * STEP + CELL - 2} fill="rgb(var(--ink-600))" fontSize={9}>
               {label}
             </text>
           ))}

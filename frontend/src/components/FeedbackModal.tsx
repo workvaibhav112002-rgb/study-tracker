@@ -60,7 +60,7 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, u
       title={submitted ? 'Thank you' : 'Share feedback'}
       description={submitted ? 'Your note went straight to the creator.' : 'Ideas, bugs or just a hello.'}
       icon={submitted ? <CheckCircle2 className="h-5 w-5" /> : <MessageSquarePlus className="h-5 w-5" />}
-      iconClassName={submitted ? 'bg-brand-500/10 text-brand-400 border-brand-500/20' : 'bg-white/[0.06] text-brand-400 border-white/[0.08]'}
+      iconClassName={submitted ? 'bg-brand-500/10 text-brand-400 border-brand-500/20' : 'bg-fg/[0.06] text-brand-400 border-fg/[0.08]'}
     >
       {submitted ? (
         <div className="flex justify-end">
@@ -88,7 +88,7 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, u
                       aria-checked={selected}
                       onClick={() => setType(t.id)}
                       className={`focus-ring flex items-center gap-2 rounded-xl border px-3 py-2.5 text-[13px] font-medium transition-all duration-200 ease-premium ${
-                        selected ? 'border-brand-500/40 bg-brand-500/10 text-ink-50 shadow-inner-hi' : 'border-white/[0.06] bg-white/[0.03] text-ink-400 hover:bg-white/[0.06] hover:text-ink-100'
+                        selected ? 'border-brand-500/40 bg-brand-500/10 text-ink-50 shadow-inner-hi' : 'border-fg/[0.06] bg-fg/[0.03] text-ink-400 hover:bg-fg/[0.06] hover:text-ink-100'
                       }`}
                     >
                       <Icon className={`h-4 w-4 ${t.color}`} aria-hidden="true" />

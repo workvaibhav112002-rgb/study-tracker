@@ -33,7 +33,7 @@ export const Modal: React.FC<ModalProps> = ({
   title,
   description,
   icon,
-  iconClassName = 'bg-white/[0.06] text-brand-400 border-white/[0.08]',
+  iconClassName = 'bg-fg/[0.06] text-brand-400 border-fg/[0.08]',
   align = 'left',
   dismissible = true,
   size = 'md',
@@ -103,7 +103,7 @@ export const Modal: React.FC<ModalProps> = ({
         aria-labelledby={titleId}
         aria-describedby={description ? descId : undefined}
         tabIndex={-1}
-        className={`relative w-full ${WIDTHS[size]} ${RADII[rounded]} border border-white/[0.08] bg-surface-900/95 p-6 sm:p-7 shadow-modal outline-none max-h-[calc(100vh-2rem)] overflow-y-auto animate-scale-in`}
+        className={`relative w-full ${WIDTHS[size]} ${RADII[rounded]} border border-fg/[0.08] bg-surface-900/95 p-6 sm:p-7 shadow-modal outline-none max-h-[calc(100vh-2rem)] overflow-y-auto animate-scale-in`}
       >
         <span aria-hidden="true" className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-brand-400/60 to-transparent" />
 
@@ -112,7 +112,7 @@ export const Modal: React.FC<ModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Close dialog"
-            className="focus-ring absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.04] text-ink-400 transition-colors hover:bg-white/[0.08] hover:text-ink-50"
+            className="focus-ring absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full border border-fg/[0.06] bg-fg/[0.04] text-ink-400 transition-colors hover:bg-fg/[0.08] hover:text-ink-50"
           >
             <X className="h-4 w-4" />
           </button>

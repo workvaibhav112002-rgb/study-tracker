@@ -24,7 +24,7 @@ export const GoalRing: React.FC<GoalRingProps> = ({ today, target, color = '#34d
       style={{ width: size, height: size }}
     >
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90" aria-hidden="true">
-        <circle cx={size / 2} cy={size / 2} r={radius} className="stroke-white/[0.06]" strokeWidth={stroke} fill="transparent" />
+        <circle cx={size / 2} cy={size / 2} r={radius} className="stroke-fg/[0.06]" strokeWidth={stroke} fill="transparent" />
         <circle
           cx={size / 2}
           cy={size / 2}

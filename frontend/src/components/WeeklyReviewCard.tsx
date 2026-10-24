@@ -30,7 +30,7 @@ export const WeeklyReviewCard: React.FC<Props> = ({ review: r }) => {
             {formatMinutes(r.minutes)}
           </span>
           {r.delta_percent !== null && (
-            <span className="chip border-white/[0.06] bg-white/[0.04] text-ink-300">
+            <span className="chip border-fg/[0.06] bg-fg/[0.04] text-ink-300">
               <Delta className="h-3.5 w-3.5" aria-hidden="true" />
               {r.delta_percent >= 0 ? '+' : ''}
               {Math.round(r.delta_percent)}% vs prior week
@@ -54,7 +54,7 @@ export const WeeklyReviewCard: React.FC<Props> = ({ review: r }) => {
               <div key={d.date} className="flex flex-1 flex-col items-center gap-1.5">
                 <div className="flex h-16 w-full items-end">
                   <div
-                    className={`w-full rounded-t-[3px] ${d.minutes > 0 ? 'bg-gradient-to-t from-brand-600 to-brand-300' : 'bg-white/[0.05]'}`}
+                    className={`w-full rounded-t-[3px] ${d.minutes > 0 ? 'bg-gradient-to-t from-brand-600 to-brand-300' : 'bg-fg/[0.05]'}`}
                     style={{ height: `${Math.max(d.minutes > 0 ? 8 : 3, (d.minutes / peak) * 100)}%` }}
                     title={`${dayLabel(d.date)}: ${formatMinutes(d.minutes)}`}
                   />
@@ -64,15 +64,15 @@ export const WeeklyReviewCard: React.FC<Props> = ({ review: r }) => {
             ))}
           </div>
           <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-2">
+            <div className="rounded-xl border border-fg/[0.06] bg-fg/[0.03] p-2">
               <dt className="eyebrow flex items-center justify-center gap-1"><Flame className="h-3 w-3 text-orange-400" aria-hidden="true" />Streak</dt>
               <dd className="mt-1 font-mono text-sm tabular-nums text-ink-50">{r.streak_days}d</dd>
             </div>
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-2">
+            <div className="rounded-xl border border-fg/[0.06] bg-fg/[0.03] p-2">
               <dt className="eyebrow flex items-center justify-center gap-1"><Star className="h-3 w-3 text-accent-amber" aria-hidden="true" />Focus</dt>
               <dd className="mt-1 font-mono text-sm tabular-nums text-ink-50">{r.avg_rating ? r.avg_rating.toFixed(1) : '—'}</dd>
             </div>
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-2">
+            <div className="rounded-xl border border-fg/[0.06] bg-fg/[0.03] p-2">
               <dt className="eyebrow flex items-center justify-center gap-1"><Zap className="h-3 w-3 text-accent-amber" aria-hidden="true" />Interrupt</dt>
               <dd className="mt-1 font-mono text-sm tabular-nums text-ink-50">{r.sessions ? r.avg_interruptions.toFixed(1) : '—'}</dd>
             </div>
