@@ -52,7 +52,7 @@ func TestAuthFlow(t *testing.T) {
 
 	res, body = s.do(t, "GET", "/api/auth/me", token, nil)
 	wantStatus(t, res.StatusCode, 200, body)
-	if !strings.Contains(string(body), `"alice@example.com"`) || strings.Contains(string(body), "password") {
+	if !strings.Contains(string(body), `"alice@example.com"`) || strings.Contains(string(body), "password_hash") || strings.Contains(string(body), "$2a$") {
 		t.Errorf("me body: %s", body)
 	}
 
@@ -399,7 +399,7 @@ func TestExportAndFeedback(t *testing.T) {
 	}
 	var exp store.Export
 	decode(t, body, &exp)
-	if len(exp.Projects) != 4 || len(exp.Sessions) != 1 || exp.User.Email != "exp@example.com" || strings.Contains(string(body), "password") {
+	if len(exp.Projects) != 4 || len(exp.Sessions) != 1 || exp.User.Email != "exp@example.com" || strings.Contains(string(body), "password_hash") || strings.Contains(string(body), "$2a$") {
 		t.Errorf("export: %d projects %d sessions", len(exp.Projects), len(exp.Sessions))
 	}
 
@@ -460,7 +460,7 @@ func TestMigrateIsIdempotent(t *testing.T) {
 		t.Fatal(err)
 	}
 	var n int
-	if err := testPool.QueryRow(ctx, `SELECT count(*) FROM schema_migrations`).Scan(&n); err != nil || n != 2 {
+	if err := testPool.QueryRow(ctx, `SELECT count(*) FROM schema_migrations`).Scan(&n); err != nil || n != 3 {
 		t.Fatalf("schema_migrations rows=%d err=%v", n, err)
 	}
 }

@@ -10,7 +10,9 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -97,7 +99,7 @@ func resetDB(t *testing.T) {
 func testConfig() config.Config {
 	cfg, err := config.Load(func(k string) string {
 		return map[string]string{
-			"DATABASE_URL": "unused", "JWT_SECRET": strings.Repeat("t", 32),
+			"DATABASE_URL": "unused", "JWT_SECRET": strings.Repeat("t", 32), "APP_URL": "https://app.test", "GOOGLE_CLIENT_ID": "test-client",
 			"CORS_ORIGINS":    "http://localhost:5173,https://*.vercel.app",
 			"AUTH_RATE_LIMIT": "100000", "FEEDBACK_RATE_LIMIT": "100000", "CALENDAR_RATE_LIMIT": "100000",
 		}[k]
@@ -111,6 +113,61 @@ func testConfig() config.Config {
 type testServer struct {
 	*httptest.Server
 	issuer *auth.Issuer
+	mail   *fakeMailer
+	google *fakeGoogle
+}
+
+// fakeMailer records outgoing mail so tests can pull links out of it.
+type fakeMailer struct {
+	mu   sync.Mutex
+	sent []sentMail
+	on   bool
+}
+type sentMail struct{ To, Subject, Body string }
+
+func (f *fakeMailer) Enabled() bool { return f.on }
+func (f *fakeMailer) Send(_ context.Context, to, subject, body string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.sent = append(f.sent, sentMail{to, subject, body})
+	return nil
+}
+func (f *fakeMailer) wait(t *testing.T, n int) []sentMail {
+	t.Helper()
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		f.mu.Lock()
+		if len(f.sent) >= n {
+			out := append([]sentMail(nil), f.sent...)
+			f.mu.Unlock()
+			return out
+		}
+		f.mu.Unlock()
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatalf("expected %d mails", n)
+	return nil
+}
+
+// fakeGoogle maps credential strings to claims.
+type fakeGoogle struct{ tokens map[string]auth.GoogleClaims }
+
+func (f *fakeGoogle) Verify(_ context.Context, tok string) (auth.GoogleClaims, error) {
+	if c, ok := f.tokens[tok]; ok {
+		return c, nil
+	}
+	return auth.GoogleClaims{}, auth.ErrGoogleToken
+}
+
+var linkRe = regexp.MustCompile(`https?://\S+token=([A-Za-z0-9_-]+)`)
+
+func tokenFrom(t *testing.T, body string) string {
+	t.Helper()
+	m := linkRe.FindStringSubmatch(body)
+	if m == nil {
+		t.Fatalf("no token link in mail body: %s", body)
+	}
+	return m[1]
 }
 
 func newServer(t *testing.T, mod func(*config.Config)) *testServer {
@@ -121,13 +178,16 @@ func newServer(t *testing.T, mod func(*config.Config)) *testServer {
 		mod(&cfg)
 	}
 	issuer := auth.NewIssuer(cfg.JWTSecret, cfg.JWTTTL)
+	mailer := &fakeMailer{on: true}
+	google := &fakeGoogle{tokens: map[string]auth.GoogleClaims{}}
 	h := httpapi.NewRouter(httpapi.Deps{
 		Config: cfg, Store: postgres.New(testPool), Issuer: issuer,
 		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Mailer: mailer, Google: google,
 	})
 	srv := httptest.NewServer(h)
 	t.Cleanup(srv.Close)
-	return &testServer{Server: srv, issuer: issuer}
+	return &testServer{Server: srv, issuer: issuer, mail: mailer, google: google}
 }
 
 func (s *testServer) do(t *testing.T, method, path, token string, body any) (*http.Response, []byte) {

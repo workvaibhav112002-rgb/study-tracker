@@ -136,7 +136,9 @@ func (a *api) changePassword(w http.ResponseWriter, r *http.Request) {
 		handleErr(w, r, err)
 		return
 	}
-	if !auth.CheckPassword(user.PasswordHash, req.CurrentPassword) {
+	// Accounts created through Google or a magic link have no password yet;
+	// an authenticated session is enough to set the first one.
+	if user.HasPassword && !auth.CheckPassword(user.PasswordHash, req.CurrentPassword) {
 		writeError(w, r, http.StatusUnauthorized, "invalid credentials")
 		return
 	}
@@ -144,7 +146,7 @@ func (a *api) changePassword(w http.ResponseWriter, r *http.Request) {
 		handleErr(w, r, err)
 		return
 	}
-	if req.NewPassword == req.CurrentPassword {
+	if user.HasPassword && req.NewPassword == req.CurrentPassword {
 		handleErr(w, r, invalid("new password must differ from the current one"))
 		return
 	}

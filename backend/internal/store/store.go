@@ -18,15 +18,21 @@ var (
 
 // User is an account. PasswordHash and TokenVersion are never serialised.
 type User struct {
-	ID               int64     `json:"id"`
-	Email            string    `json:"email"`
-	PasswordHash     string    `json:"-"`
-	Name             string    `json:"name"`
-	CreatedAt        time.Time `json:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at"`
-	TokenVersion     int       `json:"-"`
-	HasCalendarToken bool      `json:"has_calendar_token"`
+	ID               int64      `json:"id"`
+	Email            string     `json:"email"`
+	PasswordHash     string     `json:"-"`
+	Name             string     `json:"name"`
+	CreatedAt        time.Time  `json:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at"`
+	TokenVersion     int        `json:"-"`
+	HasCalendarToken bool       `json:"has_calendar_token"`
+	HasPassword      bool       `json:"has_password"`
+	GoogleLinked     bool       `json:"google_linked"`
+	EmailVerifiedAt  *time.Time `json:"email_verified_at"`
 }
+
+// AuthTokenKinds is the closed set of single-use token purposes.
+var AuthTokenKinds = []string{"reset", "magic"}
 
 // Project is a study subject owned by one user.
 type Project struct {
@@ -247,8 +253,19 @@ type ImportResult struct {
 type Store interface {
 	Ping(ctx context.Context) error
 
+	// CreateUser creates an account; passwordHash may be empty for social-only
+	// accounts, and googleSub may be empty.
 	CreateUser(ctx context.Context, email, passwordHash, name string) (User, error)
+	CreateGoogleUser(ctx context.Context, email, name, googleSub string, verified bool) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
+	GetUserByGoogleSub(ctx context.Context, sub string) (User, error)
+	LinkGoogle(ctx context.Context, userID int64, sub string, verified bool) error
+	MarkEmailVerified(ctx context.Context, userID int64) error
+
+	// CreateAuthToken stores a single-use token hash for a user.
+	CreateAuthToken(ctx context.Context, userID int64, kind, tokenHash string, expiresAt time.Time) error
+	// ConsumeAuthToken atomically marks a live token used and returns its user.
+	ConsumeAuthToken(ctx context.Context, kind, tokenHash string) (int64, error)
 	GetUserByID(ctx context.Context, id int64) (User, error)
 	UserExists(ctx context.Context, id int64) (bool, error)
 	// AuthState returns whether the user exists and their current token version.
