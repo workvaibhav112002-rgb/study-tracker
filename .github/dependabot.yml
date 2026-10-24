@@ -14,6 +14,11 @@ updates:
     groups:
       npm-deps:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      # Majors are reviewed by hand; the lint toolchain lags TypeScript majors.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
