@@ -28,6 +28,8 @@ Go API on Postgres, React frontend. Runs entirely on free tiers.
   and a timer that follows you **across devices**.
 - **Goal streak** with one **freeze** per week to cover a missed day, **milestones** (badges) for sessions,
   hours, streaks, cards and notes, and opt-in **push reminders** at the hour you choose, in your timezone.
+- **Floating timer** (picture-in-picture) that stays on top of other windows, **keyboard shortcuts** for every
+  tab and timer action (press `?`), and **CSV export / import** of sessions, including files from other apps.
 - **Export / import** your data as JSON. Change password and delete account. **Feedback** widget with rate limiting.
 - Installable **PWA** with offline shell. Accessible dialogs (focus trap, Escape, ARIA), toasts for every error,
   cold-start banner for the free tier. Optional Sentry error reporting on both ends.
@@ -82,6 +84,7 @@ All routes are under `/api`. Authenticated routes need `Authorization: Bearer <t
 | GET    | /settings             | yes  |                                                           |
 | POST   | /settings             | yes  | validated ranges                                          |
 | GET    | /export               | yes  | JSON download of everything you own                       |
+| GET    | /export.csv           | yes  | sessions as CSV (`?tz=`), re-importable                   |
 | POST   | /import               | yes  | restore an export; upserts projects, skips duplicate sessions (2 MB) |
 | GET    | /tasks                | yes  | `?project_id=&done=`                                      |
 | POST   | /tasks                | yes  | `{project_id,title,estimate_pomodoros}`                   |

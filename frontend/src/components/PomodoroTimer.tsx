@@ -1,5 +1,5 @@
 import React, { useId } from 'react'
-import { Play, Pause, RotateCcw, SkipForward, Plus, Minus, Coffee, Sparkles, Moon, FolderPlus, ChevronDown } from 'lucide-react'
+import { Play, Pause, RotateCcw, SkipForward, Plus, Minus, Coffee, Sparkles, Moon, FolderPlus, ChevronDown, PictureInPicture2 } from 'lucide-react'
 import type { GoalStat, Project, Settings, TimerMode } from '../types'
 import { GoalRing } from './ui/GoalRing'
 import { daysUntil } from '../lib/plan'
@@ -7,6 +7,7 @@ import type { useTimer } from '../hooks/useTimer'
 import { longBreakInterval } from '../lib/timer'
 import { audioService } from '../services/audio'
 import { AmbientControl } from './AmbientControl'
+import { usePictureInPicture } from '../hooks/usePictureInPicture'
 
 interface PomodoroTimerProps {
   timer: ReturnType<typeof useTimer>
@@ -85,6 +86,8 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
   const interval = longBreakInterval(settings)
   const activeProject = projects.find((p) => p.id === selectedProjectId)
   const needsProject = state.mode === 'work' && projects.length === 0
+
+  const pip = usePictureInPicture({ time: formatted, label: mode.label, progress, running: isRunning, accent: mode.to })
 
   const withTick = (fn: () => void) => () => {
     if (settings.sound_enabled) audioService.playTick()
@@ -267,6 +270,19 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
         >
           <SkipForward className="h-5 w-5" />
         </button>
+
+        {pip.supported && (
+          <button
+            type="button"
+            onClick={() => void pip.toggle()}
+            aria-pressed={pip.active}
+            aria-label={pip.active ? 'Close floating timer' : 'Open floating timer'}
+            title="Floating timer (picture-in-picture)"
+            className={`focus-ring glass flex h-12 w-12 items-center justify-center rounded-full transition-all duration-200 ease-premium hover:scale-105 active:scale-95 ${pip.active ? 'text-brand-300' : 'text-ink-400 hover:text-ink-50'}`}
+          >
+            <PictureInPicture2 className="h-5 w-5" />
+          </button>
+        )}
       </div>
 
       <p className="mt-5 hidden items-center gap-3 text-[11px] text-ink-600 sm:flex" aria-hidden="true">

@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react'
-import { Download, Upload } from 'lucide-react'
+import { Download, FileSpreadsheet, Upload } from 'lucide-react'
 import { api, errorMessage } from '../../api/client'
 import { validateImport, type ImportCheck } from '../../lib/importValidate'
+import { sessionsFromCsv } from '../../lib/csv'
 import { Button } from '../ui/Button'
 import { useToast } from '../ui/Toast'
 
@@ -13,6 +14,8 @@ export const ImportSection: React.FC<{ onImported: () => Promise<void> | void }>
   const [check, setCheck] = useState<ImportCheck | null>(null)
   const [busy, setBusy] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [exportingCsv, setExportingCsv] = useState(false)
+  const [skipped, setSkipped] = useState(0)
 
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -22,8 +25,16 @@ export const ImportSection: React.FC<{ onImported: () => Promise<void> | void }>
       setCheck({ ok: false, error: 'The file is larger than 5 MB.' })
       return
     }
+    setSkipped(0)
+    const text = await file.text()
+    if (/\.csv$/i.test(file.name) || file.type === 'text/csv') {
+      const r = sessionsFromCsv(text)
+      setSkipped(r.counts?.skipped ?? 0)
+      setCheck(r.ok && r.payload && r.counts ? { ok: true, payload: r.payload, counts: { projects: r.counts.projects, sessions: r.counts.sessions } } : { ok: false, error: r.error })
+      return
+    }
     try {
-      setCheck(validateImport(JSON.parse(await file.text())))
+      setCheck(validateImport(JSON.parse(text)))
     } catch {
       setCheck({ ok: false, error: 'The file is not valid JSON.' })
     }
@@ -57,22 +68,37 @@ export const ImportSection: React.FC<{ onImported: () => Promise<void> | void }>
     }
   }
 
+  const exportCsv = async () => {
+    setExportingCsv(true)
+    try {
+      await api.exportSessionsCsv()
+      toast.success('CSV downloaded.')
+    } catch (err) {
+      toast.error(errorMessage(err))
+    } finally {
+      setExportingCsv(false)
+    }
+  }
+
   return (
     <section aria-labelledby="data-section" className="space-y-3">
       <div>
         <h3 id="data-section" className="eyebrow">
           Your data
         </h3>
-        <p className="mt-1 text-xs text-ink-500">Download everything as JSON, or restore from a previous backup. Duplicates are skipped.</p>
+        <p className="mt-1 text-xs text-ink-500">Download everything as JSON or your sessions as CSV. Restore a backup, or import a CSV with project, start_time and duration_minutes columns. Duplicates are skipped.</p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" variant="secondary" onClick={exportNow} loading={exporting} icon={<Download className="h-3.5 w-3.5 text-brand-400" aria-hidden="true" />}>
           Export backup
         </Button>
+        <Button size="sm" variant="secondary" onClick={exportCsv} loading={exportingCsv} icon={<FileSpreadsheet className="h-3.5 w-3.5 text-brand-400" aria-hidden="true" />}>
+          Sessions CSV
+        </Button>
         <label className="focus-ring inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-fg/[0.08] bg-fg/[0.06] px-3 text-xs font-medium text-ink-100 shadow-inner-hi transition hover:bg-fg/[0.10]">
           <Upload className="h-3.5 w-3.5 text-brand-400" aria-hidden="true" />
-          Choose backup file
-          <input ref={fileRef} type="file" accept="application/json,.json" onChange={onFile} className="sr-only" />
+          Choose file
+          <input ref={fileRef} type="file" accept="application/json,.json,text/csv,.csv" onChange={onFile} className="sr-only" />
         </label>
       </div>
       {check && (
@@ -80,7 +106,7 @@ export const ImportSection: React.FC<{ onImported: () => Promise<void> | void }>
           {check.ok && check.counts ? (
             <div className="flex items-center justify-between gap-3">
               <span>
-                Found <strong>{check.counts.projects}</strong> projects and <strong>{check.counts.sessions}</strong> sessions.
+                Found <strong>{check.counts.projects}</strong> projects and <strong>{check.counts.sessions}</strong> sessions.{skipped > 0 ? ` ${skipped} rows skipped.` : ''}
               </span>
               <Button size="sm" loading={busy} onClick={run}>
                 Import

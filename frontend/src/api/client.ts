@@ -325,29 +325,33 @@ export const api = {
     request<{ status: string; message: string; id: number }>('/feedback', { method: 'POST', body: data }),
 
   // Export: streams the JSON backup to a download.
-  exportBackup: async () => {
-    const headers: Record<string, string> = {}
-    const token = tokenStorage.get()
-    if (token) headers.Authorization = `Bearer ${token}`
-    let res: Response
-    try {
-      res = await fetch(`${BASE_URL}/export`, { headers })
-    } catch {
-      throw new NetworkError()
-    }
-    if (res.status === 401) unauthorizedEvents.emit()
-    if (!res.ok) {
-      const { message, requestId } = await parseError(res)
-      throw new ApiError(res.status, message, requestId)
-    }
-    const blob = await res.blob()
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `study_tracker_backup_${new Date().toISOString().slice(0, 10)}.json`
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(url)
-  },
+  exportBackup: () => download('/export', `study_tracker_backup_${new Date().toISOString().slice(0, 10)}.json`),
+  exportSessionsCsv: () => download(`/export.csv?tz=${tz()}`, `study_tracker_sessions_${new Date().toISOString().slice(0, 10)}.csv`),
+}
+
+/** Fetches an authenticated file and hands it to the browser as a download. */
+async function download(path: string, filename: string): Promise<void> {
+  const headers: Record<string, string> = {}
+  const token = tokenStorage.get()
+  if (token) headers.Authorization = `Bearer ${token}`
+  let res: Response
+  try {
+    res = await fetch(`${BASE_URL}${path}`, { headers })
+  } catch {
+    throw new NetworkError()
+  }
+  if (res.status === 401) unauthorizedEvents.emit()
+  if (!res.ok) {
+    const { message, requestId } = await parseError(res)
+    throw new ApiError(res.status, message, requestId)
+  }
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
 }

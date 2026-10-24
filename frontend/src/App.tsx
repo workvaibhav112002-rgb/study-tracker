@@ -1,6 +1,7 @@
 import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import { MessageSquareHeart, Sparkles, X, Minimize2 } from 'lucide-react'
 import { CommandPalette } from './components/CommandPalette'
+import { ShortcutsModal } from './components/ShortcutsModal'
 import { useZenMode } from './hooks/useZenMode'
 import type { Command } from './lib/commands'
 import type { TimerMode } from './types'
@@ -42,6 +43,8 @@ import { errorMessage } from './api/client'
 import { audioService } from './services/audio'
 
 // Recharts is heavy; load it only when the analytics tab is opened.
+const TAB_ORDER: Tab[] = ['timer', 'projects', 'cards', 'notes', 'history', 'analytics']
+
 const AnalyticsDashboard = lazy(() =>
   import('./components/AnalyticsDashboard').then((m) => ({ default: m.AnalyticsDashboard })),
 )
@@ -93,6 +96,7 @@ const AppShell: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
   const [isManualOpen, setIsManualOpen] = useState(false)
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false)
   const [createProjectSignal, setCreateProjectSignal] = useState(0)
   const [completed, setCompleted] = useState<TimerFinish | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -199,16 +203,47 @@ const AppShell: React.FC = () => {
       const target = e.target as HTMLElement | null
       if (target && (INTERACTIVE.has(target.tagName) || target.isContentEditable)) return
       if (document.querySelector('[role="dialog"]')) return
+      const key = e.key
+      const tabIndex = ['1', '2', '3', '4', '5', '6'].indexOf(key)
+      if (tabIndex >= 0) {
+        e.preventDefault()
+        setActiveTab(TAB_ORDER[tabIndex])
+        return
+      }
+      if (key === '?') {
+        e.preventDefault()
+        setIsShortcutsOpen(true)
+        return
+      }
+      if (key === 'n' || key === 'N') {
+        e.preventDefault()
+        setIsManualOpen(true)
+        return
+      }
+      if (key === ',') {
+        e.preventDefault()
+        setIsSettingsOpen(true)
+        return
+      }
       if (activeTab !== 'timer') return
       if (e.code === 'Space') {
         e.preventDefault()
         if (canStart) timer.toggle()
-      } else if (e.key === 'r' || e.key === 'R') {
+      } else if (key === 'r' || key === 'R') {
         e.preventDefault()
         timer.reset()
-      } else if (e.key === 'f' || e.key === 'F') {
+      } else if (key === 's' || key === 'S') {
+        e.preventDefault()
+        timer.skip()
+      } else if (key === 'f' || key === 'F') {
         e.preventDefault()
         toggleZen()
+      } else if (key === '+' || key === '=') {
+        e.preventDefault()
+        timer.adjust(300)
+      } else if (key === '-' || key === '_') {
+        e.preventDefault()
+        timer.adjust(-300)
       }
     }
     window.addEventListener('keydown', onKey)
@@ -229,21 +264,25 @@ const AppShell: React.FC = () => {
   const commands: Command[] = [
     { id: 'start', label: timer.state.status === 'running' ? 'Pause timer' : timer.state.status === 'paused' ? 'Resume timer' : 'Start timer', hint: 'Space', group: 'Timer', run: () => { setActiveTab('timer'); if (canStart) timer.toggle() } },
     { id: 'reset', label: 'Reset timer', hint: 'R', group: 'Timer', run: timer.reset },
-    { id: 'skip', label: 'Skip to next interval', group: 'Timer', run: timer.skip },
+    { id: 'skip', label: 'Skip to next interval', hint: 'S', group: 'Timer', run: timer.skip },
     ...(['work', 'short_break', 'long_break'] as TimerMode[]).map((m) => ({
       id: `mode-${m}`, label: m === 'work' ? 'Switch to focus' : m === 'short_break' ? 'Switch to short break' : 'Switch to long break', group: 'Timer' as const, run: () => { setActiveTab('timer'); timer.switchMode(m) },
     })),
     { id: 'zen', label: zen ? 'Exit zen mode' : 'Enter zen mode', hint: 'F', keywords: 'fullscreen focus distraction', group: 'Timer', run: () => { setActiveTab('timer'); toggleZen() } },
-    { id: 'nav-timer', label: 'Go to focus', group: 'Navigate', run: () => setActiveTab('timer') },
-    { id: 'nav-projects', label: 'Go to projects', group: 'Navigate', run: () => setActiveTab('projects') },
-    { id: 'nav-history', label: 'Go to history', group: 'Navigate', run: () => setActiveTab('history') },
-    { id: 'nav-analytics', label: 'Go to analytics', keywords: 'stats review heatmap', group: 'Navigate', run: () => setActiveTab('analytics') },
+    { id: 'nav-timer', label: 'Go to focus', hint: '1', group: 'Navigate', run: () => setActiveTab('timer') },
+    { id: 'nav-projects', label: 'Go to projects', hint: '2', group: 'Navigate', run: () => setActiveTab('projects') },
+    { id: 'nav-cards', label: 'Go to cards', hint: '3', keywords: 'flashcards', group: 'Navigate', run: () => setActiveTab('cards') },
+    { id: 'nav-notes', label: 'Go to notes', hint: '4', group: 'Navigate', run: () => setActiveTab('notes') },
+    { id: 'nav-history', label: 'Go to history', hint: '5', group: 'Navigate', run: () => setActiveTab('history') },
+    { id: 'nav-analytics', label: 'Go to analytics', hint: '6', keywords: 'stats review heatmap', group: 'Navigate', run: () => setActiveTab('analytics') },
     ...data.projects.map((p) => ({ id: `project-${p.id}`, label: `Focus on ${p.name}`, keywords: 'project select', group: 'Projects' as const, run: () => { data.setSelectedProjectId(p.id); setActiveTab('timer') } })),
     { id: 'new-project', label: 'New project', group: 'Projects', run: requestCreateProject },
     { id: 'review', label: cardState.stats.due > 0 ? `Review ${cardState.stats.due} due cards` : 'Open flashcards', keywords: 'flashcards srs study', group: 'Actions', run: () => { setActiveTab('cards'); setReviewSignal((n) => n + 1) } },
     { id: 'new-note', label: 'New note', keywords: 'write markdown', group: 'Actions', run: () => { setActiveTab('notes'); setNewNoteSignal((n) => n + 1) } },
-    { id: 'log', label: 'Log a past session', keywords: 'manual entry', group: 'Actions', run: () => setIsManualOpen(true) },
-    { id: 'settings', label: 'Open settings', keywords: 'preferences calendar import account', group: 'Actions', run: () => setIsSettingsOpen(true) },
+    { id: 'log', label: 'Log a past session', hint: 'N', keywords: 'manual entry', group: 'Actions', run: () => setIsManualOpen(true) },
+    { id: 'settings', label: 'Open settings', hint: ',', keywords: 'preferences calendar import account', group: 'Actions', run: () => setIsSettingsOpen(true) },
+    { id: 'shortcuts', label: 'Keyboard shortcuts', hint: '?', keywords: 'help keys', group: 'Actions', run: () => setIsShortcutsOpen(true) },
+    { id: 'export-csv', label: 'Export sessions as CSV', keywords: 'spreadsheet download excel', group: 'Actions', run: () => void run(() => api.exportSessionsCsv(), 'CSV downloaded.') },
     { id: 'theme', label: prefs.theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme', keywords: 'appearance mode', group: 'Actions', run: () => setPrefs({ theme: prefs.theme === 'light' ? 'dark' : 'light' }) },
     { id: 'feedback', label: 'Send feedback', group: 'Actions', run: () => setIsFeedbackOpen(true) },
     { id: 'logout', label: 'Sign out', group: 'Actions', run: auth.logout },
@@ -522,6 +561,7 @@ const AppShell: React.FC = () => {
       )}
 
       <CommandPalette isOpen={paletteOpen} onClose={() => setPaletteOpen(false)} commands={commands} />
+      <ShortcutsModal isOpen={isShortcutsOpen} onClose={() => setIsShortcutsOpen(false)} />
 
       {!zen && (
       <button
