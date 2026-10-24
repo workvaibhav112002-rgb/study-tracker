@@ -20,3 +20,17 @@ services:
         value: https://*.vercel.app,http://localhost:5173
       - key: SENTRY_DSN       # optional; leave empty to disable error reporting
         sync: false
+      - key: APP_URL          # frontend origin for emailed links
+        value: https://study-tracker-olive-nine.vercel.app
+      - key: GOOGLE_CLIENT_ID # optional; enables "Continue with Google"
+        sync: false
+      - key: SMTP_HOST        # optional; enables password reset + magic links
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
