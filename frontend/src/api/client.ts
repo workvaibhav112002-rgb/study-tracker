@@ -15,7 +15,9 @@ import type {
   Settings,
   Task,
   TaskInput,
+  TimerSnapshot,
   User,
+  WeeklyReview,
 } from '../types'
 import { browserTimeZone } from '../lib/time'
 import { captureException } from '../lib/monitoring'
@@ -253,6 +255,12 @@ export const api = {
   getGoals: () => request<GoalsStats>(`/stats/goals?tz=${tz()}`),
   getHeatmap: (days = 365) => request<DailyStat[]>(`/stats/heatmap?tz=${tz()}&days=${days}`),
   getHours: () => request<HourStat[]>(`/stats/hours?tz=${tz()}`),
+  getWeeklyReview: () => request<WeeklyReview>(`/stats/weekly-review?tz=${tz()}`),
+
+  // Cross-device timer snapshot
+  getTimer: <T>() => request<TimerSnapshot<T>>('/timer'),
+  putTimer: <T>(state: T, updated_at: number) =>
+    request<TimerSnapshot<T>>('/timer', { method: 'PUT', body: { state, updated_at }, retry: false }),
 
   // Calendar feed
   createCalendarToken: () => request<CalendarToken>('/auth/calendar-token', { method: 'POST' }),

@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid } from 'recharts'
 import { Flame, Clock, Sparkles, Download, Calendar, Award, RefreshCw, Zap, TrendingUp, TrendingDown, Minus } from 'lucide-react'
-import type { DailyStat, DashboardStats, HourStat } from '../types'
+import type { DailyStat, DashboardStats, HourStat, WeeklyReview } from '../types'
+import { WeeklyReviewCard } from './WeeklyReviewCard'
 import { HeatmapYear } from './HeatmapYear'
 import { BestHours } from './BestHours'
 import { api, errorMessage } from '../api/client'
@@ -13,6 +14,7 @@ interface AnalyticsDashboardProps {
   stats: DashboardStats | null
   heatmap: DailyStat[]
   hours: HourStat[]
+  review: WeeklyReview | null
   loading: boolean
   error: string | null
   onRetry: () => void
@@ -38,7 +40,7 @@ interface PieDatum {
 
 import { ChartTooltip as TooltipCard } from './ui/ChartTooltip'
 
-export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, heatmap, hours, loading, error, onRetry }) => {
+export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, heatmap, hours, review, loading, error, onRetry }) => {
   const toast = useToast()
   const [exporting, setExporting] = useState(false)
 
@@ -103,6 +105,12 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, h
           {exporting ? 'Exporting…' : 'Export backup'}
         </Button>
       </div>
+
+      {review && (
+        <div className="mb-6">
+          <WeeklyReviewCard review={review} />
+        </div>
+      )}
 
       <div className="stagger mb-6 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
         {cards.map((c) => (

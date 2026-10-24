@@ -2,6 +2,8 @@ package httpapi
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -75,6 +77,57 @@ func (a *api) hourlyStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out, err := a.store.HourlyStats(r.Context(), userID(r), loc)
+	if err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+func (a *api) weeklyReview(w http.ResponseWriter, r *http.Request) {
+	loc, err := parseLocation(r.URL.Query().Get("tz"))
+	if err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	out, err := a.store.WeeklyReview(r.Context(), userID(r), loc, time.Now())
+	if err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+const maxTimerStateBytes = 4096
+
+func (a *api) getTimer(w http.ResponseWriter, r *http.Request) {
+	snap, err := a.store.GetTimer(r.Context(), userID(r))
+	if errors.Is(err, store.ErrNotFound) {
+		writeJSON(w, http.StatusOK, map[string]any{"state": nil, "updated_at": 0})
+		return
+	}
+	if err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, snap)
+}
+
+func (a *api) putTimer(w http.ResponseWriter, r *http.Request) {
+	var snap store.TimerSnapshot
+	if err := decodeJSON(r, &snap); err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	if len(snap.State) == 0 || len(snap.State) > maxTimerStateBytes || snap.UpdatedAt <= 0 {
+		handleErr(w, r, invalid("state (up to %d bytes) and updated_at are required", maxTimerStateBytes))
+		return
+	}
+	if !json.Valid(snap.State) || snap.State[0] != '{' {
+		handleErr(w, r, invalid("state must be a JSON object"))
+		return
+	}
+	out, err := a.store.PutTimer(r.Context(), userID(r), snap)
 	if err != nil {
 		handleErr(w, r, err)
 		return

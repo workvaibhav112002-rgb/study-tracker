@@ -3,6 +3,8 @@ import { elapsedSeconds, initialState, nextBreak, reducer, type TimerState } fro
 import { TIMER_KEY, loadTimer, saveTimer } from '../lib/timerStorage'
 import { formatClock } from '../lib/time'
 import { permission, requestPermission } from '../lib/notify'
+import { api } from '../api/client'
+import { isTimerState } from '../lib/timer'
 import type { Settings, TimerMode } from '../types'
 
 export interface TimerFinish {
@@ -82,6 +84,54 @@ export function useTimer({ settings, onFinish, userId, notificationsEnabled }: O
     }
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
+  }, [userId])
+
+  // Cross-device sync. Structural changes (not ticks) are pushed to the
+  // server; on mount, focus and return-to-tab the server copy is adopted
+  // when it is newer than the last local change. Last write wins.
+  const lastLocalChange = useRef(0)
+  const structural = `${state.mode}|${state.status}|${state.cycle}|${state.targetEndAt}|${state.totalSeconds}|${state.startedAt}|${state.accumulatedMs}`
+  const prevStructural = useRef(structural)
+  const pushTimer = useRef<number | null>(null)
+  useEffect(() => {
+    if (prevStructural.current === structural) return
+    prevStructural.current = structural
+    if (fromStorage.current || userId === null) return
+    const stamp = Date.now()
+    lastLocalChange.current = stamp
+    if (pushTimer.current) window.clearTimeout(pushTimer.current)
+    pushTimer.current = window.setTimeout(() => {
+      api.putTimer(state, stamp).catch(() => undefined)
+    }, 600)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [structural, userId])
+
+  useEffect(() => {
+    if (userId === null) return
+    let cancelled = false
+    const pull = async () => {
+      try {
+        const snap = await api.getTimer<unknown>()
+        if (cancelled || !snap.state || !isTimerState(snap.state) || snap.updated_at <= lastLocalChange.current) return
+        lastLocalChange.current = snap.updated_at
+        const remote = snap.state
+        prevStructural.current = `${remote.mode}|${remote.status}|${remote.cycle}|${remote.targetEndAt}|${remote.totalSeconds}|${remote.startedAt}|${remote.accumulatedMs}`
+        dispatch({ type: 'hydrate', state: remote, now: Date.now() })
+      } catch {
+        /* offline or unreachable: keep local */
+      }
+    }
+    void pull()
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void pull()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+    return () => {
+      cancelled = true
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+    }
   }, [userId])
 
   // Pick up new durations when idle.
