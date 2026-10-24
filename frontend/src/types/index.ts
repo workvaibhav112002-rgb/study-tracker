@@ -62,6 +62,7 @@ export interface GoalStreak {
   target_minutes: number
   today_met: boolean
   yesterday_met: boolean
+  day_before_met: boolean
   freeze_available: boolean
   freeze_days: string[]
   missed_yesterday: string

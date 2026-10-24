@@ -43,6 +43,10 @@ export const Modal: React.FC<ModalProps> = ({
   const titleId = useId()
   const descId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
+  // Callers often pass a fresh onClose on every render; keep the latest in a
+  // ref so the focus trap below is set up once per open, not per keystroke.
+  const latest = useRef({ onClose, dismissible })
+  latest.current = { onClose, dismissible }
 
   useEffect(() => {
     if (!isOpen) return
@@ -55,9 +59,9 @@ export const Modal: React.FC<ModalProps> = ({
     ;(first ?? panel)?.focus()
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && dismissible && onClose) {
+      if (e.key === 'Escape' && latest.current.dismissible && latest.current.onClose) {
         e.preventDefault()
-        onClose()
+        latest.current.onClose()
         return
       }
       if (e.key !== 'Tab') return
@@ -85,7 +89,7 @@ export const Modal: React.FC<ModalProps> = ({
       document.body.style.overflow = prevOverflow
       previouslyFocused?.focus?.()
     }
-  }, [isOpen, dismissible, onClose])
+  }, [isOpen])
 
   if (!isOpen) return null
 

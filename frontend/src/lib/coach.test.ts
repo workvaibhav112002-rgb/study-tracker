@@ -18,7 +18,7 @@ describe('coach', () => {
   afterEach(() => setCoachKey(''))
 
   it('builds a numeric prompt and a default question', () => {
-    const p = buildCoachPrompt({ stats, review: null, streak: { days: 2, best_days: 4, target_minutes: 60, today_met: false, yesterday_met: true, freeze_available: true, freeze_days: [], missed_yesterday: '' }, projects: [{ id: 1, name: 'Maths', color: '#fff', description: '', target_minutes_per_day: 60, exam_date: '2026-06-01', planned_hours_per_week: 5, week_minutes: 120, total_minutes: 600 }], question: '' })
+    const p = buildCoachPrompt({ stats, review: null, streak: { days: 2, best_days: 4, target_minutes: 60, today_met: false, yesterday_met: true, day_before_met: true, freeze_available: true, freeze_days: [], missed_yesterday: '' }, projects: [{ id: 1, name: 'Maths', color: '#fff', description: '', target_minutes_per_day: 60, exam_date: '2026-06-01', planned_hours_per_week: 5, week_minutes: 120, total_minutes: 600 }], question: '' })
     expect(p.user).toContain('Today: 30 min')
     expect(p.user).toContain('Goal streak: 2 days (best 4)')
     expect(p.user).toContain('Maths: 600 min total')

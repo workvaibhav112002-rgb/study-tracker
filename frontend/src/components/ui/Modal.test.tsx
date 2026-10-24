@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import React from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { Modal } from './Modal'
 
@@ -27,6 +28,26 @@ describe('Modal', () => {
     expect(screen.queryByLabelText('Close dialog')).toBeNull()
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('keeps focus where the user is typing when the parent re-renders', () => {
+    const Harness = () => {
+      const [text, setText] = React.useState('')
+      // A fresh onClose on every render, as most callers do.
+      return (
+        <Modal isOpen onClose={() => undefined} title="Edit">
+          <input aria-label="Title" />
+          <textarea aria-label="Body" value={text} onChange={(e) => setText(e.target.value)} />
+        </Modal>
+      )
+    }
+    render(<Harness />)
+    const body = screen.getByLabelText('Body')
+    body.focus()
+    fireEvent.change(body, { target: { value: 'hello' } })
+    fireEvent.change(body, { target: { value: 'hello world' } })
+    expect(document.activeElement).toBe(body)
+    // Escape still uses the latest handler.
   })
 
   it('renders nothing when closed', () => {

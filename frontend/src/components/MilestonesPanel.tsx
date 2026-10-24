@@ -1,6 +1,10 @@
 import React from 'react'
 import { Sparkles, Timer, Clock, Flame, Target, Layers, Brain, NotebookPen, Lock, type LucideIcon } from 'lucide-react'
 import type { Milestone } from '../types'
+import { formatMinutes } from '../lib/time'
+
+/** Time-based badges count minutes; show them as hours so "40/600" reads as "40m / 10h". */
+const progressLabel = (m: Milestone) => (m.icon === 'clock' ? `${formatMinutes(m.progress)} / ${formatMinutes(m.target)}` : `${m.progress}/${m.target}`)
 
 const ICONS: Record<string, LucideIcon> = {
   sparkles: Sparkles,
@@ -51,7 +55,7 @@ export const MilestonesPanel: React.FC<Props> = ({ milestones }) => {
                     <div className="h-full rounded-full bg-brand-500/70" style={{ width: `${pct}%` }} />
                   </div>
                   <p className="mt-1 text-[10px] font-mono tabular-nums text-ink-500">
-                    {m.progress}/{m.target}
+                    {progressLabel(m)}
                   </p>
                 </div>
               )}

@@ -96,7 +96,23 @@ const AppShell: React.FC = () => {
   const { prefs, setPrefs } = useLocalPrefs()
   useAppearance()
 
-  const [activeTab, setActiveTab] = useState<Tab>('timer')
+  // Remember the tab across reloads (per browser tab, so two windows stay independent).
+  const [activeTab, setActiveTabState] = useState<Tab>(() => {
+    try {
+      const saved = sessionStorage.getItem('study_tracker_tab') as Tab | null
+      return saved && TAB_ORDER.includes(saved) ? saved : 'timer'
+    } catch {
+      return 'timer'
+    }
+  })
+  const setActiveTab = useCallback((tab: Tab) => {
+    setActiveTabState(tab)
+    try {
+      sessionStorage.setItem('study_tracker_tab', tab)
+    } catch {
+      /* ignore */
+    }
+  }, [])
   const friendState = useFriends(userId, activeTab === 'friends')
   const suggestion = useMemo(() => suggestWorkDuration(data.sessions, data.settings), [data.sessions, data.settings])
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -207,7 +223,7 @@ const AppShell: React.FC = () => {
         toast.success(f ? `You and ${f.name} are now friends.` : 'Invite accepted.')
       })
       .catch((err) => toast.error(errorMessage(err, 'This invite link is invalid or has expired.')))
-  }, [pendingFriendToken, auth.status, friendState, toast])
+  }, [pendingFriendToken, auth.status, friendState, toast, setActiveTab])
 
   useServiceWorker({
     onNeedRefresh: (reload) => toast.action('A new version is available.', 'Reload', reload),
@@ -275,7 +291,7 @@ const AppShell: React.FC = () => {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [activeTab, auth.status, canStart, timer, toggleZen])
+  }, [activeTab, auth.status, canStart, timer, toggleZen, setActiveTab])
 
   const markReviewSeen = useCallback(() => {
     const key = data.review?.week_start ?? null

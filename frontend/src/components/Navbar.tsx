@@ -46,7 +46,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   timerLabel,
 }) => (
   <header className="sticky top-0 z-40 px-3 pt-3 sm:px-6">
-    <div className="glass mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 rounded-2xl px-2.5 shadow-card sm:px-3">
+    <div className="glass mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 rounded-2xl px-2.5 shadow-card sm:px-3 xl:max-w-7xl">
       <div className="flex shrink-0 items-center gap-3 pl-1">
         <Logo />
         <span className="hidden items-center gap-1 text-[15px] font-semibold tracking-tight text-ink-50 md:flex">
@@ -83,7 +83,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Icon className={`h-4 w-4 ${isActive ? 'text-brand-400' : ''}`} aria-hidden="true" />
-              <span className="hidden lg:inline">{tab.label}</span>
+              <span className="hidden xl:inline">{tab.label}</span>
             </button>
           )
         })}
@@ -92,7 +92,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
         {stats && user && (
-          <div className="hidden items-center gap-1.5 lg:flex">
+          <div className="hidden items-center gap-1.5 2xl:flex">
             <div className="chip border-orange-400/20 bg-orange-400/10 text-orange-300" title="Current streak">
               <Flame className="h-3.5 w-3.5 fill-orange-400 text-orange-400" aria-hidden="true" />
               {stats.current_streak_days}d

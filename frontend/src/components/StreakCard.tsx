@@ -17,7 +17,8 @@ const fmtDay = (iso: string) => new Date(iso + 'T00:00:00').toLocaleDateString(u
  */
 export const StreakCard: React.FC<Props> = ({ streak, onFreeze }) => {
   const [freezing, setFreezing] = useState(false)
-  const canFreeze = streak.target_minutes > 0 && !streak.yesterday_met && streak.freeze_available && streak.missed_yesterday !== ''
+  // Only offer a freeze when it would reconnect a streak (the day before yesterday was met).
+  const canFreeze = streak.target_minutes > 0 && !streak.yesterday_met && streak.day_before_met && streak.freeze_available && streak.missed_yesterday !== ''
   const atRisk = streak.target_minutes > 0 && !streak.today_met && streak.days > 0
 
   const handleFreeze = async () => {

@@ -103,7 +103,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
             {projects.length} {projects.length === 1 ? 'project' : 'projects'} · {formatMinutes(totalMinutes)} logged in total
           </p>
         </div>
-        <Button size="lg" onClick={openCreate} icon={<Plus className="h-4 w-4" aria-hidden="true" />} className="shrink-0">
+        <Button size="lg" onClick={openCreate} icon={<Plus className="h-4 w-4" aria-hidden="true" />} className="shrink-0" aria-label="New project">
           <span className="hidden sm:inline">New project</span>
           <span className="sm:hidden">New</span>
         </Button>
@@ -242,6 +242,15 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
           <Field label="Daily goal (minutes)">
             {(id) => <input id={id} type="number" min={1} max={1440} value={targetMinutes} onChange={(e) => setTargetMinutes(Number(e.target.value))} className={inputClass} required />}
           </Field>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Exam date" hint="Optional. Shows a countdown on the project.">
+              {(id) => <input id={id} type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} className={inputClass} />}
+            </Field>
+            <Field label="Planned hours per week" hint="Optional. Compares plan with actual time.">
+              {(id) => <input id={id} type="number" inputMode="numeric" min={1} max={168} value={plannedHours} onChange={(e) => setPlannedHours(e.target.value)} className={inputClass} placeholder="e.g. 6" />}
+            </Field>
+          </div>
 
           <Field label="Description">
             {(id) => (

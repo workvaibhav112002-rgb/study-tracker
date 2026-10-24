@@ -273,6 +273,9 @@ type GoalStreak struct {
 	TargetMinutes      int      `json:"target_minutes"`
 	TodayMet           bool     `json:"today_met"`
 	YesterdayMet       bool     `json:"yesterday_met"`
+	// DayBeforeMet tells the UI whether a freeze on yesterday would actually
+	// reconnect a streak.
+	DayBeforeMet       bool     `json:"day_before_met"`
 	FreezeAvailable    bool     `json:"freeze_available"`
 	FreezeDays         []string `json:"freeze_days"`
 	MissedYesterdayISO string   `json:"missed_yesterday"`

@@ -36,8 +36,8 @@ test('register, run a timer, log a session, see analytics', async ({ page }) => 
   await expect(page.locator('table')).toContainText('30m')
 
   await page.getByRole('button', { name: 'Analytics' }).click()
-  await expect(page.getByText('Today', { exact: true })).toBeVisible()
-  await expect(page.getByText('30m').first()).toBeVisible()
+  await expect(page.getByRole('main').locator('.eyebrow', { hasText: /^Today$/ })).toBeVisible()
+  await expect(page.getByRole('main').getByText('30m').first()).toBeVisible()
 
   // Flashcards: add one, review it, see it scheduled.
   await page.getByRole('button', { name: 'Cards' }).click()

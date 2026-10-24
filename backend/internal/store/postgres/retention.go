@@ -63,6 +63,7 @@ func (s *Store) GoalStreak(ctx context.Context, userID int64, loc *time.Location
 	out.TodayMet = met(today)
 	yesterday := today.AddDate(0, 0, -1)
 	out.YesterdayMet = met(yesterday)
+	out.DayBeforeMet = met(today.AddDate(0, 0, -2))
 	if !out.YesterdayMet {
 		out.MissedYesterdayISO = yesterday.Format(dateLayout)
 	}

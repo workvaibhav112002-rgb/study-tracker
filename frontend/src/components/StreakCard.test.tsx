@@ -4,7 +4,7 @@ import { StreakCard } from './StreakCard'
 import { MilestonesPanel } from './MilestonesPanel'
 import type { GoalStreak, Milestone } from '../types'
 
-const base: GoalStreak = { days: 3, best_days: 5, target_minutes: 60, today_met: false, yesterday_met: true, freeze_available: true, freeze_days: [], missed_yesterday: '' }
+const base: GoalStreak = { days: 3, best_days: 5, target_minutes: 60, today_met: false, yesterday_met: true, day_before_met: true, freeze_available: true, freeze_days: [], missed_yesterday: '' }
 
 describe('StreakCard', () => {
   it('shows the streak and hides the freeze when yesterday was met', () => {
@@ -19,6 +19,11 @@ describe('StreakCard', () => {
     render(<StreakCard streak={{ ...base, yesterday_met: false, missed_yesterday: '2026-03-09' }} onFreeze={onFreeze} />)
     fireEvent.click(screen.getByRole('button', { name: /freeze/i }))
     expect(onFreeze).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not offer a freeze when there is no streak to reconnect', () => {
+    render(<StreakCard streak={{ ...base, days: 0, yesterday_met: false, day_before_met: false, missed_yesterday: '2026-03-09' }} onFreeze={vi.fn()} />)
+    expect(screen.queryByRole('button', { name: /freeze/i })).toBeNull()
   })
 
   it('explains when no goal is set', () => {
