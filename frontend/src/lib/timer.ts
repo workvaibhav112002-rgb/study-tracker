@@ -18,18 +18,25 @@ export interface TimerState {
   runStartedAt: number | null
   /** 1-based pomodoro counter. */
   cycle: number
+  /** Pauses and tab switches during the current focus interval. */
+  interruptions: number
 }
 
 export type TimerAction =
   | { type: 'start'; now: number }
   | { type: 'pause'; now: number }
   | { type: 'tick'; now: number }
+  | { type: 'interrupt' }
   | { type: 'reset'; settings: Settings }
   | { type: 'switch'; mode: TimerMode; settings: Settings; autoStart: boolean; now: number; advanceCycle?: boolean }
   | { type: 'adjust'; deltaSeconds: number; now: number }
   | { type: 'settings'; settings: Settings }
+  | { type: 'hydrate'; state: TimerState; now: number }
 
 export const MIN_SECONDS = 60
+
+const MODES: readonly TimerMode[] = ['work', 'short_break', 'long_break']
+const STATUSES: readonly TimerStatus[] = ['idle', 'running', 'paused']
 
 export function durationFor(mode: TimerMode, settings: Settings): number {
   switch (mode) {
@@ -54,7 +61,28 @@ export function initialState(settings: Settings, mode: TimerMode = 'work', cycle
     accumulatedMs: 0,
     runStartedAt: null,
     cycle,
+    interruptions: 0,
   }
+}
+
+/** Structural check used when reading persisted state. */
+export function isTimerState(x: unknown): x is TimerState {
+  if (!x || typeof x !== 'object') return false
+  const s = x as Record<string, unknown>
+  const num = (v: unknown) => typeof v === 'number' && Number.isFinite(v)
+  const numOrNull = (v: unknown) => v === null || num(v)
+  return (
+    MODES.includes(s.mode as TimerMode) &&
+    STATUSES.includes(s.status as TimerStatus) &&
+    num(s.totalSeconds) &&
+    num(s.secondsLeft) &&
+    numOrNull(s.targetEndAt) &&
+    numOrNull(s.startedAt) &&
+    num(s.accumulatedMs) &&
+    numOrNull(s.runStartedAt) &&
+    num(s.cycle) &&
+    num(s.interruptions)
+  )
 }
 
 export function longBreakInterval(settings: Settings): number {
@@ -102,6 +130,7 @@ export function reducer(state: TimerState, action: TimerAction): TimerState {
         targetEndAt: null,
         accumulatedMs: state.accumulatedMs + (state.runStartedAt !== null ? action.now - state.runStartedAt : 0),
         runStartedAt: null,
+        interruptions: state.mode === 'work' ? state.interruptions + 1 : state.interruptions,
       }
     }
     case 'tick': {
@@ -109,6 +138,9 @@ export function reducer(state: TimerState, action: TimerAction): TimerState {
       const left = remaining(state, action.now)
       return left === state.secondsLeft ? state : { ...state, secondsLeft: left }
     }
+    case 'interrupt':
+      if (state.status !== 'running' || state.mode !== 'work') return state
+      return { ...state, interruptions: state.interruptions + 1 }
     case 'reset':
       return initialState(action.settings, state.mode, state.cycle)
     case 'switch': {
@@ -130,5 +162,12 @@ export function reducer(state: TimerState, action: TimerAction): TimerState {
     case 'settings':
       // Never clobber an interval that is in progress.
       return state.status === 'idle' ? initialState(action.settings, state.mode, state.cycle) : state
+    case 'hydrate': {
+      const s = action.state
+      if (s.status === 'running' && s.targetEndAt !== null) {
+        return { ...s, secondsLeft: remaining(s, action.now) }
+      }
+      return s
+    }
   }
 }

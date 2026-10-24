@@ -1,6 +1,7 @@
 import React, { useId } from 'react'
-import { Play, Pause, RotateCcw, SkipForward, Plus, Minus, Coffee, Sparkles, Moon, FolderPlus, ChevronDown, Target } from 'lucide-react'
-import type { Project, Settings, TimerMode } from '../types'
+import { Play, Pause, RotateCcw, SkipForward, Plus, Minus, Coffee, Sparkles, Moon, FolderPlus, ChevronDown } from 'lucide-react'
+import type { GoalStat, Project, Settings, TimerMode } from '../types'
+import { GoalRing } from './ui/GoalRing'
 import type { useTimer } from '../hooks/useTimer'
 import { longBreakInterval } from '../lib/timer'
 import { audioService } from '../services/audio'
@@ -12,6 +13,7 @@ interface PomodoroTimerProps {
   setSelectedProjectId: (id: number) => void
   settings: Settings
   onCreateProject: () => void
+  goal?: GoalStat
 }
 
 interface ModeStyle {
@@ -69,6 +71,7 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
   setSelectedProjectId,
   settings,
   onCreateProject,
+  goal,
 }) => {
   const gradId = useId()
   const { state, formatted, progress } = timer
@@ -286,9 +289,14 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
               {activeProject.description && <p className="truncate text-xs text-ink-500">{activeProject.description}</p>}
             </div>
           </div>
-          <div className="chip shrink-0 border-white/[0.06] bg-white/[0.04] text-ink-300">
-            <Target className="h-3.5 w-3.5 text-brand-400" aria-hidden="true" />
-            {activeProject.target_minutes_per_day}m / day
+          <div className="flex shrink-0 items-center gap-3">
+            <div className="text-right">
+              <p className="eyebrow">Today</p>
+              <p className="font-mono text-sm tabular-nums text-ink-100">
+                {goal?.today_minutes ?? 0} <span className="text-ink-500">/ {activeProject.target_minutes_per_day} min</span>
+              </p>
+            </div>
+            <GoalRing today={goal?.today_minutes ?? 0} target={activeProject.target_minutes_per_day} color={activeProject.color} size={48} />
           </div>
         </div>
       )}

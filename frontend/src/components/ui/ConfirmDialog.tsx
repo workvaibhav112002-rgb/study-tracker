@@ -1,14 +1,17 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { Modal } from './Modal'
 import { Button } from './Button'
+import { Field, inputClass } from './Field'
 
 interface ConfirmDialogProps {
   isOpen: boolean
   title: string
   message: React.ReactNode
   confirmLabel?: string
-  onConfirm: () => Promise<void> | void
+  /** When set, the dialog asks for the user's password and passes it to onConfirm. */
+  requirePassword?: boolean
+  onConfirm: (password?: string) => Promise<void> | void
   onCancel: () => void
 }
 
@@ -18,15 +21,22 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   title,
   message,
   confirmLabel = 'Delete',
+  requirePassword = false,
   onConfirm,
   onCancel,
 }) => {
   const [busy, setBusy] = useState(false)
+  const [password, setPassword] = useState('')
 
-  const confirm = async () => {
+  useEffect(() => {
+    if (isOpen) setPassword('')
+  }, [isOpen])
+
+  const confirm = async (e?: React.FormEvent) => {
+    e?.preventDefault()
     setBusy(true)
     try {
-      await onConfirm()
+      await onConfirm(requirePassword ? password : undefined)
     } finally {
       setBusy(false)
     }
@@ -41,15 +51,22 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       icon={<AlertTriangle className="h-5 w-5" />}
       iconClassName="bg-rose-500/10 text-rose-400 border-rose-500/20"
     >
-      <div className="text-sm leading-relaxed text-ink-300">{message}</div>
-      <div className="mt-6 flex items-center justify-end gap-2">
-        <Button variant="ghost" onClick={onCancel} disabled={busy}>
-          Cancel
-        </Button>
-        <Button variant="danger" onClick={confirm} loading={busy}>
-          {confirmLabel}
-        </Button>
-      </div>
+      <form onSubmit={confirm}>
+        <div className="text-sm leading-relaxed text-ink-300">{message}</div>
+        {requirePassword && (
+          <Field label="Confirm with your password" className="mt-4">
+            {(id) => <input id={id} type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputClass} required />}
+          </Field>
+        )}
+        <div className="mt-6 flex items-center justify-end gap-2">
+          <Button variant="ghost" onClick={onCancel} disabled={busy}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="danger" loading={busy} disabled={requirePassword && !password}>
+            {confirmLabel}
+          </Button>
+        </div>
+      </form>
     </Modal>
   )
 }

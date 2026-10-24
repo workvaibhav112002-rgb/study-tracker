@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, api, tokenStorage, unauthorizedEvents } from '../api/client'
-import type { User } from '../types'
+import type { AuthResponse, User } from '../types'
+import { setMonitoringUser } from '../lib/monitoring'
 
 export type AuthStatus = 'loading' | 'authenticated' | 'anonymous' | 'unreachable'
 
@@ -21,6 +22,7 @@ export function useAuth() {
       const me = await api.getMe()
       retries.current = 0
       setUser(me)
+      setMonitoringUser(me)
       setStatus('authenticated')
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
@@ -53,30 +55,37 @@ export function useAuth() {
       unauthorizedEvents.on(() => {
         tokenStorage.clear()
         setUser(null)
+        setMonitoringUser(null)
         setStatus('anonymous')
       }),
     [],
   )
 
-  const login = useCallback(async (email: string, password: string) => {
-    const res = await api.login(email, password)
+  /** Stores a fresh token + user (login, register, password change). */
+  const applyAuth = useCallback((res: AuthResponse) => {
     tokenStorage.set(res.token)
     setUser(res.user)
+    setMonitoringUser(res.user)
     setStatus('authenticated')
   }, [])
 
-  const register = useCallback(async (email: string, password: string, name: string) => {
-    const res = await api.register(email, password, name)
-    tokenStorage.set(res.token)
-    setUser(res.user)
-    setStatus('authenticated')
+  const login = useCallback(async (email: string, password: string) => applyAuth(await api.login(email, password)), [applyAuth])
+  const register = useCallback(
+    async (email: string, password: string, name: string) => applyAuth(await api.register(email, password, name)),
+    [applyAuth],
+  )
+
+  const refreshUser = useCallback(async () => {
+    const me = await api.getMe()
+    setUser(me)
   }, [])
 
   const logout = useCallback(() => {
     tokenStorage.clear()
     setUser(null)
+    setMonitoringUser(null)
     setStatus('anonymous')
   }, [])
 
-  return { user, status, login, register, logout, retry: bootstrap }
+  return { user, status, login, register, logout, applyAuth, refreshUser, retry: bootstrap }
 }

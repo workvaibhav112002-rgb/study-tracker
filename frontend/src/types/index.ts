@@ -3,6 +3,8 @@ export interface User {
   email: string
   name: string
   created_at?: string
+  updated_at?: string
+  has_calendar_token?: boolean
 }
 
 export interface AuthResponse {
@@ -42,6 +44,8 @@ export interface Session {
   session_type: SessionType
   focus_rating: number
   notes: string
+  interruptions?: number
+  task_id?: number | null
   created_at?: string
 }
 
@@ -53,6 +57,27 @@ export interface SessionInput {
   session_type: SessionType
   focus_rating: number
   notes: string
+  interruptions?: number
+  task_id?: number | null
+}
+
+export interface Task {
+  id: number
+  user_id?: number
+  project_id: number
+  title: string
+  estimate_pomodoros: number
+  completed_pomodoros: number
+  done: boolean
+  position: number
+  created_at?: string
+  completed_at?: string | null
+}
+
+export interface TaskInput {
+  project_id: number
+  title: string
+  estimate_pomodoros: number
 }
 
 export interface Settings {
@@ -94,14 +119,58 @@ export interface DailyStat {
   minutes: number
 }
 
+export interface WeekOverWeek {
+  this_week_minutes: number
+  previous_week_minutes: number
+  delta_minutes: number
+  delta_percent: number | null
+}
+
 export interface DashboardStats {
   today_minutes: number
   weekly_minutes: number
   total_minutes: number
   current_streak_days: number
   completed_pomodoros: number
+  avg_interruptions?: number
+  week_over_week?: WeekOverWeek
   project_stats: ProjectStat[]
   daily_trend: DailyStat[]
+}
+
+export interface GoalStat {
+  project_id: number
+  name: string
+  color: string
+  target_minutes_per_day: number
+  today_minutes: number
+  percent: number
+  met: boolean
+}
+
+export interface GoalsStats {
+  date: string
+  projects: GoalStat[]
+  overall: { target_minutes: number; today_minutes: number; percent: number; met: boolean }
+}
+
+export interface HourStat {
+  hour: number
+  minutes: number
+  session_count: number
+  avg_rating: number
+}
+
+export interface CalendarToken {
+  token: string
+  url: string
+}
+
+export interface ImportResult {
+  projects_created: number
+  projects_updated: number
+  sessions_inserted: number
+  sessions_skipped: number
 }
 
 export type TimerMode = 'work' | 'short_break' | 'long_break'

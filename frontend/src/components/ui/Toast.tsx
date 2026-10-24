@@ -6,12 +6,15 @@ interface Toast {
   id: number
   kind: Kind
   message: string
+  action?: { label: string; run: () => void }
 }
 
 interface ToastApi {
   success: (message: string) => void
   error: (message: string) => void
   info: (message: string) => void
+  /** Persistent toast with a button; stays until clicked or dismissed. */
+  action: (message: string, label: string, run: () => void) => void
 }
 
 const ToastContext = createContext<ToastApi | null>(null)
@@ -29,10 +32,10 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const dismiss = useCallback((id: number) => setToasts((t) => t.filter((x) => x.id !== id)), [])
 
   const push = useCallback(
-    (kind: Kind, message: string) => {
+    (kind: Kind, message: string, action?: Toast['action']) => {
       const id = ++counter
-      setToasts((t) => [...t.slice(-3), { id, kind, message }])
-      window.setTimeout(() => dismiss(id), kind === 'error' ? 6000 : 3500)
+      setToasts((t) => [...t.slice(-3), { id, kind, message, action }])
+      if (!action) window.setTimeout(() => dismiss(id), kind === 'error' ? 6000 : 3500)
     },
     [dismiss],
   )
@@ -42,6 +45,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       success: (m) => push('success', m),
       error: (m) => push('error', m),
       info: (m) => push('info', m),
+      action: (m, label, run) => push('info', m, { label, run }),
     }),
     [push],
   )
@@ -63,6 +67,18 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             <span aria-hidden="true" className={`absolute left-0 top-0 h-full w-0.5 ${styles[t.kind].bar}`} />
             {styles[t.kind].icon}
             <span className="flex-1 leading-snug">{t.message}</span>
+            {t.action && (
+              <button
+                type="button"
+                onClick={() => {
+                  t.action?.run()
+                  dismiss(t.id)
+                }}
+                className="focus-ring rounded-lg border border-white/[0.1] bg-white/[0.08] px-2.5 py-1 text-xs font-semibold text-ink-50 hover:bg-white/[0.14]"
+              >
+                {t.action.label}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => dismiss(t.id)}
