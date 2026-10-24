@@ -27,6 +27,8 @@ interface Options {
 }
 
 const STALE_MS = 5_000
+/** Server snapshots older than this are ignored on pull: nobody wants a day-old "finished" modal. */
+const MAX_SNAPSHOT_AGE_MS = 24 * 60 * 60 * 1000
 
 export function useTimer({ settings, onFinish, userId, notificationsEnabled }: Options) {
   const [state, dispatch] = useReducer(reducer, undefined, () => {
@@ -113,6 +115,7 @@ export function useTimer({ settings, onFinish, userId, notificationsEnabled }: O
       try {
         const snap = await api.getTimer<unknown>()
         if (cancelled || !snap.state || !isTimerState(snap.state) || snap.updated_at <= lastLocalChange.current) return
+        if (Date.now() - snap.updated_at > MAX_SNAPSHOT_AGE_MS) return
         lastLocalChange.current = snap.updated_at
         const remote = snap.state
         prevStructural.current = `${remote.mode}|${remote.status}|${remote.cycle}|${remote.targetEndAt}|${remote.totalSeconds}|${remote.startedAt}|${remote.accumulatedMs}`

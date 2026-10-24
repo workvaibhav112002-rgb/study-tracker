@@ -4,6 +4,7 @@ import { DEFAULT_SETTINGS } from '../types'
 import { initialState, reducer } from '../lib/timer'
 import { TIMER_KEY, loadTimer, saveTimer } from '../lib/timerStorage'
 import { useTimer } from './useTimer'
+import { api } from '../api/client'
 
 const t0 = new Date('2026-10-24T10:00:00Z').getTime()
 
@@ -104,5 +105,37 @@ describe('useTimer persistence', () => {
     act(() => result.current.start())
     act(hide)
     expect(result.current.state.interruptions).toBe(1)
+  })
+})
+
+describe('useTimer cross-device sync', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(t0)
+    localStorage.clear()
+  })
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.useRealTimers()
+  })
+
+  it('adopts a fresh server snapshot but ignores a day-old one', async () => {
+    const running = reducer(initialState(DEFAULT_SETTINGS), { type: 'start', now: t0 - 60_000 })
+    const onFinish = vi.fn()
+    const getTimer = vi.spyOn(api, 'getTimer').mockResolvedValue({ state: running, updated_at: t0 - 60_000 })
+    vi.spyOn(api, 'putTimer').mockResolvedValue({ state: running, updated_at: t0 })
+    const { result, unmount } = renderHook(() => useTimer({ settings: DEFAULT_SETTINGS, onFinish, userId: 1, notificationsEnabled: false }))
+    await vi.waitFor(() => expect(result.current.state.status).toBe('running'))
+    expect(result.current.state.secondsLeft).toBe(24 * 60)
+    unmount()
+
+    localStorage.clear()
+    const old = reducer(initialState(DEFAULT_SETTINGS), { type: 'start', now: t0 - 2 * 24 * 3600_000 })
+    getTimer.mockResolvedValue({ state: old, updated_at: t0 - 2 * 24 * 3600_000 })
+    const second = renderHook(() => useTimer({ settings: DEFAULT_SETTINGS, onFinish, userId: 2, notificationsEnabled: false }))
+    await vi.waitFor(() => expect(getTimer).toHaveBeenCalledTimes(2))
+    await new Promise((r) => setTimeout(r, 20))
+    expect(second.result.current.state.status).toBe('idle')
+    expect(onFinish).not.toHaveBeenCalled()
   })
 })
