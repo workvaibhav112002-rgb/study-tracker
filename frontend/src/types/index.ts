@@ -28,8 +28,11 @@ export interface Project {
   color: string
   description: string
   target_minutes_per_day: number
+  exam_date?: string | null
+  planned_hours_per_week?: number | null
   created_at?: string
   total_minutes?: number
+  week_minutes?: number
 }
 
 export interface ProjectInput {
@@ -37,6 +40,60 @@ export interface ProjectInput {
   color: string
   description: string
   target_minutes_per_day: number
+  exam_date?: string | null
+  planned_hours_per_week?: number | null
+}
+
+export interface Card {
+  id: number
+  project_id: number
+  front: string
+  back: string
+  tags: string[]
+  ease: number
+  interval_days: number
+  repetitions: number
+  lapses: number
+  due_at: string
+  archived: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+export interface CardInput {
+  project_id: number
+  front: string
+  back: string
+  tags: string[]
+}
+
+export interface CardStats {
+  total: number
+  due: number
+  new: number
+  mastered: number
+  reviewed_last_7_days: number
+}
+
+export type CardRating = 1 | 2 | 3 | 4
+
+export interface Note {
+  id: number
+  project_id: number | null
+  title: string
+  body: string
+  tags: string[]
+  pinned: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+export interface NoteInput {
+  project_id: number | null
+  title: string
+  body: string
+  tags: string[]
+  pinned: boolean
 }
 
 export type SessionType = 'pomodoro' | 'custom' | 'manual'

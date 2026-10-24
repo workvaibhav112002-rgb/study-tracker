@@ -23,6 +23,10 @@ import { ToastProvider, useToast } from './components/ui/Toast'
 import { ServerStatusBanner } from './components/ui/ServerStatusBanner'
 import { Skeleton } from './components/ui/Skeleton'
 import { TaskPanel } from './components/TaskPanel'
+import { CardsPanel } from './components/CardsPanel'
+import { NotesPanel } from './components/NotesPanel'
+import { useCards } from './hooks/useCards'
+import { useNotes } from './hooks/useNotes'
 import { useAuth } from './hooks/useAuth'
 import { useAppData } from './hooks/useAppData'
 import { useTimer, type TimerFinish } from './hooks/useTimer'
@@ -78,6 +82,10 @@ const AppShell: React.FC = () => {
 
   const data = useAppData(userId)
   const taskState = useTasks(userId, data.selectedProjectId)
+  const cardState = useCards(userId, data.selectedProjectId)
+  const noteState = useNotes(userId)
+  const [reviewSignal, setReviewSignal] = useState(0)
+  const [newNoteSignal, setNewNoteSignal] = useState(0)
   const { prefs, setPrefs } = useLocalPrefs()
   useAppearance()
 
@@ -232,6 +240,8 @@ const AppShell: React.FC = () => {
     { id: 'nav-analytics', label: 'Go to analytics', keywords: 'stats review heatmap', group: 'Navigate', run: () => setActiveTab('analytics') },
     ...data.projects.map((p) => ({ id: `project-${p.id}`, label: `Focus on ${p.name}`, keywords: 'project select', group: 'Projects' as const, run: () => { data.setSelectedProjectId(p.id); setActiveTab('timer') } })),
     { id: 'new-project', label: 'New project', group: 'Projects', run: requestCreateProject },
+    { id: 'review', label: cardState.stats.due > 0 ? `Review ${cardState.stats.due} due cards` : 'Open flashcards', keywords: 'flashcards srs study', group: 'Actions', run: () => { setActiveTab('cards'); setReviewSignal((n) => n + 1) } },
+    { id: 'new-note', label: 'New note', keywords: 'write markdown', group: 'Actions', run: () => { setActiveTab('notes'); setNewNoteSignal((n) => n + 1) } },
     { id: 'log', label: 'Log a past session', keywords: 'manual entry', group: 'Actions', run: () => setIsManualOpen(true) },
     { id: 'settings', label: 'Open settings', keywords: 'preferences calendar import account', group: 'Actions', run: () => setIsSettingsOpen(true) },
     { id: 'theme', label: prefs.theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme', keywords: 'appearance mode', group: 'Actions', run: () => setPrefs({ theme: prefs.theme === 'light' ? 'dark' : 'light' }) },
@@ -368,6 +378,62 @@ const AppShell: React.FC = () => {
               onCreateProject={(p) => run(() => data.createProject(p), 'Project created.')}
               onUpdateProject={(id, p) => run(() => data.updateProject(id, p), 'Project updated.')}
               onDeleteProject={(id) => run(() => data.deleteProject(id), 'Project deleted.')}
+            />
+          )}
+
+          {activeTab === 'cards' && (
+            <CardsPanel
+              projects={data.projects}
+              selectedProjectId={data.selectedProjectId}
+              onSelectProject={data.setSelectedProjectId}
+              cards={cardState.cards}
+              stats={cardState.stats}
+              loading={cardState.loading}
+              startReviewSignal={reviewSignal}
+              onAdd={(c) => run(() => cardState.add(c), 'Card added.')}
+              onEdit={(id, c) => run(() => cardState.edit(id, c), 'Card saved.')}
+              onArchive={(id, a) => run(() => cardState.archive(id, a))}
+              onRemove={(id) => run(() => cardState.remove(id), 'Card deleted.')}
+              onReview={async (id, rating) => {
+                try {
+                  return await cardState.review(id, rating)
+                } catch (err) {
+                  toast.error(errorMessage(err))
+                  throw err
+                }
+              }}
+              onReviewFinished={(summary) => {
+                void cardState.refresh().catch(() => undefined)
+                if (summary.reviewed === 0) return
+                toast.success(`Reviewed ${summary.reviewed} card${summary.reviewed === 1 ? '' : 's'}${summary.again ? `, ${summary.again} to repeat` : ''}.`)
+                // Reviews of a minute or more count as study time on the project.
+                if (summary.seconds >= 60 && data.selectedProjectId !== null) {
+                  const end = new Date()
+                  void data
+                    .createSession({
+                      project_id: data.selectedProjectId,
+                      start_time: new Date(end.getTime() - summary.seconds * 1000).toISOString(),
+                      end_time: end.toISOString(),
+                      duration_seconds: summary.seconds,
+                      session_type: 'custom',
+                      focus_rating: 5,
+                      notes: `Reviewed ${summary.reviewed} flashcards`,
+                    })
+                    .catch(() => undefined)
+                }
+              }}
+            />
+          )}
+
+          {activeTab === 'notes' && (
+            <NotesPanel
+              projects={data.projects}
+              notes={noteState.notes}
+              loading={noteState.loading}
+              newNoteSignal={newNoteSignal}
+              onAdd={async (n) => { const created = await noteState.add(n).catch((err) => { toast.error(errorMessage(err)); throw err }); toast.success('Note created.'); return created }}
+              onEdit={async (id, n) => noteState.edit(id, n).catch((err) => { toast.error(errorMessage(err)); throw err })}
+              onRemove={(id) => run(() => noteState.remove(id), 'Note deleted.')}
             />
           )}
 

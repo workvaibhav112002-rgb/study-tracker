@@ -146,6 +146,17 @@
     min-height: 100vh;
   }
   .zen .card { @apply hidden; }
+  .prose-card h1 { @apply text-xl font-semibold text-ink-50 mt-3 mb-2; }
+  .prose-card h2 { @apply text-lg font-semibold text-ink-50 mt-3 mb-1.5; }
+  .prose-card h3 { @apply text-base font-semibold text-ink-50 mt-2 mb-1; }
+  .prose-card p { @apply my-1.5; }
+  .prose-card ul { @apply list-disc pl-5 my-1.5 space-y-0.5; }
+  .prose-card ol { @apply list-decimal pl-5 my-1.5 space-y-0.5; }
+  .prose-card code { @apply rounded-md bg-fg/[0.08] px-1.5 py-0.5 font-mono text-[0.9em]; }
+  .prose-card pre { @apply my-2 overflow-x-auto rounded-xl border border-fg/[0.06] bg-surface-950/80 p-3 text-left text-[13px]; }
+  .prose-card pre code { @apply bg-transparent p-0; }
+  .prose-card a { @apply text-brand-400 underline underline-offset-2; }
+  .prose-card strong { @apply font-semibold text-ink-50; }
   .stagger > * {
     @apply animate-fade-up;
   }

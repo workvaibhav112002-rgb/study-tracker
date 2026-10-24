@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { SlidersHorizontal, Volume2 } from 'lucide-react'
 import { SETTINGS_LIMITS, type AuthResponse, type Settings, type User } from '../types'
+import { TEMPLATES, matchingTemplate } from '../lib/templates'
 import { useLocalPrefs } from '../hooks/useLocalPrefs'
 import { permission, requestPermission, supportsNotifications } from '../lib/notify'
 import { CalendarSyncSection } from './settings/CalendarSyncSection'
@@ -123,6 +124,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
     >
       <form onSubmit={handleSubmit} className="space-y-5">
         <h3 className="eyebrow">Intervals</h3>
+        <div role="group" aria-label="Session templates" className="flex flex-wrap gap-2">
+          {TEMPLATES.map((t) => {
+            const on = matchingTemplate(form) === t.id
+            return (
+              <button key={t.id} type="button" aria-pressed={on} title={t.hint} onClick={() => setForm({ ...form, ...t.values })} className={`focus-ring chip transition ${on ? 'border-brand-500/30 bg-brand-500/15 text-brand-300' : 'border-fg/[0.06] bg-fg/[0.04] text-ink-400 hover:text-ink-100'}`}>
+                {t.name}
+              </button>
+            )
+          })}
+        </div>
         <div className="grid grid-cols-3 gap-3">
           {numberField('work_duration', 'min')}
           {numberField('short_break_duration', 'min')}

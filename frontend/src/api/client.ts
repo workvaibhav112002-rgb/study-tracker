@@ -2,6 +2,12 @@ import type {
   AppConfig,
   AuthResponse,
   CalendarToken,
+  Card,
+  CardInput,
+  CardRating,
+  CardStats,
+  Note,
+  NoteInput,
   DailyStat,
   DashboardStats,
   FeedbackSubmission,
@@ -249,6 +255,33 @@ export const api = {
   setTaskDone: (id: number, done: boolean) => request<Task>(`/tasks/${id}/done`, { method: 'PUT', body: { done } }),
   reorderTasks: (ids: number[]) => request<void>('/tasks/order', { method: 'PUT', body: { ids } }),
   deleteTask: (id: number) => request<void>(`/tasks/${id}`, { method: 'DELETE' }),
+
+  // Flashcards
+  getCards: (opts: { projectId?: number; due?: boolean; archived?: boolean } = {}) => {
+    const q = new URLSearchParams({ limit: '500' })
+    if (opts.projectId) q.set('project_id', String(opts.projectId))
+    if (opts.due) q.set('due', 'true')
+    if (opts.archived !== undefined) q.set('archived', String(opts.archived))
+    return request<Card[]>(`/cards?${q.toString()}`)
+  },
+  createCard: (data: CardInput) => request<Card>('/cards', { method: 'POST', body: data }),
+  updateCard: (id: number, data: Omit<CardInput, 'project_id'>) => request<Card>(`/cards/${id}`, { method: 'PUT', body: data }),
+  archiveCard: (id: number, archived: boolean) => request<Card>(`/cards/${id}/archive`, { method: 'PUT', body: { archived } }),
+  reviewCard: (id: number, rating: CardRating) => request<Card>(`/cards/${id}/review`, { method: 'POST', body: { rating } }),
+  deleteCard: (id: number) => request<void>(`/cards/${id}`, { method: 'DELETE' }),
+  getCardStats: (projectId?: number) => request<CardStats>(projectId ? `/cards/stats?project_id=${projectId}` : '/cards/stats'),
+
+  // Notes
+  getNotes: (opts: { projectId?: number; tag?: string; q?: string } = {}) => {
+    const p = new URLSearchParams({ limit: '500' })
+    if (opts.projectId) p.set('project_id', String(opts.projectId))
+    if (opts.tag) p.set('tag', opts.tag)
+    if (opts.q) p.set('q', opts.q)
+    return request<Note[]>(`/notes?${p.toString()}`)
+  },
+  createNote: (data: NoteInput) => request<Note>('/notes', { method: 'POST', body: data }),
+  updateNote: (id: number, data: NoteInput) => request<Note>(`/notes/${id}`, { method: 'PUT', body: data }),
+  deleteNote: (id: number) => request<void>(`/notes/${id}`, { method: 'DELETE' }),
 
   // Stats (computed in the viewer's timezone)
   getDashboardStats: () => request<DashboardStats>(`/stats/dashboard?tz=${tz()}`),

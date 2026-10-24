@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { Plus, Trash2, Pencil, FolderKanban, Target, Clock, Check } from 'lucide-react'
+import { Plus, Trash2, Pencil, FolderKanban, Target, Clock, Check, CalendarClock, TrendingUp } from 'lucide-react'
+import { daysUntil, planStatus } from '../lib/plan'
 import type { GoalStat, Project, ProjectInput } from '../types'
 import { GoalRing } from './ui/GoalRing'
 import { Modal } from './ui/Modal'
@@ -38,6 +39,8 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
   const [color, setColor] = useState(PRESET_COLORS[0])
   const [description, setDescription] = useState('')
   const [targetMinutes, setTargetMinutes] = useState(60)
+  const [examDate, setExamDate] = useState('')
+  const [plannedHours, setPlannedHours] = useState('')
   const [saving, setSaving] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<Project | null>(null)
 
@@ -47,6 +50,8 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
     setColor(PRESET_COLORS[Math.floor(Math.random() * PRESET_COLORS.length)])
     setDescription('')
     setTargetMinutes(60)
+    setExamDate('')
+    setPlannedHours('')
     setIsModalOpen(true)
   }
 
@@ -62,12 +67,17 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
     setColor(p.color)
     setDescription(p.description || '')
     setTargetMinutes(p.target_minutes_per_day || 60)
+    setExamDate(p.exam_date ?? '')
+    setPlannedHours(p.planned_hours_per_week ? String(p.planned_hours_per_week) : '')
     setIsModalOpen(true)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const input: ProjectInput = { name: name.trim(), color, description: description.trim(), target_minutes_per_day: targetMinutes }
+    const input: ProjectInput = {
+      name: name.trim(), color, description: description.trim(), target_minutes_per_day: targetMinutes,
+      exam_date: examDate || null, planned_hours_per_week: plannedHours ? Number(plannedHours) : null,
+    }
     if (!input.name) return
     setSaving(true)
     try {
@@ -153,6 +163,22 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                   </div>
                 </div>
                 <p className="mt-3 line-clamp-2 min-h-[36px] text-[13px] leading-relaxed text-ink-400">{p.description || 'No description yet.'}</p>
+                {(p.exam_date || p.planned_hours_per_week) && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {p.exam_date && (() => { const d = daysUntil(p.exam_date); return (
+                      <span className={`chip ${d !== null && d <= 7 ? 'border-rose-500/20 bg-rose-500/10 text-rose-300' : 'border-fg/[0.06] bg-fg/[0.04] text-ink-300'}`}>
+                        <CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />
+                        {d === null ? 'Exam set' : d < 0 ? 'Exam passed' : d === 0 ? 'Exam today' : `Exam in ${d}d`}
+                      </span>
+                    ) })()}
+                    {p.planned_hours_per_week && (() => { const ps = planStatus(p.week_minutes, p.planned_hours_per_week); const tone = ps.status === 'behind' ? 'border-accent-amber/20 bg-accent-amber/10 text-amber-200' : 'border-brand-500/20 bg-brand-500/10 text-brand-300'; return (
+                      <span className={`chip ${tone}`} title={`${ps.percent}% of ${p.planned_hours_per_week}h planned this week`}>
+                        <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />
+                        {ps.status === 'behind' ? 'Behind plan' : ps.status === 'ahead' ? 'Ahead of plan' : 'On track'} · {ps.percent}%
+                      </span>
+                    ) })()}
+                  </div>
+                )}
               </div>
 
               <div className="relative mt-5 flex items-center justify-between gap-3 border-t border-fg/[0.06] pt-4 text-xs">

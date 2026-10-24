@@ -1,9 +1,9 @@
 import React from 'react'
-import { Timer, BarChart3, FolderKanban, History, Settings as SettingsIcon, Flame, LogOut } from 'lucide-react'
+import { Timer, BarChart3, FolderKanban, History, Settings as SettingsIcon, Flame, LogOut, Layers, NotebookPen } from 'lucide-react'
 import type { DashboardStats, User } from '../types'
 import { formatMinutes } from '../lib/time'
 
-export type Tab = 'timer' | 'projects' | 'history' | 'analytics'
+export type Tab = 'timer' | 'projects' | 'cards' | 'notes' | 'history' | 'analytics'
 
 interface NavbarProps {
   activeTab: Tab
@@ -19,6 +19,8 @@ interface NavbarProps {
 const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'timer', label: 'Focus', icon: Timer },
   { id: 'projects', label: 'Projects', icon: FolderKanban },
+  { id: 'cards', label: 'Cards', icon: Layers },
+  { id: 'notes', label: 'Notes', icon: NotebookPen },
   { id: 'history', label: 'History', icon: History },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
 ]
@@ -80,7 +82,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Icon className={`h-4 w-4 ${isActive ? 'text-brand-400' : ''}`} aria-hidden="true" />
-              <span className="hidden sm:inline">{tab.label}</span>
+              <span className="hidden lg:inline">{tab.label}</span>
             </button>
           )
         })}
