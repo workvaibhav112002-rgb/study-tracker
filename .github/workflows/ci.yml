@@ -91,8 +91,10 @@ jobs:
           PORT: "8080"
         run: |
           go build -o /tmp/server ./cmd/server
+          for i in $(seq 1 30); do pg_isready -h localhost -U test && break; sleep 1; done
           nohup /tmp/server > /tmp/server.log 2>&1 &
-          for i in $(seq 1 30); do curl -sf http://localhost:8080/api/health && break; sleep 1; done
+          for i in $(seq 1 60); do curl -sf http://localhost:8080/api/health && break; sleep 1; done
+          curl -sf http://localhost:8080/api/health
       - working-directory: frontend
         run: npm ci
       - working-directory: frontend
