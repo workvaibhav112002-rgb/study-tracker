@@ -14,6 +14,7 @@ import { HistoryTable } from './components/HistoryTable'
 import { SettingsModal } from './components/SettingsModal'
 import { AuthModal } from './components/AuthModal'
 import { ResetPasswordModal } from './components/ResetPasswordModal'
+import { Landing } from './components/Landing'
 import { useAppConfig } from './hooks/useAppConfig'
 import { cleanEntryLink, parseEntryLink } from './lib/entryLink'
 import { api } from './api/client'
@@ -73,6 +74,7 @@ const AppShell: React.FC = () => {
   const userId = auth.user?.id ?? null
   const [entry] = useState(() => parseEntryLink(window.location.pathname, window.location.search))
   const [resetToken, setResetToken] = useState<string | null>(() => (entry?.kind === 'reset' ? entry.token : null))
+  const [authView, setAuthView] = useState<'login' | 'register' | null>(null)
 
   const data = useAppData(userId)
   const taskState = useTasks(userId, data.selectedProjectId)
@@ -310,7 +312,11 @@ const AppShell: React.FC = () => {
           </div>
         )}
 
-        <div key={activeTab} className="animate-fade-up">
+        {auth.status === 'anonymous' && resetToken === null && (
+          <Landing onSignIn={() => setAuthView('login')} onRegister={() => setAuthView('register')} />
+        )}
+
+        <div key={activeTab} className={`animate-fade-up ${auth.status === 'anonymous' ? 'hidden' : ''}`}>
           {activeTab === 'timer' && (
             <>
               {reviewReady && !zen && (
@@ -376,9 +382,9 @@ const AppShell: React.FC = () => {
           {activeTab === 'analytics' && (
             <Suspense fallback={<AnalyticsSkeleton />}>
               {data.stats ? (
-                <AnalyticsDashboard stats={data.stats} heatmap={data.heatmap} hours={data.hours} review={data.review} loading={data.loading} error={data.error} onRetry={() => void data.reload()} />
+                <AnalyticsDashboard stats={data.stats} heatmap={data.heatmap} hours={data.hours} review={data.review} loading={data.loading} error={data.error} onRetry={() => void data.reload()} appUrl={config.app_url} />
               ) : data.error ? (
-                <AnalyticsDashboard stats={null} heatmap={[]} hours={[]} review={null} loading={false} error={data.error} onRetry={() => void data.reload()} />
+                <AnalyticsDashboard stats={null} heatmap={[]} hours={[]} review={null} loading={false} error={data.error} onRetry={() => void data.reload()} appUrl={config.app_url} />
               ) : (
                 <AnalyticsSkeleton />
               )}
@@ -426,7 +432,9 @@ const AppShell: React.FC = () => {
       />
 
       <AuthModal
-        isOpen={auth.status === 'anonymous' && resetToken === null}
+        isOpen={auth.status === 'anonymous' && resetToken === null && authView !== null}
+        initialView={authView ?? 'login'}
+        onClose={() => setAuthView(null)}
         config={config}
         onLogin={auth.login}
         onRegister={auth.register}

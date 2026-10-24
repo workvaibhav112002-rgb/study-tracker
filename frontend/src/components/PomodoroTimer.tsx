@@ -5,6 +5,7 @@ import { GoalRing } from './ui/GoalRing'
 import type { useTimer } from '../hooks/useTimer'
 import { longBreakInterval } from '../lib/timer'
 import { audioService } from '../services/audio'
+import { AmbientControl } from './AmbientControl'
 
 interface PomodoroTimerProps {
   timer: ReturnType<typeof useTimer>
@@ -281,6 +282,8 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
           <kbd className="rounded-md border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10px] text-ink-400">Ctrl K</kbd> commands
         </span>
       </p>
+
+      <AmbientControl />
 
       {/* Active project */}
       {activeProject && state.mode === 'work' && (

@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pi
 import { Flame, Clock, Sparkles, Download, Calendar, Award, RefreshCw, Zap, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import type { DailyStat, DashboardStats, HourStat, WeeklyReview } from '../types'
 import { WeeklyReviewCard } from './WeeklyReviewCard'
+import { ShareCardButton } from './ShareCardButton'
 import { HeatmapYear } from './HeatmapYear'
 import { BestHours } from './BestHours'
 import { api, errorMessage } from '../api/client'
@@ -15,6 +16,7 @@ interface AnalyticsDashboardProps {
   heatmap: DailyStat[]
   hours: HourStat[]
   review: WeeklyReview | null
+  appUrl: string
   loading: boolean
   error: string | null
   onRetry: () => void
@@ -40,7 +42,7 @@ interface PieDatum {
 
 import { ChartTooltip as TooltipCard } from './ui/ChartTooltip'
 
-export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, heatmap, hours, review, loading, error, onRetry }) => {
+export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, heatmap, hours, review, appUrl, loading, error, onRetry }) => {
   const toast = useToast()
   const [exporting, setExporting] = useState(false)
 
@@ -101,9 +103,12 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, h
           <h2 className="text-2xl font-semibold tracking-tight text-ink-50 sm:text-3xl">Analytics</h2>
           <p className="mt-1.5 text-sm text-ink-400">{formatMinutes(stats.total_minutes)} studied in total, across every project.</p>
         </div>
-        <Button variant="secondary" size="lg" onClick={handleExport} loading={exporting} icon={<Download className="h-4 w-4 text-brand-400" aria-hidden="true" />}>
-          {exporting ? 'Exporting…' : 'Export backup'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <ShareCardButton stats={stats} appUrl={appUrl} />
+          <Button variant="secondary" size="lg" onClick={handleExport} loading={exporting} icon={<Download className="h-4 w-4 text-brand-400" aria-hidden="true" />}>
+            {exporting ? 'Exporting…' : 'Export backup'}
+          </Button>
+        </div>
       </div>
 
       {review && (
