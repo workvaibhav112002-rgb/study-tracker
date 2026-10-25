@@ -82,6 +82,27 @@ export default {
           '0%, 100%': { opacity: '0.55' },
           '50%': { opacity: '1' },
         },
+        'gradient-pan': {
+          '0%': { backgroundPosition: '0% 50%' },
+          '100%': { backgroundPosition: '200% 50%' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
+        blob: {
+          '0%, 100%': { transform: 'translate3d(0, 0, 0) scale(1)' },
+          '33%': { transform: 'translate3d(40px, -30px, 0) scale(1.08)' },
+          '66%': { transform: 'translate3d(-30px, 24px, 0) scale(0.94)' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        count: {
+          '0%': { opacity: '0', transform: 'translateY(6px) scale(0.96)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 180ms ease-out both',
@@ -89,6 +110,11 @@ export default {
         'scale-in': 'scale-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both',
         'slide-up': 'slide-up 240ms cubic-bezier(0.22, 1, 0.36, 1) both',
         breathe: 'breathe 2.4s ease-in-out infinite',
+        'gradient-pan': 'gradient-pan 8s linear infinite',
+        float: 'float 6s ease-in-out infinite',
+        blob: 'blob 18s ease-in-out infinite',
+        shimmer: 'shimmer 2.5s linear infinite',
+        count: 'count 300ms cubic-bezier(0.22, 1, 0.36, 1) both',
       },
       transitionTimingFunction: {
         premium: 'cubic-bezier(0.22, 1, 0.36, 1)',

@@ -32,6 +32,7 @@ import { useFriends } from './hooks/useFriends'
 import { FriendsPanel } from './components/FriendsPanel'
 import { PublicProfilePage } from './components/PublicProfilePage'
 import { suggestWorkDuration } from './lib/adaptive'
+import { clearPendingDemo, readPendingDemo, savePendingDemo } from './lib/pendingDemo'
 import { useAuth } from './hooks/useAuth'
 import { useAppData } from './hooks/useAppData'
 import { useTimer, type TimerFinish } from './hooks/useTimer'
@@ -189,6 +190,33 @@ const AppShell: React.FC = () => {
       void clearApiCache()
     }
   }, [auth.status])
+
+  // A session run on the landing page is logged to the first project once the
+  // account exists. Cleared before posting so a failure can never loop.
+  const demoPosted = useRef(false)
+  useEffect(() => {
+    if (auth.status === 'anonymous') demoPosted.current = false
+    if (auth.status !== 'authenticated' || !data.loaded || data.projects.length === 0 || demoPosted.current) return
+    const pending = readPendingDemo()
+    if (!pending) return
+    demoPosted.current = true
+    clearPendingDemo()
+    void run(
+      () =>
+        data.createSession({
+          project_id: data.projects[0].id,
+          start_time: pending.startedAt,
+          end_time: pending.endedAt,
+          duration_seconds: pending.elapsedSeconds,
+          session_type: 'custom',
+          focus_rating: 4,
+          notes: 'Logged from the landing page',
+          interruptions: 0,
+          task_id: null,
+        }),
+      'Your landing-page session was saved.',
+    ).catch(() => undefined)
+  }, [auth.status, data, run])
 
   // Emailed magic link: redeem it once, then clean the address bar.
   const magicHandled = useRef(false)
@@ -422,7 +450,14 @@ const AppShell: React.FC = () => {
         )}
 
         {auth.status === 'anonymous' && resetToken === null && (
-          <Landing onSignIn={() => setAuthView('login')} onRegister={() => setAuthView('register')} />
+          <Landing
+            onSignIn={() => setAuthView('login')}
+            onRegister={() => setAuthView('register')}
+            onDemoFinished={(session, intent) => {
+              savePendingDemo(session)
+              setAuthView(intent)
+            }}
+          />
         )}
 
         <div key={activeTab} className={`animate-fade-up ${auth.status === 'anonymous' ? 'hidden' : ''}`}>

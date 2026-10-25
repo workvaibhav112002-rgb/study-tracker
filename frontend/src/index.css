@@ -112,6 +112,25 @@
 }
 
 @layer components {
+  /* Landing hero: animated gradient headline and pointer-parallax offsets. */
+  .gradient-text {
+    background-image: linear-gradient(90deg, rgb(var(--brand-300)), #4cc2f5, rgb(var(--brand-500)), #8b7cf6, rgb(var(--brand-300)));
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    @apply animate-gradient-pan;
+  }
+  .parallax {
+    --px: 0;
+    --py: 0;
+  }
+  .parallax-layer {
+    transform: translate3d(calc(var(--px) * var(--depth, 16px)), calc(var(--py) * var(--depth, 16px)), 0);
+    transition: transform 120ms linear;
+    will-change: transform;
+  }
+
   /* Layered surface: hairline border, faint fill, inner top highlight. */
   .card {
     @apply rounded-3xl border border-fg/[0.06] bg-fg/[0.03] shadow-card transition-all duration-300 ease-premium;

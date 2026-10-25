@@ -4,6 +4,8 @@ test.use({ viewport: { width: 375, height: 700 } })
 
 test('the signed-in shell fits a phone without horizontal scroll', async ({ page }) => {
   await page.goto('/')
+  await expect(page.getByRole('button', { name: 'Pause tour' })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   await page.getByRole('button', { name: 'Start for free' }).click()
   const dialog = page.getByRole('dialog')
   await dialog.getByLabel('Name').fill('Phone User')
