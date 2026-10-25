@@ -337,6 +337,7 @@ export const api = {
   // Export: streams the JSON backup to a download.
   exportBackup: () => download('/export', `study_tracker_backup_${new Date().toISOString().slice(0, 10)}.json`),
   exportSessionsCsv: () => download(`/export.csv?tz=${tz()}`, `study_tracker_sessions_${new Date().toISOString().slice(0, 10)}.csv`),
+  exportWorkbook: () => download(`/export.xlsx?tz=${tz()}`, `study_tracker_${new Date().toISOString().slice(0, 10)}.xlsx`),
 }
 
 /** Fetches an authenticated file and hands it to the browser as a download. */

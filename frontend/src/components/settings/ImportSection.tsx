@@ -15,6 +15,7 @@ export const ImportSection: React.FC<{ onImported: () => Promise<void> | void }>
   const [busy, setBusy] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [exportingCsv, setExportingCsv] = useState(false)
+  const [exportingXlsx, setExportingXlsx] = useState(false)
   const [skipped, setSkipped] = useState(0)
 
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,13 +81,25 @@ export const ImportSection: React.FC<{ onImported: () => Promise<void> | void }>
     }
   }
 
+  const exportXlsx = async () => {
+    setExportingXlsx(true)
+    try {
+      await api.exportWorkbook()
+      toast.success('Excel workbook downloaded.')
+    } catch (err) {
+      toast.error(errorMessage(err))
+    } finally {
+      setExportingXlsx(false)
+    }
+  }
+
   return (
     <section aria-labelledby="data-section" className="space-y-3">
       <div>
         <h3 id="data-section" className="eyebrow">
           Your data
         </h3>
-        <p className="mt-1 text-xs text-ink-500">Download everything as JSON or your sessions as CSV. Restore a backup, or import a CSV with project, start_time and duration_minutes columns. Duplicates are skipped.</p>
+        <p className="mt-1 text-xs text-ink-500">Download everything as JSON, an Excel workbook with a sheet per data type, or your sessions as CSV. Restore a backup, or import a CSV with project, start_time and duration_minutes columns. Duplicates are skipped.</p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" variant="secondary" onClick={exportNow} loading={exporting} icon={<Download className="h-3.5 w-3.5 text-brand-400" aria-hidden="true" />}>
@@ -94,6 +107,9 @@ export const ImportSection: React.FC<{ onImported: () => Promise<void> | void }>
         </Button>
         <Button size="sm" variant="secondary" onClick={exportCsv} loading={exportingCsv} icon={<FileSpreadsheet className="h-3.5 w-3.5 text-brand-400" aria-hidden="true" />}>
           Sessions CSV
+        </Button>
+        <Button size="sm" variant="secondary" onClick={exportXlsx} loading={exportingXlsx} icon={<FileSpreadsheet className="h-3.5 w-3.5 text-brand-400" aria-hidden="true" />}>
+          Excel workbook
         </Button>
         <label className="focus-ring inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-fg/[0.08] bg-fg/[0.06] px-3 text-xs font-medium text-ink-100 shadow-inner-hi transition hover:bg-fg/[0.10]">
           <Upload className="h-3.5 w-3.5 text-brand-400" aria-hidden="true" />

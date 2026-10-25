@@ -197,6 +197,7 @@ func NewRouter(d Deps) http.Handler {
 				r.Post("/settings", a.updateSettings)
 				r.Get("/export", a.export)
 				r.Get("/export.csv", a.exportCSV)
+				r.Get("/export.xlsx", a.exportXLSX)
 			})
 		})
 	})

@@ -88,6 +88,7 @@ All routes are under `/api`. Authenticated routes need `Authorization: Bearer <t
 | POST   | /settings             | yes  | validated ranges                                          |
 | GET    | /export               | yes  | JSON download of everything you own                       |
 | GET    | /export.csv           | yes  | sessions as CSV (`?tz=`), re-importable                   |
+| GET    | /export.xlsx          | yes  | Excel workbook: Sessions, Projects, Tasks, Flashcards, Notes, Summary (`?tz=`) |
 | POST   | /import               | yes  | restore an export; upserts projects, skips duplicate sessions (2 MB) |
 | GET    | /tasks                | yes  | `?project_id=&done=`                                      |
 | POST   | /tasks                | yes  | `{project_id,title,estimate_pomodoros}`                   |
