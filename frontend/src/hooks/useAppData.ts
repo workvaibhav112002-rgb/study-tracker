@@ -9,6 +9,7 @@ import {
   type Milestone,
   type HourStat,
   type Project,
+  type ExamTemplate,
   type ProjectInput,
   type Session,
   type SessionInput,
@@ -131,6 +132,10 @@ export function useAppData(userId: number | null) {
     [],
   )
 
+  const setExamTemplate = useCallback(async (id: number, template: ExamTemplate | null) => {
+    const updated = await api.setExamTemplate(id, template)
+    setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, ...updated } : p)))
+  }, [])
   const updateProject = useCallback(async (id: number, input: ProjectInput) => {
     const updated = await api.updateProject(id, input)
     setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, ...updated } : p)))
@@ -190,6 +195,7 @@ export function useAppData(userId: number | null) {
     reload,
     createProject,
     updateProject,
+    setExamTemplate,
     deleteProject,
     createSession,
     deleteSession,

@@ -15,12 +15,12 @@ interface ModalProps {
   align?: 'left' | 'center'
   /** When false the dialog has no close button and ignores Escape/backdrop. */
   dismissible?: boolean
-  size?: 'md' | 'lg'
+  size?: 'md' | 'lg' | 'xl'
   rounded?: '2xl' | '3xl'
   children: React.ReactNode
 }
 
-const WIDTHS = { md: 'max-w-md', lg: 'max-w-lg' } as const
+const WIDTHS = { md: 'max-w-md', lg: 'max-w-lg', xl: 'max-w-2xl' } as const
 const RADII = { '2xl': 'rounded-2xl', '3xl': 'rounded-3xl' } as const
 
 /**

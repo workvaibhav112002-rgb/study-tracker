@@ -93,6 +93,7 @@ export interface Project {
   target_minutes_per_day: number
   exam_date?: string | null
   planned_hours_per_week?: number | null
+  exam_template?: ExamTemplate | null
   created_at?: string
   total_minutes?: number
   week_minutes?: number
@@ -341,4 +342,112 @@ export interface FeedbackSubmission {
   type: FeedbackType
   message: string
   email?: string
+}
+
+// ---- Mock tests and mistake log ----
+
+export interface ExamSection {
+  name: string
+  questions: number
+  marks_each: number
+  minutes: number
+}
+
+export interface ExamTemplate {
+  key: string
+  sections: ExamSection[]
+  /** Share of a question's marks lost per wrong answer, e.g. 0.25. */
+  negative_fraction: number
+  target_score: number
+  accuracy_threshold: number
+  penalty_limit: number
+}
+
+export interface MockSection {
+  name: string
+  questions: number
+  correct: number
+  incorrect: number
+  seconds: number
+  marks_each: number
+  negative_each: number
+}
+
+export interface Mock {
+  id: number
+  project_id: number
+  name: string
+  provider: string
+  attempted_on: string
+  percentile: number | null
+  rank: number | null
+  sections: MockSection[]
+  notes: string
+  created_at?: string
+  updated_at?: string
+}
+
+export type MockInput = Omit<Mock, 'id' | 'created_at' | 'updated_at'>
+
+export type RootCause = 'concept' | 'procedural' | 'time_ego'
+export type MistakeStatus = 'active' | 'locked_in' | 'review_next_week' | 'needs_drill'
+export type MistakeGrade = Exclude<MistakeStatus, 'active'>
+
+export interface Mistake {
+  id: number
+  project_id: number
+  mock_id: number | null
+  subject: string
+  pattern: string
+  root_cause: RootCause
+  question: string
+  rule: string
+  solution: string
+  actual_seconds: number | null
+  ideal_seconds: number | null
+  status: MistakeStatus
+  last_reviewed_at: string | null
+  created_at: string
+  updated_at?: string
+}
+
+export interface MistakeInput {
+  project_id: number
+  mock_id: number | null
+  subject: string
+  pattern: string
+  root_cause: RootCause
+  question: string
+  rule: string
+  solution: string
+  actual_seconds: number | null
+  ideal_seconds: number | null
+  status?: MistakeStatus
+}
+
+export interface MistakeFilter {
+  projectId?: number
+  mockId?: number
+  subject?: string
+  pattern?: string
+  rootCause?: RootCause | ''
+  status?: MistakeStatus | ''
+  q?: string
+}
+
+export interface RepeatAlert {
+  subject: string
+  pattern: string
+  root_cause: RootCause
+  count: number
+  last_at: string
+}
+
+export interface MistakeImportResult {
+  rows: number
+  valid: number
+  imported: number
+  dry_run: boolean
+  errors: { row: number; message: string }[]
+  sample: { subject: string; pattern: string; root_cause: string; question: string }[]
 }
