@@ -7,10 +7,10 @@ interface Props {
   onClose: () => void
 }
 
-const SHORTCUTS: { keys: string[]; label: string; scope: 'Anywhere' | 'Timer tab' | 'Mocks tab' }[] = [
+const SHORTCUTS: { keys: string[]; label: string; scope: 'Anywhere' | 'Timer tab' | 'Mistakes tab' }[] = [
   { keys: ['Ctrl', 'K'], label: 'Command palette', scope: 'Anywhere' },
   { keys: ['?'], label: 'This cheat sheet', scope: 'Anywhere' },
-  { keys: ['1', '…', '8'], label: 'Switch tabs (Focus, Projects, Cards, Notes, History, Analytics, Friends, Mocks)', scope: 'Anywhere' },
+  { keys: ['1', '…', '8'], label: 'Switch tabs (Focus, Projects, Cards, Notes, History, Analytics, Friends, Mistakes)', scope: 'Anywhere' },
   { keys: ['N'], label: 'Log a past session', scope: 'Anywhere' },
   { keys: [','], label: 'Open settings', scope: 'Anywhere' },
   { keys: ['Space'], label: 'Start or pause', scope: 'Timer tab' },
@@ -18,10 +18,10 @@ const SHORTCUTS: { keys: string[]; label: string; scope: 'Anywhere' | 'Timer tab
   { keys: ['S'], label: 'Skip to the next interval', scope: 'Timer tab' },
   { keys: ['F'], label: 'Zen mode', scope: 'Timer tab' },
   { keys: ['+', '-'], label: 'Add or remove five minutes', scope: 'Timer tab' },
-  { keys: ['M'], label: 'Log a mock test', scope: 'Mocks tab' },
-  { keys: ['E'], label: 'Log a mistake', scope: 'Mocks tab' },
-  { keys: ['Ctrl', 'Enter'], label: 'Save the mistake and start the next', scope: 'Mocks tab' },
-  { keys: ['Space', '1–3'], label: 'Sunday Reset: flip and grade', scope: 'Mocks tab' },
+  { keys: ['E'], label: 'Log a mistake', scope: 'Mistakes tab' },
+  { keys: ['T'], label: 'Log a test score (when tests are on)', scope: 'Mistakes tab' },
+  { keys: ['Ctrl', 'Enter'], label: 'Save the mistake and start the next', scope: 'Mistakes tab' },
+  { keys: ['Space', '1–3'], label: 'Review: flip and grade', scope: 'Mistakes tab' },
 ]
 
 const Key: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -30,7 +30,7 @@ const Key: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 export const ShortcutsModal: React.FC<Props> = ({ isOpen, onClose }) => (
   <Modal isOpen={isOpen} onClose={onClose} title="Keyboard shortcuts" description="Shortcuts are ignored while typing or when a dialog is open." icon={<Keyboard className="h-5 w-5" />}>
-    {(['Anywhere', 'Timer tab', 'Mocks tab'] as const).map((scope) => (
+    {(['Anywhere', 'Timer tab', 'Mistakes tab'] as const).map((scope) => (
       <section key={scope} className="mb-4 last:mb-0" aria-label={scope}>
         <h3 className="eyebrow mb-2">{scope}</h3>
         <ul className="divide-y divide-fg/[0.06] rounded-2xl border border-fg/[0.06]">

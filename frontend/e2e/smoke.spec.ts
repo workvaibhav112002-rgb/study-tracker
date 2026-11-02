@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { createProject } from './helpers'
 
 const email = `e2e-${Date.now()}@example.test`
 const password = 'e2e-password-123'
@@ -14,9 +15,11 @@ test('register, run a timer, log a session, see analytics', async ({ page }) => 
   await dialog.getByLabel('Password', { exact: true }).fill(password)
   await dialog.getByRole('button', { name: 'Create account' }).click()
 
-  // Signed in: seed projects exist and the timer is ready.
+  // Signed in: no sample projects; after creating one the timer is ready.
   await expect(page.getByRole('timer')).toHaveText('25:00')
-  await expect(page.getByLabel('Project for this session')).toContainText('Go Programming')
+  await createProject(page, 'Biology')
+  await page.getByRole('navigation', { name: 'Primary' }).getByRole('button', { name: 'Focus' }).click()
+  await expect(page.getByLabel('Project for this session')).toContainText('Biology')
 
   // Timer runs, survives a reload, and can be paused.
   await page.getByRole('button', { name: 'Start', exact: true }).click()

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Mistake, Mock } from '../types'
-import { clearsTarget, cutoffTrajectory, marksLeakage, mistakesToCsv, patternMatrix, sectionForSubject, totalWastedMinutes } from './mockInsights'
+import { clearsTarget, cutoffTrajectory, marksLeakage, sectionForSubject } from './mockInsights'
 
 const mock = (id: number, date: string, correct: number, incorrect: number): Mock => ({
   id, project_id: 1, name: `Mock ${id}`, provider: '', attempted_on: date, percentile: null, rank: null, notes: '',
@@ -12,7 +12,7 @@ const mock = (id: number, date: string, correct: number, incorrect: number): Moc
 
 let nextId = 1
 const mistake = (over: Partial<Mistake>): Mistake => ({
-  id: nextId++, project_id: 1, mock_id: null, subject: 'Quant', pattern: 'DI', root_cause: 'procedural', question: '', rule: '', solution: '',
+  id: nextId++, project_id: 1, mock_id: null, tags: { subject: 'Quant', topic: 'DI', mistake_type: 'careless' }, extra: {}, question: '', rule: '', solution: '',
   actual_seconds: null, ideal_seconds: null, status: 'active', last_reviewed_at: null, created_at: '2026-10-01T10:00:00Z', ...over,
 })
 
@@ -40,45 +40,16 @@ describe('sectionForSubject', () => {
 })
 
 describe('marksLeakage', () => {
-  it('splits lost marks by root cause and computes the clean score', () => {
+  it('sums marks lost per mistake type using the matching section', () => {
     const m = mock(1, '2026-10-01', 20, 4)
     const list = [
-      mistake({ mock_id: 1, root_cause: 'procedural' }),
-      mistake({ mock_id: 1, root_cause: 'procedural' }),
-      mistake({ mock_id: 1, root_cause: 'time_ego', subject: 'Reasoning' }),
-      mistake({ mock_id: 1, root_cause: 'concept' }),
-      mistake({ mock_id: null, root_cause: 'procedural' }),
+      mistake({ mock_id: 1 }),
+      mistake({ mock_id: 1 }),
+      mistake({ mock_id: 1, tags: { subject: 'Reasoning', mistake_type: 'time' } }),
+      mistake({ mock_id: 1, tags: { mistake_type: 'didnt_know' } }),
+      mistake({ mock_id: null }),
     ]
     const [p] = marksLeakage([m], list)
-    expect(p).toMatchObject({ net: 49, silly: 2.5, ego: 1.25, concept: 1.25, clean: 52.75, maxMarks: 70 })
-  })
-})
-
-describe('patternMatrix', () => {
-  it('zones patterns by frequency and overtime', () => {
-    const list = [
-      ...[0, 1, 2].map(() => mistake({ pattern: 'Puzzle', subject: 'Reasoning', actual_seconds: 180, ideal_seconds: 60 })),
-      ...[0, 1, 2].map(() => mistake({ pattern: 'Syllogism', subject: 'Reasoning', actual_seconds: 40, ideal_seconds: 45 })),
-      mistake({ pattern: 'Series', actual_seconds: 90, ideal_seconds: 60 }),
-      mistake({ pattern: 'RC', subject: 'English' }),
-    ]
-    const m = patternMatrix(list)
-    expect(m.map((p) => [p.pattern, p.zone])).toEqual([
-      ['Puzzle', 'red'],
-      ['Syllogism', 'yellow'],
-      ['Series', 'yellow'],
-      ['RC', 'green'],
-    ])
-    expect(m[0]).toMatchObject({ count: 3, avgActual: 180, avgIdeal: 60, wastedSeconds: 360, subject: 'Reasoning' })
-    expect(totalWastedMinutes(list)).toBe(7)
-  })
-})
-
-describe('mistakesToCsv', () => {
-  it('quotes and neutralises formulas', () => {
-    const csv = mistakesToCsv([mistake({ question: '=SUM(A1)', rule: 'a, "b"' })], () => 'P', () => '')
-    const line = csv.split('\r\n')[1]
-    expect(line).toContain("'=SUM(A1)")
-    expect(line).toContain('"a, ""b"""')
+    expect(p).toMatchObject({ net: 49, maxMarks: 70, lost: { careless: 2.5, time: 1.25, didnt_know: 1.25 } })
   })
 })

@@ -10,6 +10,7 @@ import {
   type HourStat,
   type Project,
   type ExamTemplate,
+  type JournalConfig,
   type ProjectInput,
   type Session,
   type SessionInput,
@@ -132,6 +133,10 @@ export function useAppData(userId: number | null) {
     [],
   )
 
+  const setProjectJournal = useCallback(async (id: number, config: JournalConfig | null) => {
+    const updated = await api.setProjectJournal(id, config)
+    setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, ...updated } : p)))
+  }, [])
   const setExamTemplate = useCallback(async (id: number, template: ExamTemplate | null) => {
     const updated = await api.setExamTemplate(id, template)
     setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, ...updated } : p)))
@@ -196,6 +201,7 @@ export function useAppData(userId: number | null) {
     createProject,
     updateProject,
     setExamTemplate,
+    setProjectJournal,
     deleteProject,
     createSession,
     deleteSession,

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { createProject } from './helpers'
 
 test('the landing page keeps its contracts and the tour respects reduced motion', async ({ page }) => {
   await page.goto('/')
@@ -40,6 +41,9 @@ test('a visitor can run the timer, then save it to a brand-new account', async (
   await dialog.getByLabel('Password', { exact: true }).fill('e2e-password-123')
   await dialog.getByRole('button', { name: 'Create account' }).click()
 
+  // The account starts empty, so the session waits for the first project.
+  await expect(page.getByText('Create your first project and your landing-page session will be saved to it.')).toBeVisible({ timeout: 15_000 })
+  await createProject(page, 'Biology')
   await expect(page.getByText('Your landing-page session was saved.')).toBeVisible({ timeout: 15_000 })
   await page.getByRole('navigation', { name: 'Primary' }).getByRole('button', { name: 'History' }).click()
   await expect(page.locator('table')).toContainText('Logged from the landing page')

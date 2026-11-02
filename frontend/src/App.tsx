@@ -29,11 +29,12 @@ import { NotesPanel } from './components/NotesPanel'
 import { useCards } from './hooks/useCards'
 import { useNotes } from './hooks/useNotes'
 import { useFriends } from './hooks/useFriends'
-import { useMocks, useRepeatAlerts } from './hooks/useMocks'
+import { useJournal, usePatternAlerts } from './hooks/useJournal'
 import { clearAllDrafts } from './hooks/useDraft'
-import { RepeatAlertBanner } from './components/mocks/RepeatAlertBanner'
-import type { MocksAction } from './components/mocks/MocksPanel'
-import type { RepeatAlert } from './types'
+import { PatternBanner } from './components/journal/PatternBanner'
+import type { JournalAction } from './components/journal/JournalPanel'
+import type { PatternAlert } from './types'
+import { effectiveConfig } from './lib/journal'
 import { FriendsPanel } from './components/FriendsPanel'
 import { PublicProfilePage } from './components/PublicProfilePage'
 import { suggestWorkDuration } from './lib/adaptive'
@@ -53,9 +54,11 @@ import { errorMessage } from './api/client'
 import { audioService } from './services/audio'
 
 // Recharts is heavy; load it only when the analytics tab is opened.
-const TAB_ORDER: Tab[] = ['timer', 'projects', 'cards', 'notes', 'history', 'analytics', 'friends', 'mocks']
+const TAB_ORDER: Tab[] = ['timer', 'projects', 'cards', 'notes', 'history', 'analytics', 'friends', 'mistakes']
+// Older links and saved tabs used 'mocks' for the mistake journal.
+const tabAlias = (t: string | null): Tab | null => (t === 'mocks' ? 'mistakes' : (t as Tab | null))
 
-const MocksPanel = lazy(() => import('./components/mocks/MocksPanel'))
+const JournalPanel = lazy(() => import('./components/journal/JournalPanel'))
 
 const AnalyticsDashboard = lazy(() =>
   import('./components/AnalyticsDashboard').then((m) => ({ default: m.AnalyticsDashboard })),
@@ -68,6 +71,7 @@ export const App: React.FC = () => (
 )
 
 const INTERACTIVE = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'])
+const TYPING = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
 const favicon = typeof document !== 'undefined' ? createFavicon() : null
 const MODE_COLORS = { work: '#34d399', short_break: '#7dd3fc', long_break: '#c4b5fd' } as const
 
@@ -106,10 +110,10 @@ const AppShell: React.FC = () => {
 
   // Remember the tab across reloads (per browser tab, so two windows stay independent).
   const [activeTab, setActiveTabState] = useState<Tab>(() => {
-    const fromLink = new URLSearchParams(window.location.search).get('tab') as Tab | null
+    const fromLink = tabAlias(new URLSearchParams(window.location.search).get('tab'))
     if (fromLink && TAB_ORDER.includes(fromLink)) return fromLink
     try {
-      const saved = sessionStorage.getItem('study_tracker_tab') as Tab | null
+      const saved = tabAlias(sessionStorage.getItem('study_tracker_tab'))
       return saved && TAB_ORDER.includes(saved) ? saved : 'timer'
     } catch {
       return 'timer'
@@ -124,22 +128,22 @@ const AppShell: React.FC = () => {
     }
   }, [])
   const friendState = useFriends(userId, activeTab === 'friends')
-  const mockState = useMocks(userId, activeTab === 'mocks')
-  const [repeatVersion, setRepeatVersion] = useState(0)
-  const repeats = useRepeatAlerts(userId, repeatVersion)
-  const [mocksAction, setMocksAction] = useState<MocksAction | null>(null)
-  const [focusRepeat, setFocusRepeat] = useState<RepeatAlert | null>(null)
-  const [repeatDismissed, setRepeatDismissed] = useState<string | null>(() => {
+  const journalState = useJournal(userId, activeTab === 'mistakes')
+  const [alertVersion, setAlertVersion] = useState(0)
+  const { alerts: patternAlerts, userConfig: bannerConfig } = usePatternAlerts(userId, alertVersion)
+  const [journalAction, setJournalAction] = useState<JournalAction | null>(null)
+  const [focusAlert, setFocusAlert] = useState<PatternAlert | null>(null)
+  const [alertDismissed, setAlertDismissed] = useState<string | null>(() => {
     try {
-      return sessionStorage.getItem('study_tracker_repeat_dismissed')
+      return sessionStorage.getItem('study_tracker_pattern_dismissed')
     } catch {
       return null
     }
   })
-  const repeatKey = repeats.map((r) => `${r.pattern}|${r.root_cause}|${r.count}`).join(';')
-  const requestMocks = (kind: MocksAction['kind']) => {
-    setActiveTab('mocks')
-    setMocksAction((a) => ({ kind, n: (a?.n ?? 0) + 1 }))
+  const alertKey = patternAlerts.map((a) => `${a.project_id}|${a.values.join('|')}|${a.count}`).join(';')
+  const requestJournal = (kind: JournalAction['kind']) => {
+    setActiveTab('mistakes')
+    setJournalAction((a) => ({ kind, n: (a?.n ?? 0) + 1 }))
   }
   const suggestion = useMemo(() => suggestWorkDuration(data.sessions, data.settings), [data.sessions, data.settings])
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -221,11 +225,23 @@ const AppShell: React.FC = () => {
   // A session run on the landing page is logged to the first project once the
   // account exists. Cleared before posting so a failure can never loop.
   const demoPosted = useRef(false)
+  const demoHinted = useRef(false)
   useEffect(() => {
-    if (auth.status === 'anonymous') demoPosted.current = false
-    if (auth.status !== 'authenticated' || !data.loaded || data.projects.length === 0 || demoPosted.current) return
+    if (auth.status === 'anonymous') {
+      demoPosted.current = false
+      demoHinted.current = false
+    }
+    if (auth.status !== 'authenticated' || !data.loaded || demoPosted.current) return
     const pending = readPendingDemo()
     if (!pending) return
+    // New accounts start without projects: keep the session until the first one exists.
+    if (data.projects.length === 0) {
+      if (!demoHinted.current) {
+        demoHinted.current = true
+        toast.info('Create your first project and your landing-page session will be saved to it.')
+      }
+      return
+    }
     demoPosted.current = true
     clearPendingDemo()
     void run(
@@ -243,7 +259,7 @@ const AppShell: React.FC = () => {
         }),
       'Your landing-page session was saved.',
     ).catch(() => undefined)
-  }, [auth.status, data, run])
+  }, [auth.status, data, run, toast])
 
   // Emailed magic link: redeem it once, then clean the address bar.
   const magicHandled = useRef(false)
@@ -299,7 +315,9 @@ const AppShell: React.FC = () => {
       }
       if (e.metaKey || e.ctrlKey || e.altKey) return
       const target = e.target as HTMLElement | null
-      if (target && (INTERACTIVE.has(target.tagName) || target.isContentEditable)) return
+      if (target && (TYPING.has(target.tagName) || target.isContentEditable)) return
+      // Space and Enter activate a focused button; other keys are free to use.
+      if (target && INTERACTIVE.has(target.tagName) && (e.code === 'Space' || e.key === 'Enter')) return
       if (document.querySelector('[role="dialog"]')) return
       const key = e.key
       const tabIndex = ['1', '2', '3', '4', '5', '6', '7', '8'].indexOf(key)
@@ -374,10 +392,11 @@ const AppShell: React.FC = () => {
     { id: 'nav-history', label: 'Go to history', hint: '5', group: 'Navigate', run: () => setActiveTab('history') },
     { id: 'nav-analytics', label: 'Go to analytics', hint: '6', keywords: 'stats review heatmap', group: 'Navigate', run: () => setActiveTab('analytics') },
     { id: 'nav-friends', label: 'Go to friends', hint: '7', keywords: 'leaderboard invite study together', group: 'Navigate', run: () => setActiveTab('friends') },
-    { id: 'nav-mocks', label: 'Go to mock tests', hint: '8', keywords: 'mocks exam score error log', group: 'Navigate', run: () => setActiveTab('mocks') },
-    { id: 'log-mock', label: 'Log a mock test', keywords: 'exam score sections', group: 'Actions', run: () => requestMocks('mock') },
-    { id: 'log-mistake', label: 'Log a mistake', keywords: 'error log wrong question trap', group: 'Actions', run: () => requestMocks('mistake') },
-    { id: 'sunday-reset', label: 'Start Sunday Reset', keywords: 'revise mistakes weekly flashcards', group: 'Actions', run: () => requestMocks('reset') },
+    { id: 'nav-mistakes', label: 'Go to mistakes', hint: '8', keywords: 'journal error log patterns dashboard', group: 'Navigate', run: () => setActiveTab('mistakes') },
+    { id: 'log-mistake', label: 'Log a mistake', keywords: 'error journal wrong question', group: 'Actions', run: () => requestJournal('mistake') },
+    { id: 'log-test', label: 'Log a test score', keywords: 'exam mock score sections', group: 'Actions', run: () => requestJournal('test') },
+    { id: 'weekly-review', label: 'Start the weekly mistake review', keywords: 'revise mistakes review lessons', group: 'Actions', run: () => requestJournal('review') },
+    { id: 'customize-journal', label: 'Customize the mistake journal', keywords: 'categories fields setup preset', group: 'Actions', run: () => requestJournal('customize') },
     ...data.projects.map((p) => ({ id: `project-${p.id}`, label: `Focus on ${p.name}`, keywords: 'project select', group: 'Projects' as const, run: () => { data.setSelectedProjectId(p.id); setActiveTab('timer') } })),
     { id: 'new-project', label: 'New project', group: 'Projects', run: requestCreateProject },
     { id: 'review', label: cardState.stats.due > 0 ? `Review ${cardState.stats.due} due cards` : 'Open flashcards', keywords: 'flashcards srs study', group: 'Actions', run: () => { setActiveTab('cards'); setReviewSignal((n) => n + 1) } },
@@ -507,18 +526,19 @@ const AppShell: React.FC = () => {
                   </span>
                 </div>
               )}
-              {!zen && repeats.length > 0 && repeatDismissed !== repeatKey && (
-                <RepeatAlertBanner
+              {!zen && patternAlerts.length > 0 && alertDismissed !== alertKey && (
+                <PatternBanner
                   compact
-                  alerts={repeats}
+                  alerts={patternAlerts}
+                  configFor={(id) => effectiveConfig(data.projects.find((p) => p.id === id), bannerConfig)}
                   onOpen={(a) => {
-                    setFocusRepeat(a)
-                    setActiveTab('mocks')
+                    setFocusAlert(a)
+                    setActiveTab('mistakes')
                   }}
                   onDismiss={() => {
-                    setRepeatDismissed(repeatKey)
+                    setAlertDismissed(alertKey)
                     try {
-                      sessionStorage.setItem('study_tracker_repeat_dismissed', repeatKey)
+                      sessionStorage.setItem('study_tracker_pattern_dismissed', alertKey)
                     } catch {
                       /* ignore */
                     }
@@ -633,22 +653,23 @@ const AppShell: React.FC = () => {
               onRefresh={friendState.refresh}
             />
           )}
-          {activeTab === 'mocks' && auth.user && (
+          {activeTab === 'mistakes' && auth.user && (
             <Suspense fallback={<AnalyticsSkeleton />}>
-              <MocksPanel
+              <JournalPanel
                 userId={auth.user.id}
                 projects={data.projects}
                 selectedProjectId={data.selectedProjectId}
                 onSelectProject={data.setSelectedProjectId}
                 onCreateProject={requestCreateProject}
-                state={mockState}
-                repeats={repeats}
-                onRepeatsChanged={() => setRepeatVersion((v) => v + 1)}
+                state={journalState}
+                onAlertsChanged={() => setAlertVersion((v) => v + 1)}
                 onSetTemplate={data.setExamTemplate}
+                onSetProjectJournal={data.setProjectJournal}
+                onCreateCard={(c) => (c.project_id === data.selectedProjectId ? cardState.add(c) : api.createCard(c))}
                 run={run}
-                action={mocksAction}
-                focusRepeat={focusRepeat}
-                onFocusRepeatHandled={() => setFocusRepeat(null)}
+                action={journalAction}
+                focusAlert={focusAlert}
+                onFocusAlertHandled={() => setFocusAlert(null)}
               />
             </Suspense>
           )}

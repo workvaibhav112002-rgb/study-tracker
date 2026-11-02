@@ -94,6 +94,7 @@ export interface Project {
   exam_date?: string | null
   planned_hours_per_week?: number | null
   exam_template?: ExamTemplate | null
+  journal_config?: JournalConfig | null
   created_at?: string
   total_minutes?: number
   week_minutes?: number
@@ -389,17 +390,19 @@ export interface Mock {
 
 export type MockInput = Omit<Mock, 'id' | 'created_at' | 'updated_at'>
 
-export type RootCause = 'concept' | 'procedural' | 'time_ego'
 export type MistakeStatus = 'active' | 'locked_in' | 'review_next_week' | 'needs_drill'
 export type MistakeGrade = Exclude<MistakeStatus, 'active'>
+
+/** Category key -> option key or free text (string[] for multi-select). */
+export type MistakeTags = Record<string, string | string[]>
+export type MistakeExtra = Record<string, string | number | boolean>
 
 export interface Mistake {
   id: number
   project_id: number
   mock_id: number | null
-  subject: string
-  pattern: string
-  root_cause: RootCause
+  tags: MistakeTags
+  extra: MistakeExtra
   question: string
   rule: string
   solution: string
@@ -414,9 +417,8 @@ export interface Mistake {
 export interface MistakeInput {
   project_id: number
   mock_id: number | null
-  subject: string
-  pattern: string
-  root_cause: RootCause
+  tags: MistakeTags
+  extra: MistakeExtra
   question: string
   rule: string
   solution: string
@@ -425,22 +427,48 @@ export interface MistakeInput {
   status?: MistakeStatus
 }
 
-export interface MistakeFilter {
-  projectId?: number
-  mockId?: number
-  subject?: string
-  pattern?: string
-  rootCause?: RootCause | ''
-  status?: MistakeStatus | ''
-  q?: string
+export interface JournalOption {
+  key: string
+  label: string
+  color: string
 }
 
-export interface RepeatAlert {
-  subject: string
-  pattern: string
-  root_cause: RootCause
+export interface JournalCategory {
+  key: string
+  label: string
+  multi: boolean
+  required: boolean
+  allow_new: boolean
+  options: JournalOption[]
+}
+
+export type JournalFieldType = 'builtin' | 'text' | 'number' | 'yesno' | 'select'
+
+export interface JournalField {
+  key: string
+  label: string
+  type: JournalFieldType
+  hidden: boolean
+  options?: string[]
+}
+
+export interface JournalConfig {
+  version: number
+  preset: string
+  categories: JournalCategory[]
+  fields: JournalField[]
+  patterns: { threshold: number; window_days: number; watch: string[][] }
+  review_weekday: number
+  tests_enabled: boolean
+}
+
+export interface PatternAlert {
+  project_id: number
+  categories: string[]
+  values: string[]
   count: number
   last_at: string
+  mistake_ids: number[]
 }
 
 export interface MistakeImportResult {
@@ -449,5 +477,5 @@ export interface MistakeImportResult {
   imported: number
   dry_run: boolean
   errors: { row: number; message: string }[]
-  sample: { subject: string; pattern: string; root_cause: string; question: string }[]
+  sample: { tags: MistakeTags; question: string }[]
 }

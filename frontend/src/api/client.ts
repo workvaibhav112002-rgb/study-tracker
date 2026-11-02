@@ -34,11 +34,11 @@ import type {
   Mock,
   MockInput,
   Mistake,
-  MistakeFilter,
   MistakeGrade,
   MistakeInput,
   MistakeImportResult,
-  RepeatAlert,
+  JournalConfig,
+  PatternAlert,
 } from '../types'
 import { browserTimeZone } from '../lib/time'
 import { captureException } from '../lib/monitoring'
@@ -355,24 +355,22 @@ export const api = {
   createMock: (data: MockInput) => request<Mock>('/mocks', { method: 'POST', body: data }),
   updateMock: (id: number, data: MockInput) => request<Mock>(`/mocks/${id}`, { method: 'PUT', body: data }),
   deleteMock: (id: number) => request<void>(`/mocks/${id}`, { method: 'DELETE' }),
-  getMistakes: (f: MistakeFilter = {}) => {
-    const p = new URLSearchParams({ limit: '500' })
-    if (f.projectId) p.set('project_id', String(f.projectId))
-    if (f.mockId) p.set('mock_id', String(f.mockId))
-    if (f.subject) p.set('subject', f.subject)
-    if (f.pattern) p.set('pattern', f.pattern)
-    if (f.rootCause) p.set('root_cause', f.rootCause)
-    if (f.status) p.set('status', f.status)
-    if (f.q) p.set('q', f.q)
-    return request<Mistake[]>(`/mistakes?${p.toString()}`)
-  },
+  getMistakes: () => request<Mistake[]>('/mistakes?limit=2000'),
   createMistake: (data: MistakeInput) => request<Mistake>('/mistakes', { method: 'POST', body: data }),
   updateMistake: (id: number, data: MistakeInput) => request<Mistake>(`/mistakes/${id}`, { method: 'PUT', body: data }),
   deleteMistake: (id: number) => request<void>(`/mistakes/${id}`, { method: 'DELETE' }),
-  getRepeatMistakes: () => request<RepeatAlert[]>('/mistakes/repeats'),
-  getMistakeReview: () => request<Mistake[]>('/mistakes/review'),
+  retagMistakes: (data: { project_id?: number; category: string; from: string; to: string }) =>
+    request<{ updated: number }>('/mistakes/retag', { method: 'POST', body: data }),
+  getMistakePatterns: () => request<PatternAlert[]>('/mistakes/patterns'),
+  getMistakeReview: (tag?: { category: string; value: string }) =>
+    request<Mistake[]>(tag ? `/mistakes/review?tag=${encodeURIComponent(`${tag.category}:${tag.value}`)}` : '/mistakes/review'),
   gradeMistake: (id: number, grade: MistakeGrade) => request<Mistake>(`/mistakes/${id}/review`, { method: 'POST', body: { grade } }),
-  downloadMistakeTemplate: () => download('/import/mistakes-template.xlsx', 'mistake_log_template.xlsx'),
+  getJournal: () => request<{ config: JournalConfig | null; default: JournalConfig }>('/journal'),
+  putJournal: (config: JournalConfig | null) =>
+    request<{ config: JournalConfig | null; default: JournalConfig }>('/journal', { method: 'PUT', body: { config } }),
+  setProjectJournal: (projectId: number, config: JournalConfig | null) =>
+    request<Project>(`/projects/${projectId}/journal`, { method: 'PUT', body: { config } }),
+  downloadMistakeTemplate: (projectId?: number) => download(`/import/mistakes-template.xlsx${projectId ? `?project_id=${projectId}` : ''}`, 'mistake_log_template.xlsx'),
   importMistakes: (file: Blob, opts: { dryRun: boolean; projectId?: number }) => upload<MistakeImportResult>(
     `/import/mistakes.xlsx?dry_run=${opts.dryRun ? 1 : 0}${opts.projectId ? `&project_id=${opts.projectId}` : ''}`,
     file,

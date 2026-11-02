@@ -63,9 +63,9 @@ export const ImportMistakesModal: React.FC<Props> = ({ isOpen, project, onClose,
     <Modal isOpen={isOpen} onClose={close} size="lg" title="Import an Excel error log" description={`Rows without a Project column go to ${project.name}.`} icon={<FileSpreadsheet className="h-5 w-5" aria-hidden="true" />}>
       <div className="space-y-4 text-sm">
         <p className="text-xs text-ink-400">
-          Needs Subject, Pattern and Root cause columns. Question, Execution rule, Solution, Date, Mock and time columns are optional. An Excel export from this app imports as is.
+          Columns are matched to your categories and fields by name, so download the template for the right layout. Older files with Subject, Pattern and Root cause columns also work, and an Excel export from this app imports as it is.
         </p>
-        <Button size="sm" variant="ghost" onClick={() => void api.downloadMistakeTemplate().catch((err) => setError(errorMessage(err)))} icon={<Download className="h-3.5 w-3.5" aria-hidden="true" />}>Download the template</Button>
+        <Button size="sm" variant="ghost" onClick={() => void api.downloadMistakeTemplate(project.id).catch((err) => setError(errorMessage(err)))} icon={<Download className="h-3.5 w-3.5" aria-hidden="true" />}>Download the template</Button>
         <label className="block">
           <span className="mb-1.5 block text-xs font-medium text-ink-300">Workbook (.xlsx)</span>
           <input ref={inputRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="block w-full text-xs text-ink-300 file:mr-3 file:rounded-lg file:border-0 file:bg-fg/[0.08] file:px-3 file:py-2 file:text-ink-100" onChange={(e) => { const f = e.target.files?.[0]; if (f) void check(f) }} />
@@ -77,7 +77,7 @@ export const ImportMistakesModal: React.FC<Props> = ({ isOpen, project, onClose,
             <p className="text-ink-100"><strong>{preview.valid}</strong> of {preview.rows} rows are ready to import.</p>
             {preview.sample.length > 0 && (
               <ul className="mt-2 space-y-0.5 text-ink-400">
-                {preview.sample.map((s, i) => <li key={i}>{s.subject} · {s.pattern} · {s.root_cause}{s.question ? ` · ${s.question.slice(0, 60)}` : ''}</li>)}
+                {preview.sample.map((s, i) => <li key={i}>{Object.values(s.tags).flat().join(' · ')}{s.question ? ` · ${s.question.slice(0, 60)}` : ''}</li>)}
               </ul>
             )}
             {preview.errors.length > 0 && (

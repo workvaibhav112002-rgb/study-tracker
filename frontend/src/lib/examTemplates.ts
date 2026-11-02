@@ -1,10 +1,20 @@
-import type { ExamTemplate, MockSection, RootCause, MistakeStatus } from '../types'
+import type { ExamTemplate, MockSection } from '../types'
 
 export interface ExamPreset {
   key: string
   label: string
   template: ExamTemplate
+  competitive?: boolean
 }
+
+const single = (key: string, name: string, questions: number, minutes: number, target: number): ExamTemplate => ({
+  key,
+  sections: [{ name, questions, marks_each: 1, minutes }],
+  negative_fraction: 0,
+  target_score: target,
+  accuracy_threshold: 85,
+  penalty_limit: 2.5,
+})
 
 const banking = (key: string, target: number): ExamTemplate => ({
   key,
@@ -24,12 +34,28 @@ const banking = (key: string, target: number): ExamTemplate => ({
  * field stays editable and the UI asks the user to check the latest one.
  */
 export const EXAM_PRESETS: ExamPreset[] = [
-  { key: 'ibps-po-pre', label: 'IBPS PO Prelims', template: banking('ibps-po-pre', 60) },
-  { key: 'sbi-po-pre', label: 'SBI PO Prelims', template: banking('sbi-po-pre', 60) },
-  { key: 'ibps-clerk-pre', label: 'IBPS Clerk Prelims', template: banking('ibps-clerk-pre', 75) },
+  { key: 'simple', label: 'Simple score (out of 100)', template: single('simple', 'Score', 100, 0, 0) },
+  { key: 'paper', label: 'School or university exam', template: single('paper', 'Paper', 50, 90, 35) },
+  { key: 'certification', label: 'Certification (multiple choice)', template: single('certification', 'Questions', 65, 130, 47) },
+  {
+    key: 'language',
+    label: 'Language test (4 skills)',
+    template: {
+      key: 'language',
+      sections: ['Reading', 'Listening', 'Writing', 'Speaking'].map((name) => ({ name, questions: 25, marks_each: 1, minutes: 30 })),
+      negative_fraction: 0,
+      target_score: 70,
+      accuracy_threshold: 80,
+      penalty_limit: 2.5,
+    },
+  },
+  { key: 'ibps-po-pre', label: 'IBPS PO Prelims', template: banking('ibps-po-pre', 60), competitive: true },
+  { key: 'sbi-po-pre', label: 'SBI PO Prelims', template: banking('sbi-po-pre', 60), competitive: true },
+  { key: 'ibps-clerk-pre', label: 'IBPS Clerk Prelims', template: banking('ibps-clerk-pre', 75), competitive: true },
   {
     key: 'nicl-ao-pre',
     label: 'NICL AO Prelims',
+    competitive: true,
     template: {
       ...banking('nicl-ao-pre', 75),
       sections: [
@@ -42,6 +68,7 @@ export const EXAM_PRESETS: ExamPreset[] = [
   {
     key: 'ssc-cgl-t1',
     label: 'SSC CGL Tier 1',
+    competitive: true,
     template: {
       key: 'ssc-cgl-t1',
       sections: [
@@ -59,6 +86,7 @@ export const EXAM_PRESETS: ExamPreset[] = [
   {
     key: 'so-pk-mains',
     label: 'Specialist / Technical Officer (Professional Knowledge)',
+    competitive: true,
     template: {
       key: 'so-pk-mains',
       sections: [{ name: 'Professional Knowledge', questions: 60, marks_each: 1, minutes: 45 }],
@@ -82,7 +110,7 @@ export const EXAM_PRESETS: ExamPreset[] = [
   },
 ]
 
-/** Fallback when a project has no exam template yet. */
+/** Fallback when a project has no test format yet: a plain score out of 100. */
 export const DEFAULT_TEMPLATE = EXAM_PRESETS[0].template
 
 export function presetFor(key: string): ExamPreset | undefined {
@@ -102,49 +130,3 @@ export function sectionsFromTemplate(t: ExamTemplate): MockSection[] {
   }))
 }
 
-// ---- Mistake taxonomy ----
-
-export const SUBJECTS = ['Quant', 'Reasoning', 'English', 'Professional Knowledge'] as const
-
-export const PATTERNS: Record<string, string[]> = {
-  Quant: [
-    'Speed Math: Quadratics',
-    'Speed Math: Series',
-    'Speed Math: Simplification',
-    'DI: Tabular',
-    'DI: Caselet',
-    'DI: Pie / Bar',
-    'Arithmetic: Ratio based',
-    'Arithmetic: Percentage traps',
-  ],
-  Reasoning: [
-    'Syllogism',
-    'Inequality',
-    'Coding-Decoding',
-    'Puzzle: Box',
-    'Puzzle: Floor-Flat',
-    'Puzzle: Scheduling',
-    'Seating: Linear (N/S)',
-    'Seating: Circular (in/out)',
-  ],
-  English: ['Reading Comprehension', 'Grammar', 'Vocabulary', 'Para jumbles', 'Cloze test'],
-  'Professional Knowledge': ['Networking', 'DBMS', 'Operating Systems', 'Data Structures', 'Security'],
-}
-
-export const ROOT_CAUSES: { value: RootCause; label: string; short: string; help: string }[] = [
-  { value: 'concept', label: 'Concept gap', short: 'Concept', help: 'Did not know the formula, rule or logical condition.' },
-  { value: 'procedural', label: 'Calculation / procedural', short: 'Silly', help: 'Knew the method but misread units, lost a sign or slipped on mental math.' },
-  { value: 'time_ego', label: 'Time panic / ego trap', short: 'Ego trap', help: 'Ignored the 45-second bail-out and forced a stubborn question.' },
-]
-
-export const rootCauseLabel = (r: RootCause) => ROOT_CAUSES.find((c) => c.value === r)?.label ?? r
-
-export const STATUS_LABELS: Record<MistakeStatus, string> = {
-  active: 'New',
-  locked_in: 'Locked in',
-  review_next_week: 'Review next week',
-  needs_drill: 'Needs concept drill',
-}
-
-/** Symbols for the execution-rule box (typed at the cursor). */
-export const RULE_SYMBOLS = ['×', '÷', '±', '√', '²', '³', '≈', '≠', '≤', '≥', '→', '%', 'π', '∴', '∵', 'Δ']

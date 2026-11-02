@@ -54,14 +54,19 @@ export const ExamTemplateModal: React.FC<Props> = ({ isOpen, project, onClose, o
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl" title={`Exam pattern for ${project.name}`} description="Sections, marking and your target. Check the latest official notification: patterns change." icon={<ClipboardList className="h-5 w-5" aria-hidden="true" />}>
+    <Modal isOpen={isOpen} onClose={onClose} size="xl" title={`Test format for ${project.name}`} description="Sections, marking and your target score. For official exams, check the latest notification: formats change." icon={<ClipboardList className="h-5 w-5" aria-hidden="true" />}>
       <form onSubmit={submit} className="space-y-5">
         <Field label="Start from a preset">
           {(id) => (
             <select id={id} className={inputClass} value={presetFor(t.key) ? t.key : 'custom'} onChange={(e) => applyPreset(e.target.value)}>
-              {EXAM_PRESETS.map((p) => (
+              {EXAM_PRESETS.filter((p) => !p.competitive).map((p) => (
                 <option key={p.key} value={p.key}>{p.label}</option>
               ))}
+              <optgroup label="Competitive exams">
+                {EXAM_PRESETS.filter((p) => p.competitive).map((p) => (
+                  <option key={p.key} value={p.key}>{p.label}</option>
+                ))}
+              </optgroup>
             </select>
           )}
         </Field>
@@ -110,10 +115,10 @@ export const ExamTemplateModal: React.FC<Props> = ({ isOpen, project, onClose, o
         {error && <p role="alert" className="text-xs text-rose-400">{error}</p>}
         <div className="flex flex-wrap justify-end gap-2">
           {project.exam_template && (
-            <Button variant="ghost" onClick={() => void onSave(null).then(onClose).catch(() => undefined)}>Remove pattern</Button>
+            <Button variant="ghost" onClick={() => void onSave(null).then(onClose).catch(() => undefined)}>Remove format</Button>
           )}
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button type="submit" loading={saving}>Save pattern</Button>
+          <Button type="submit" loading={saving}>Save format</Button>
         </div>
       </form>
     </Modal>

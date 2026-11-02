@@ -3,7 +3,7 @@ import { Timer, BarChart3, FolderKanban, History, Settings as SettingsIcon, Flam
 import type { DashboardStats, User } from '../types'
 import { formatMinutes } from '../lib/time'
 
-export type Tab = 'timer' | 'projects' | 'cards' | 'notes' | 'history' | 'analytics' | 'friends' | 'mocks'
+export type Tab = 'timer' | 'projects' | 'cards' | 'notes' | 'history' | 'analytics' | 'friends' | 'mistakes'
 
 interface NavbarProps {
   activeTab: Tab
@@ -24,7 +24,7 @@ const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'history', label: 'History', icon: History },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'friends', label: 'Friends', icon: Users },
-  { id: 'mocks', label: 'Mocks', icon: Target },
+  { id: 'mistakes', label: 'Mistakes', icon: Target },
 ]
 
 const Logo: React.FC = () => (

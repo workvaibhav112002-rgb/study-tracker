@@ -54,7 +54,7 @@ const fromMock = (m: Mock): FormState => ({
 
 const int = (v: string) => (v.trim() === '' ? 0 : Math.max(0, Math.floor(Number(v)) || 0))
 
-/** Log or edit a mock. New-mock input is auto-saved as a draft. */
+/** Log or edit a test. New-test input is auto-saved as a draft. */
 export const MockForm: React.FC<Props> = ({ isOpen, projectId, template, editing, draftKey, onClose, onSave }) => {
   const [form, setForm] = useState<FormState>(() => blank(template))
   const [restored, setRestored] = useState(false)
@@ -76,6 +76,8 @@ export const MockForm: React.FC<Props> = ({ isOpen, projectId, template, editing
   useDraftAutosave(draftKey, form, isOpen && !editing)
 
   const score = scoreMock(form, template)
+  // One section without negative marking reads as a plain score.
+  const simple = form.sections.length === 1 && form.sections[0].negative_each === 0
   const setSection = (i: number, patch: Partial<MockSection>) =>
     setForm((f) => ({ ...f, sections: f.sections.map((s, j) => (j === i ? { ...s, ...patch } : s)) }))
 
@@ -87,7 +89,7 @@ export const MockForm: React.FC<Props> = ({ isOpen, projectId, template, editing
       return
     }
     if (!form.name.trim()) {
-      setError('Give the mock a name.')
+      setError('Give the test a name.')
       return
     }
     setSaving(true)
@@ -119,7 +121,7 @@ export const MockForm: React.FC<Props> = ({ isOpen, projectId, template, editing
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl" title={editing ? 'Edit mock' : 'Log a mock test'} icon={<ClipboardCheck className="h-5 w-5" aria-hidden="true" />}>
+    <Modal isOpen={isOpen} onClose={onClose} size="xl" title={editing ? 'Edit test' : 'Log a test'} icon={<ClipboardCheck className="h-5 w-5" aria-hidden="true" />}>
       <form onSubmit={submit} className="space-y-5">
         {restored && (
           <p className="flex items-center justify-between gap-2 rounded-xl border border-brand-500/20 bg-brand-500/[0.07] px-3 py-2 text-xs text-ink-200" role="status">
@@ -128,16 +130,21 @@ export const MockForm: React.FC<Props> = ({ isOpen, projectId, template, editing
           </p>
         )}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Mock name">
-            {(id) => <input id={id} className={inputClass} value={form.name} maxLength={120} required placeholder="e.g. Full mock 12" onChange={(e) => setForm({ ...form, name: e.target.value })} />}
+          <Field label="Test name">
+            {(id) => <input id={id} className={inputClass} value={form.name} maxLength={120} required placeholder="e.g. Chapter 4 quiz" onChange={(e) => setForm({ ...form, name: e.target.value })} />}
           </Field>
-          <Field label="Test series provider">
+          <Field label="Source or provider">
             {(id) => <input id={id} className={inputClass} value={form.provider} maxLength={80} placeholder="Optional" onChange={(e) => setForm({ ...form, provider: e.target.value })} />}
           </Field>
           <Field label="Date attempted">
             {(id) => <input id={id} className={inputClass} type="date" value={form.attempted_on} max={localDateString()} required onChange={(e) => setForm({ ...form, attempted_on: e.target.value })} />}
           </Field>
-          <div className="grid grid-cols-2 gap-3">
+        </div>
+
+        <details className="text-xs text-ink-400" open={Boolean(form.percentile || form.rank)}>
+          <summary className="cursor-pointer select-none hover:text-ink-200">Percentile and rank</summary>
+          <div className="mt-2">
+            <div className="grid grid-cols-2 gap-3">
             <Field label="Percentile">
               {(id) => <input id={id} className={inputClass} type="number" min={0} max={100} step={0.01} value={form.percentile} placeholder="—" onChange={(e) => setForm({ ...form, percentile: e.target.value })} />}
             </Field>
@@ -145,10 +152,11 @@ export const MockForm: React.FC<Props> = ({ isOpen, projectId, template, editing
               {(id) => <input id={id} className={inputClass} type="number" min={1} value={form.rank} placeholder="—" onChange={(e) => setForm({ ...form, rank: e.target.value })} />}
             </Field>
           </div>
-        </div>
+          </div>
+        </details>
 
         <fieldset>
-          <legend className="mb-2 text-xs font-medium text-ink-300">Sections</legend>
+          <legend className="mb-2 text-xs font-medium text-ink-300">{form.sections.length > 1 ? 'Sections' : 'Score'}</legend>
           <div className="space-y-2">
             {form.sections.map((s, i) => {
               const sc = score.sections[i]
@@ -161,15 +169,15 @@ export const MockForm: React.FC<Props> = ({ isOpen, projectId, template, editing
                       {sc.net} / {sc.maxMarks} · {sc.accuracy}% acc · {sc.attemptRate}% att
                     </span>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className={`grid gap-2 ${simple ? 'grid-cols-2' : 'grid-cols-3'}`}>
                     <label className="text-[11px] text-ink-500">
-                      Correct
-                      <input aria-label={`${s.name} correct`} className={`${inputClass} mt-1`} type="number" inputMode="numeric" min={0} max={s.questions} value={s.correct || ''} placeholder="0" onChange={(e) => setSection(i, { correct: int(e.target.value) })} />
+                      {simple ? `Score out of ${s.questions}` : 'Correct'}
+                      <input aria-label={simple ? 'Score' : `${s.name} correct`} className={`${inputClass} mt-1`} type="number" inputMode="numeric" min={0} max={s.questions} value={s.correct || ''} placeholder="0" onChange={(e) => setSection(i, { correct: int(e.target.value) })} />
                     </label>
-                    <label className="text-[11px] text-ink-500">
+                    {!simple && <label className="text-[11px] text-ink-500">
                       Incorrect
                       <input aria-label={`${s.name} incorrect`} className={`${inputClass} mt-1`} type="number" inputMode="numeric" min={0} max={s.questions} value={s.incorrect || ''} placeholder="0" onChange={(e) => setSection(i, { incorrect: int(e.target.value) })} />
-                    </label>
+                    </label>}
                     <label className="text-[11px] text-ink-500">
                       Minutes spent
                       <input aria-label={`${s.name} minutes`} className={`${inputClass} mt-1`} type="number" inputMode="numeric" min={0} max={600} value={Math.round(s.seconds / 60) || ''} placeholder="0" onChange={(e) => setSection(i, { seconds: int(e.target.value) * 60 })} />
@@ -178,7 +186,7 @@ export const MockForm: React.FC<Props> = ({ isOpen, projectId, template, editing
                   {flagged && (
                     <p className="mt-2 flex items-center gap-1.5 text-[11px] text-amber-200">
                       <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
-                      {[sc.lowAccuracy && `accuracy ${sc.accuracy}% is below the safety line`, sc.highPenalty && `${sc.penalty} marks lost to negatives`].filter(Boolean).join(' · ')}
+                      {[sc.lowAccuracy && `accuracy ${sc.accuracy}% is below your alert`, sc.highPenalty && `${sc.penalty} marks lost to negative marking`].filter(Boolean).join(' · ')}
                     </p>
                   )}
                 </div>
@@ -198,13 +206,13 @@ export const MockForm: React.FC<Props> = ({ isOpen, projectId, template, editing
         </div>
 
         <Field label="Notes">
-          {(id) => <textarea id={id} className={`${inputClass} min-h-[64px]`} maxLength={2000} value={form.notes} placeholder="What went right, what to change next mock" onChange={(e) => setForm({ ...form, notes: e.target.value })} />}
+          {(id) => <textarea id={id} className={`${inputClass} min-h-[64px]`} maxLength={2000} value={form.notes} placeholder="What went right, what to change next time" onChange={(e) => setForm({ ...form, notes: e.target.value })} />}
         </Field>
 
         {error && <p role="alert" className="text-xs text-rose-400">{error}</p>}
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button type="submit" loading={saving}>{editing ? 'Save mock' : 'Log mock'}</Button>
+          <Button type="submit" loading={saving}>{editing ? 'Save test' : 'Log test'}</Button>
         </div>
       </form>
     </Modal>

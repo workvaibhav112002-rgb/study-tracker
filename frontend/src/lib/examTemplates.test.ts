@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { EXAM_PRESETS, PATTERNS, SUBJECTS, sectionsFromTemplate } from './examTemplates'
+import { DEFAULT_TEMPLATE, EXAM_PRESETS, sectionsFromTemplate } from './examTemplates'
 
 describe('exam presets', () => {
   it('have unique keys and sane sections', () => {
@@ -15,12 +15,13 @@ describe('exam presets', () => {
     expect(t.sections.reduce((a, s) => a + s.questions * s.marks_each, 0)).toBe(100)
     expect(t.sections.reduce((a, s) => a + s.minutes, 0)).toBe(60)
   })
+  it('defaults to a plain score without negative marking', () => {
+    expect(DEFAULT_TEMPLATE).toMatchObject({ key: 'simple', negative_fraction: 0 })
+    expect(EXAM_PRESETS.filter((p) => !p.competitive).length).toBeGreaterThanOrEqual(4)
+  })
   it('derives the per-question penalty from the negative fraction', () => {
     const ssc = EXAM_PRESETS.find((p) => p.key === 'ssc-cgl-t1')!.template
     const s = sectionsFromTemplate(ssc)
     expect(s[0]).toMatchObject({ marks_each: 2, negative_each: 0.5, seconds: 900, correct: 0, incorrect: 0 })
-  })
-  it('has patterns for every subject', () => {
-    for (const s of SUBJECTS) expect(PATTERNS[s].length).toBeGreaterThan(0)
   })
 })
