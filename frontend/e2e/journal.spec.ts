@@ -67,7 +67,7 @@ test('new accounts start empty, and the journal finds patterns, customizes, revi
 
   // Customize: rename an option, add a category and a yes/no field.
   await page.getByRole('button', { name: /^Customize/ }).click()
-  const setup = page.getByRole('dialog', { name: 'Customize your mistake journal' })
+  const setup = page.getByRole('dialog', { name: 'Customize Mistake Lab' })
   await setup.getByRole('button', { name: 'Mistake type', exact: true }).click()
   await setup.getByLabel('Option 2 name').fill('Silly error')
   await setup.getByRole('button', { name: 'Add category' }).click()
@@ -104,7 +104,7 @@ test('tests add-on and drafts', async ({ page }) => {
 
   // Turn the Tests add-on on from Customize.
   await page.getByRole('button', { name: /^Customize/ }).click()
-  const setup = page.getByRole('dialog', { name: 'Customize your mistake journal' })
+  const setup = page.getByRole('dialog', { name: 'Customize Mistake Lab' })
   await setup.getByRole('tab', { name: 'Tests' }).click()
   await setup.getByLabel('Track test scores').check()
   await setup.getByRole('button', { name: 'Save setup' }).click()

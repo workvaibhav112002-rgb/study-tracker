@@ -1,11 +1,11 @@
 import React from 'react'
-import { Timer, BarChart3, ListChecks, CalendarDays, Zap, Smartphone } from 'lucide-react'
+import { Timer, BarChart3, Target, CalendarDays, Zap, Smartphone } from 'lucide-react'
 
 const FEATURES = [
-  { icon: Timer, title: 'A timer that never forgets', text: 'Close the laptop, reopen it, the countdown is still right. Synced across your devices.' },
+  { icon: Timer, title: 'A timer that never forgets', text: 'Close the laptop, reopen it, the countdown is still right. Plan tasks for each session, synced across devices.' },
   { icon: Zap, title: 'Honest focus metrics', text: 'Pauses and tab switches are counted, so you see how focused you really were.' },
   { icon: BarChart3, title: 'Insight, not vanity', text: 'Daily goal rings, a year heatmap, your best hours, and a weekly review every Monday.' },
-  { icon: ListChecks, title: 'Tasks per session', text: 'Plan what each pomodoro is for, estimate it, tick it off.' },
+  { icon: Target, title: 'Mistake Lab', text: 'Log mistakes in seconds with your own categories. It spots the ones you keep repeating and tells you what to review first.' },
   { icon: CalendarDays, title: 'Lives in your calendar', text: 'A private feed puts every session into Google or Apple Calendar automatically.' },
   { icon: Smartphone, title: 'Installs anywhere', text: 'Works offline as an app on your phone or desktop. Your data is yours to export.' },
 ]

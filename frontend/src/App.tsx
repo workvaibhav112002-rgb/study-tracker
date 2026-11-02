@@ -55,7 +55,7 @@ import { audioService } from './services/audio'
 
 // Recharts is heavy; load it only when the analytics tab is opened.
 const TAB_ORDER: Tab[] = ['timer', 'projects', 'cards', 'notes', 'history', 'analytics', 'friends', 'mistakes']
-// Older links and saved tabs used 'mocks' for the mistake journal.
+// Older links and saved tabs used 'mocks' for Mistake Lab.
 const tabAlias = (t: string | null): Tab | null => (t === 'mocks' ? 'mistakes' : (t as Tab | null))
 
 const JournalPanel = lazy(() => import('./components/journal/JournalPanel'))
@@ -392,11 +392,11 @@ const AppShell: React.FC = () => {
     { id: 'nav-history', label: 'Go to history', hint: '5', group: 'Navigate', run: () => setActiveTab('history') },
     { id: 'nav-analytics', label: 'Go to analytics', hint: '6', keywords: 'stats review heatmap', group: 'Navigate', run: () => setActiveTab('analytics') },
     { id: 'nav-friends', label: 'Go to friends', hint: '7', keywords: 'leaderboard invite study together', group: 'Navigate', run: () => setActiveTab('friends') },
-    { id: 'nav-mistakes', label: 'Go to mistakes', hint: '8', keywords: 'journal error log patterns dashboard', group: 'Navigate', run: () => setActiveTab('mistakes') },
+    { id: 'nav-mistakes', label: 'Go to Mistake Lab', hint: '8', keywords: 'mistakes journal error log patterns dashboard', group: 'Navigate', run: () => setActiveTab('mistakes') },
     { id: 'log-mistake', label: 'Log a mistake', keywords: 'error journal wrong question', group: 'Actions', run: () => requestJournal('mistake') },
     { id: 'log-test', label: 'Log a test score', keywords: 'exam mock score sections', group: 'Actions', run: () => requestJournal('test') },
     { id: 'weekly-review', label: 'Start the weekly mistake review', keywords: 'revise mistakes review lessons', group: 'Actions', run: () => requestJournal('review') },
-    { id: 'customize-journal', label: 'Customize the mistake journal', keywords: 'categories fields setup preset', group: 'Actions', run: () => requestJournal('customize') },
+    { id: 'customize-journal', label: 'Customize Mistake Lab', keywords: 'categories fields setup preset', group: 'Actions', run: () => requestJournal('customize') },
     ...data.projects.map((p) => ({ id: `project-${p.id}`, label: `Focus on ${p.name}`, keywords: 'project select', group: 'Projects' as const, run: () => { data.setSelectedProjectId(p.id); setActiveTab('timer') } })),
     { id: 'new-project', label: 'New project', group: 'Projects', run: requestCreateProject },
     { id: 'review', label: cardState.stats.due > 0 ? `Review ${cardState.stats.due} due cards` : 'Open flashcards', keywords: 'flashcards srs study', group: 'Actions', run: () => { setActiveTab('cards'); setReviewSignal((n) => n + 1) } },

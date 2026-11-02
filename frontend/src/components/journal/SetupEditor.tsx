@@ -161,7 +161,7 @@ export const SetupEditor: React.FC<Props> = ({ isOpen, project, current, project
   ]
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl" title="Customize your mistake journal" description="Your own categories, fields and rules. Renaming never changes logged mistakes." icon={<Settings2 className="h-5 w-5" aria-hidden="true" />}>
+    <Modal isOpen={isOpen} onClose={onClose} size="xl" title="Customize Mistake Lab" description="Your own categories, fields and rules. Renaming never changes logged mistakes." icon={<Settings2 className="h-5 w-5" aria-hidden="true" />}>
       <div className="space-y-4">
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <label className="text-xs text-ink-300">

@@ -24,7 +24,7 @@ const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'history', label: 'History', icon: History },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'friends', label: 'Friends', icon: Users },
-  { id: 'mistakes', label: 'Mistakes', icon: Target },
+  { id: 'mistakes', label: 'Mistake Lab', icon: Target },
 ]
 
 const Logo: React.FC = () => (
@@ -79,7 +79,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               aria-current={isActive ? 'page' : undefined}
               aria-label={tab.label}
               title={tab.label}
-              className={`focus-ring flex shrink-0 items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] sm:px-3 font-medium transition-all duration-200 ease-premium ${
+              className={`focus-ring flex shrink-0 items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] sm:px-3 xl:gap-1.5 xl:px-2 font-medium transition-all duration-200 ease-premium ${
                 isActive ? 'bg-fg/[0.08] text-ink-50 shadow-inner-hi' : 'text-ink-400 hover:bg-fg/[0.04] hover:text-ink-100'
               }`}
             >

@@ -228,7 +228,7 @@ const JournalPanel: React.FC<Props> = ({ userId, projects, selectedProjectId, on
     <div className="mx-auto max-w-5xl py-4">
       <header className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="eyebrow">Mistake journal</p>
+          <p className="eyebrow">Mistake Lab</p>
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <label className="sr-only" htmlFor="journal-project">Project</label>
             <select id="journal-project" className="input h-9 w-auto py-0 text-sm font-semibold" value={project.id} onChange={(e) => { onSelectProject(Number(e.target.value)); setFilter(EMPTY_JOURNAL_FILTER) }}>

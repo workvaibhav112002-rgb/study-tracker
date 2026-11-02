@@ -27,7 +27,7 @@ export const JournalList: React.FC<Props> = ({ config, mistakes, tests, filter, 
   const custom = config.fields.filter((f) => f.type !== 'builtin')
 
   return (
-    <section aria-label="Mistake journal">
+    <section aria-label="Mistake list">
       <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
         <label className="relative col-span-2 sm:col-span-3 lg:col-span-1">
           <span className="sr-only">Search mistakes</span>
