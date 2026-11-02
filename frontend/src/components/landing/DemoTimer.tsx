@@ -7,6 +7,7 @@ import { formatClock } from '../../lib/time'
 import { notify, permission } from '../../lib/notify'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { Button } from '../ui/Button'
+import { pageTitle } from '../../lib/brand'
 
 interface Props {
   onSave: (session: DemoSession, intent: 'register' | 'login') => void
@@ -15,7 +16,7 @@ interface Props {
 const RADIUS = 104
 const STROKE = 8
 const { size: SIZE, circumference: CIRC } = ringGeometry(RADIUS, STROKE)
-const DEFAULT_TITLE = 'Meridian · Focus timer'
+const DEFAULT_TITLE = pageTitle()
 
 /**
  * A real focus timer anyone can run before signing up. When it ends, or when
@@ -43,7 +44,7 @@ export const DemoTimer: React.FC<Props> = ({ onSave }) => {
 
   // Tab title shows the countdown while running, like the real app.
   useEffect(() => {
-    if (running) document.title = `${formatClock(state.secondsLeft)} · Focus · Meridian`
+    if (running) document.title = pageTitle(`${formatClock(state.secondsLeft)} · Focus`)
     else document.title = DEFAULT_TITLE
     return () => {
       document.title = DEFAULT_TITLE

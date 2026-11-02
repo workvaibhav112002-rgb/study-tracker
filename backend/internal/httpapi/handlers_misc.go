@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"study-tracker-backend/internal/brand"
 	"time"
 
 	"study-tracker-backend/internal/auth"
@@ -211,7 +212,7 @@ func (a *api) export(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Disposition",
-		fmt.Sprintf(`attachment; filename="meridian_backup_%s.json"`, data.ExportedAt.Format("2006-01-02")))
+		fmt.Sprintf(`attachment; filename="%s_backup_%s.json"`, brand.FilePrefix, data.ExportedAt.Format("2006-01-02")))
 	writeJSON(w, http.StatusOK, data)
 }
 

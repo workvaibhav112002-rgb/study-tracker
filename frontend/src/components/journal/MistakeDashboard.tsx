@@ -57,8 +57,8 @@ const MistakeDashboard: React.FC<Props> = ({ config, mistakes, alerts, reviewDue
     return (
       <div className="card p-8 text-center">
         <Target className="mx-auto mb-3 h-8 w-8 text-brand-400" aria-hidden="true" />
-        <h2 className="text-lg font-semibold text-ink-50">Your mistakes, turned into a plan</h2>
-        <p className="mx-auto mt-1 max-w-md text-sm text-ink-400">Log mistakes as they happen. This dashboard then shows which topics keep going wrong, why, and what to review first.</p>
+        <h2 className="text-lg font-semibold text-ink-50">Every mistake is a breadcrumb</h2>
+        <p className="mx-auto mt-1 max-w-md text-sm text-ink-400">Log a slip the moment it happens. Over a few weeks this dashboard shows what keeps going wrong, why, and what to fix first.</p>
         <Button className="mt-5" onClick={onLog}>Log your first mistake</Button>
       </div>
     )

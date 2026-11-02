@@ -177,7 +177,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
             <h3 className="eyebrow pt-2">Add-ons</h3>
             <div className="space-y-2.5">
               <Toggle checked={form.cards_enabled} onChange={(v) => setForm({ ...form, cards_enabled: v })} label="Flashcards" hint="Spaced-repetition cards for anything you want to remember. Adds a Cards tab." />
-              <Toggle checked={form.mistake_lab_enabled} onChange={(v) => setForm({ ...form, mistake_lab_enabled: v })} label="Mistake Lab" hint="Log mistakes with your own categories and see the ones you keep repeating. Adds a Mistake Lab tab." />
+              <Toggle checked={form.mistake_lab_enabled} onChange={(v) => setForm({ ...form, mistake_lab_enabled: v })} label="Mistake Lab" hint="Log slips and mistakes with your own categories and see the ones you keep repeating. On by default." />
               <p className="text-[11px] text-ink-500">Turning an add-on off only hides it. Everything you saved comes back when you turn it on again.</p>
             </div>
           </>

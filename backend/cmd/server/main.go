@@ -1,4 +1,4 @@
-// Command server runs the Meridian API.
+// Command server runs the Granule API (product name: internal/brand).
 package main
 
 import (

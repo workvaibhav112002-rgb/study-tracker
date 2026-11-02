@@ -1,3 +1,5 @@
+import { BRAND } from './brand'
+
 /** Client-side sanity check of a backup file before it is sent to /import. */
 export interface ImportCheck {
   ok: boolean
@@ -7,7 +9,7 @@ export interface ImportCheck {
 }
 
 export function validateImport(raw: unknown): ImportCheck {
-  if (!raw || typeof raw !== 'object') return { ok: false, error: 'The file is not a Meridian (or Study Tracker) backup.' }
+  if (!raw || typeof raw !== 'object') return { ok: false, error: `The file is not a ${BRAND.name} backup.` }
   const obj = raw as Record<string, unknown>
   const projects = obj.projects
   const sessions = obj.sessions ?? []

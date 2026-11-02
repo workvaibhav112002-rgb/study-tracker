@@ -3,6 +3,7 @@ package httpapi_test
 import (
 	"context"
 	"strings"
+	"study-tracker-backend/internal/brand"
 	"testing"
 	"time"
 
@@ -394,7 +395,7 @@ func TestExportAndFeedback(t *testing.T) {
 
 	res, body = s.do(t, "GET", "/api/export", token, nil)
 	wantStatus(t, res.StatusCode, 200, body)
-	if cd := res.Header.Get("Content-Disposition"); !strings.HasPrefix(cd, `attachment; filename="meridian_backup_`) {
+	if cd := res.Header.Get("Content-Disposition"); !strings.HasPrefix(cd, `attachment; filename="`+brand.FilePrefix+`_backup_`) {
 		t.Errorf("content-disposition %q", cd)
 	}
 	var exp store.Export
@@ -460,7 +461,7 @@ func TestMigrateIsIdempotent(t *testing.T) {
 		t.Fatal(err)
 	}
 	var n int
-	if err := testPool.QueryRow(ctx, `SELECT count(*) FROM schema_migrations`).Scan(&n); err != nil || n != 10 {
+	if err := testPool.QueryRow(ctx, `SELECT count(*) FROM schema_migrations`).Scan(&n); err != nil || n != 11 {
 		t.Fatalf("schema_migrations rows=%d err=%v", n, err)
 	}
 }
@@ -485,8 +486,8 @@ func TestSettingsAddons(t *testing.T) {
 		decode(t, body, &st)
 		return st
 	}
-	if st := get(); st.CardsEnabled || st.MistakeLabEnabled {
-		t.Fatalf("new accounts start with add-ons off: %+v", st)
+	if st := get(); st.CardsEnabled || !st.MistakeLabEnabled {
+		t.Fatalf("new accounts: Flashcards off, Mistake Lab on: %+v", st)
 	}
 	base := map[string]any{"work_duration": 25, "short_break_duration": 5, "long_break_duration": 15, "long_break_interval": 4, "sound_enabled": true, "reminder_hour": 9, "timezone": "UTC"}
 	with := func(extra map[string]any) map[string]any {

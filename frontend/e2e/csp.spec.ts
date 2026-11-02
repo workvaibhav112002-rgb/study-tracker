@@ -30,7 +30,7 @@ test('the production Content-Security-Policy does not block the app', async ({ p
     return route.fulfill({ response: res, body: html, headers: { ...res.headers(), 'content-type': ct } })
   })
   await page.goto('/')
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Do your best work')
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Deep work breaks down')
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page.getByRole('dialog')).toBeVisible()
   await page.waitForTimeout(1500)

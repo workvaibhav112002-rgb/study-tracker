@@ -5,6 +5,7 @@ import type { DashboardStats, User } from '../types'
 import { formatMinutes } from '../lib/time'
 
 import { TAB_META } from '../lib/tabs'
+import { BRAND } from '../lib/brand'
 
 export type Tab = 'timer' | 'projects' | 'cards' | 'notes' | 'history' | 'analytics' | 'friends' | 'mistakes'
 
@@ -44,7 +45,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="flex shrink-0 items-center gap-3 pl-1">
         <Logo />
         <span className="hidden items-center gap-1 text-[15px] font-semibold tracking-tight text-ink-50 md:flex">
-          Meridian
+          {BRAND.name}
         </span>
         {timerRunning && activeTab !== 'timer' && (
           <button

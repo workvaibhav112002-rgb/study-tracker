@@ -5,6 +5,7 @@ import { Button } from './ui/Button'
 import { Skeleton } from './ui/Skeleton'
 import { Hero } from './landing/Hero'
 import { Features } from './landing/Features'
+import { Philosophy } from './landing/Philosophy'
 
 const ProductTour = lazy(() => import('./landing/ProductTour'))
 
@@ -21,6 +22,7 @@ export const Landing: React.FC<Props> = ({ onSignIn, onRegister, onDemoFinished 
     <Suspense fallback={<Skeleton className="mt-20 h-80 rounded-3xl" />}>
       <ProductTour />
     </Suspense>
+    <Philosophy />
     <Features />
     <section className="card relative mt-20 overflow-hidden p-8 text-center sm:p-12" aria-label="Get started">
       <span aria-hidden="true" className="pointer-events-none absolute left-1/2 top-0 h-56 w-[36rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-500/15 blur-3xl" />

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"study-tracker-backend/internal/brand"
 	"time"
 
 	"github.com/xuri/excelize/v2"
@@ -154,7 +155,7 @@ func (a *api) exportXLSX(w http.ResponseWriter, r *http.Request) {
 	_ = f.SetColWidth("Summary", "B", "B", 22)
 
 	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="meridian_%s.xlsx"`, time.Now().In(loc).Format("2006-01-02")))
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s_%s.xlsx"`, brand.FilePrefix, time.Now().In(loc).Format("2006-01-02")))
 	w.WriteHeader(http.StatusOK)
 	_ = f.Write(w)
 }

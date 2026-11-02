@@ -1,8 +1,14 @@
-# Meridian
+# Granule
 
-*Find your peak hours.* A focus timer for anyone doing deep work: a drift-free Pomodoro timer, projects,
-honest focus metrics, peak hours, streaks and weekly reviews, with optional Flashcards and Mistake Lab add-ons.
-(Formerly "Study Tracker"; internal identifiers such as storage keys, the Go module and hosting names keep the old name.)
+*Small moments, big results.* A focus timer built on one idea: macro-level success is decided by
+micro-level friction. Deep work breaks down in seconds, not hours, so Granule treats those moments as data:
+
+1. **High-resolution awareness**: the texture of your focus (pauses, tab switches, best hours), not just time spent.
+2. **Mistakes as signals**: Mistake Lab turns slips into patterns, so the recurring ones stop.
+3. **Inspect, don't grind**: weekly reviews and "Focus next" point at the small habit to fix.
+
+Flashcards is an optional add-on. Formerly "Study Tracker" and briefly "Meridian".
+
 Go API on Postgres, React frontend. Runs entirely on free tiers.
 
 | Layer    | Tech                                   | Hosting                     |
@@ -241,3 +247,13 @@ never sees or stores the key server-side.
   as soon as the user row disappears.
 - Per-IP rate limiting trusts `X-Forwarded-For` from the platform proxy.
 - Free-tier cold starts are mitigated, not eliminated.
+
+
+## Renaming the product
+The name lives in two constants: `frontend/src/lib/brand.ts` (UI, page title, PWA manifest and
+`index.html` via a Vite hook) and `backend/internal/brand/brand.go` (emails, calendar feed, export
+filenames). The logo glyph is `frontend/src/components/ui/BrandMark.tsx`; after changing it run
+`node scripts/brand-icons.mjs` in `frontend/` to regenerate the favicon and PWA icons.
+Internal ids (storage keys, JWT issuer, calendar UIDs, Go module, hosting names) keep the original
+`study-tracker` id on purpose so nobody is signed out. Outside the code: the Google OAuth consent
+screen name and logo, the email sender name in Brevo, and later the domain.

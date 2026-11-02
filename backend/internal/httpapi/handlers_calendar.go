@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"study-tracker-backend/internal/brand"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -64,7 +65,7 @@ func (a *api) calendarFeed(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/calendar; charset=utf-8")
 	w.Header().Set("Cache-Control", "private, max-age=300")
-	w.Header().Set("Content-Disposition", `inline; filename="meridian.ics"`)
+	w.Header().Set("Content-Disposition", `inline; filename="`+brand.FilePrefix+`.ics"`)
 	w.WriteHeader(http.StatusOK)
 	_ = writeICS(w, sessions)
 }

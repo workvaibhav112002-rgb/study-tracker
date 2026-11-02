@@ -4,6 +4,7 @@ import type { PublicProfile } from '../types'
 import { api, errorMessage } from '../api/client'
 import { formatMinutes } from '../lib/time'
 import { Button } from './ui/Button'
+import { BRAND } from '../lib/brand'
 
 interface Props {
   handle: string
@@ -35,7 +36,7 @@ export const PublicProfilePage: React.FC<Props> = ({ handle, onHome }) => {
       <div className="card mx-auto mt-16 max-w-md px-6 py-12 text-center">
         <p className="text-sm text-ink-300">{error}</p>
         <Button className="mt-5" variant="secondary" onClick={onHome} icon={<ArrowLeft className="h-4 w-4" aria-hidden="true" />}>
-          Back to Meridian
+          Back to {BRAND.name}
         </Button>
       </div>
     )
@@ -68,7 +69,7 @@ export const PublicProfilePage: React.FC<Props> = ({ handle, onHome }) => {
           {profile.bio && <p className="mt-3 max-w-xl text-sm leading-relaxed text-ink-300">{profile.bio}</p>}
         </div>
         <Button variant="secondary" onClick={onHome} icon={<ArrowLeft className="h-4 w-4" aria-hidden="true" />}>
-          Meridian
+          {BRAND.name}
         </Button>
       </div>
 

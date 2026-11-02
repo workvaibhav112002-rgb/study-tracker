@@ -10,13 +10,16 @@ export async function createProject(page: Page, name: string) {
   await expect(page.getByText('Project created.')).toBeVisible()
 }
 
-/** Switches add-ons on from Settings (they are off for new accounts). */
+/** Sets add-ons from Settings (Flashcards is off and Mistake Lab on for new accounts). */
 export async function enableAddons(page: Page, addons: { cards?: boolean; mistakeLab?: boolean }) {
   await page.getByRole('button', { name: 'Timer settings' }).click()
   const dialog = page.getByRole('dialog', { name: 'Settings' })
-  // The switch is a visually hidden checkbox inside its label; click the label as a user would.
-  if (addons.cards) await dialog.locator('label').filter({ hasText: /^Flashcards/ }).click()
-  if (addons.mistakeLab) await dialog.locator('label').filter({ hasText: /^Mistake Lab/ }).click()
+  // Each switch is a visually hidden checkbox inside its label; click the label as a user would.
+  for (const [name, want] of [['Flashcards', addons.cards], ['Mistake Lab', addons.mistakeLab]] as const) {
+    if (want === undefined) continue
+    const label = dialog.locator('label').filter({ hasText: new RegExp(`^${name}`) })
+    if ((await label.locator('input').isChecked()) !== want) await label.click()
+  }
   await dialog.getByRole('button', { name: 'Save settings' }).click()
   await expect(page.getByText('Preferences saved.')).toBeVisible()
   if (await dialog.isVisible()) await page.keyboard.press('Escape')

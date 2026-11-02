@@ -108,7 +108,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, h
         <div>
           <p className="eyebrow mb-2">Insights</p>
           <h2 className="text-2xl font-semibold tracking-tight text-ink-50 sm:text-3xl">Analytics</h2>
-          <p className="mt-1.5 text-sm text-ink-400">{formatMinutes(stats.total_minutes)} of focus in total, across every project.</p>
+          <p className="mt-1.5 text-sm text-ink-400">{formatMinutes(stats.total_minutes)} of focus in total, across every project. Hours are the outline; interruptions are the detail.</p>
         </div>
         <div className="flex items-center gap-2">
           <ShareCardButton stats={stats} appUrl={appUrl} />

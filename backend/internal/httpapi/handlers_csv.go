@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"study-tracker-backend/internal/brand"
 	"time"
 
 	"study-tracker-backend/internal/store"
@@ -24,7 +25,7 @@ func (a *api) exportCSV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
-	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="meridian_sessions_%s.csv"`, time.Now().In(loc).Format("2006-01-02")))
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s_sessions_%s.csv"`, brand.FilePrefix, time.Now().In(loc).Format("2006-01-02")))
 	w.WriteHeader(http.StatusOK)
 	cw := csv.NewWriter(w)
 	cw.UseCRLF = true

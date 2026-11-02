@@ -20,10 +20,10 @@ test('new accounts start empty, and the journal finds patterns, customizes, revi
   await enableAddons(page, { cards: true, mistakeLab: true })
   // No sample projects.
   await page.keyboard.press('8')
-  await expect(page.getByText('Learn from every mistake')).toBeVisible()
+  await expect(page.getByText('Every mistake is a breadcrumb')).toBeVisible()
   await createProject(page, 'Maths')
   await page.keyboard.press('8')
-  await expect(page.getByText('Your mistakes, turned into a plan')).toBeVisible()
+  await expect(page.getByText('Every mistake is a breadcrumb')).toBeVisible()
 
   // Three careless slips on Fractions, entered with the keyboard.
   await page.keyboard.press('e')
@@ -100,9 +100,8 @@ test('new accounts start empty, and the journal finds patterns, customizes, revi
 
 test('tests add-on and drafts', async ({ page }) => {
   await signUp(page, 'journal-tests')
-  await enableAddons(page, { mistakeLab: true })
   await createProject(page, 'AWS')
-  // Only Mistake Lab is on, so it is the 7th tab.
+  // Mistake Lab is on by default and Flashcards off, so Mistake Lab is the 7th tab.
   await page.keyboard.press('7')
   await expect(page.getByText('Mistake Lab', { exact: true }).first()).toBeVisible()
 
@@ -145,12 +144,12 @@ test('tests add-on and drafts', async ({ page }) => {
   }
 })
 
-test('new accounts see no add-on tabs until they switch them on', async ({ page }) => {
+test('new accounts get Mistake Lab but not Flashcards, and keys follow the visible tabs', async ({ page }) => {
   await signUp(page, 'addons')
   const nav = page.getByRole('navigation', { name: 'Primary' })
-  await expect(nav.getByRole('button')).toHaveCount(6)
+  await expect(nav.getByRole('button')).toHaveCount(7)
   await expect(nav.getByRole('button', { name: 'Cards' })).toHaveCount(0)
-  await expect(nav.getByRole('button', { name: 'Mistake Lab' })).toHaveCount(0)
+  await expect(nav.getByRole('button', { name: 'Mistake Lab' })).toBeVisible()
   // Number keys follow the visible tabs: 3 is Notes when Cards is off.
   await page.keyboard.press('3')
   await expect(nav.getByRole('button', { name: 'Notes' })).toHaveAttribute('aria-current', 'page')
@@ -159,10 +158,8 @@ test('new accounts see no add-on tabs until they switch them on', async ({ page 
   await page.keyboard.press('3')
   await expect(nav.getByRole('button', { name: 'Cards' })).toHaveAttribute('aria-current', 'page')
   // Turning it off again sends you back to Focus and hides the tab.
-  await page.getByRole('button', { name: 'Timer settings' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Settings' })
-  await dialog.locator('label').filter({ hasText: /^Flashcards/ }).click()
-  await dialog.getByRole('button', { name: 'Save settings' }).click()
+  await enableAddons(page, { cards: false, mistakeLab: false })
   await expect(nav.getByRole('button', { name: 'Cards' })).toHaveCount(0)
+  await expect(nav.getByRole('button', { name: 'Mistake Lab' })).toHaveCount(0)
   await expect(nav.getByRole('button', { name: 'Focus' })).toHaveAttribute('aria-current', 'page')
 })

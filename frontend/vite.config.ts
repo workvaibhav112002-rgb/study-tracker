@@ -2,18 +2,25 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { BRAND } from './src/lib/brand'
 
 export default defineConfig({
   plugins: [
     react(),
+    {
+      // Fills %BRAND_*% placeholders in index.html from src/lib/brand.ts.
+      name: 'brand-html',
+      transformIndexHtml: (html: string) =>
+        html.replace(/%BRAND_NAME%/g, BRAND.name).replace(/%BRAND_TAGLINE%/g, BRAND.tagline).replace(/%BRAND_DESCRIPTION%/g, BRAND.description),
+    },
     VitePWA({
       registerType: 'prompt',
       injectRegister: false,
       includeAssets: ['icons/*.png'],
       manifest: {
-        name: 'Meridian · Focus timer',
-        short_name: 'Meridian',
-        description: 'A focus timer that learns when you do your best work: projects, honest focus metrics, peak hours and weekly reviews.',
+        name: `${BRAND.name} · Focus timer`,
+        short_name: BRAND.name,
+        description: BRAND.description,
         theme_color: '#07080c',
         background_color: '#07080c',
         display: 'standalone',

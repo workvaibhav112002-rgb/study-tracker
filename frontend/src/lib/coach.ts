@@ -3,7 +3,7 @@ import type { DashboardStats, GoalStreak, Project, WeeklyReview } from '../types
 /**
  * Bring-your-own-key focus coach. The key lives only in this browser's
  * localStorage and is sent straight to Anthropic; it never touches the
- * Meridian API.
+ * Granule API.
  */
 
 const KEY = 'study_tracker_coach_key_v1'

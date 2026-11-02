@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"study-tracker-backend/internal/brand"
 	"time"
 
 	"study-tracker-backend/internal/auth"
@@ -89,8 +90,8 @@ func (a *api) forgotPassword(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		link := a.cfg.AppURL + "/reset?token=" + url.QueryEscape(raw)
-		a.sendAsync(user.Email, "Reset your Meridian password",
-			fmt.Sprintf("Hi %s,\n\nSomeone asked to reset the password for this account. If that was you, open the link below within the next hour:\n\n%s\n\nIf you did not ask for this, you can ignore this email; your password will not change.\n\n— Meridian", user.Name, link))
+		a.sendAsync(user.Email, "Reset your "+brand.Name+" password",
+			fmt.Sprintf("Hi %s,\n\nSomeone asked to reset the password for this account. If that was you, open the link below within the next hour:\n\n%s\n\nIf you did not ask for this, you can ignore this email; your password will not change.\n\n— %s", user.Name, link, brand.Name))
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "message": "If an account exists for that email, a reset link is on its way."})
 }
@@ -175,8 +176,8 @@ func (a *api) requestMagicLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	link := a.cfg.AppURL + "/magic?token=" + url.QueryEscape(raw)
-	a.sendAsync(user.Email, "Your Meridian sign-in link",
-		fmt.Sprintf("Hi %s,\n\nClick the link below to sign in. It works once and expires in 15 minutes:\n\n%s\n\nIf you did not request this, ignore this email.\n\n— Meridian", user.Name, link))
+	a.sendAsync(user.Email, "Your "+brand.Name+" sign-in link",
+		fmt.Sprintf("Hi %s,\n\nClick the link below to sign in. It works once and expires in 15 minutes:\n\n%s\n\nIf you did not request this, ignore this email.\n\n— %s", user.Name, link, brand.Name))
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "message": "Check your inbox for a sign-in link."})
 }
 

@@ -54,6 +54,7 @@ import { clearTimer } from './lib/timerStorage'
 import { formatMinutes } from './lib/time'
 import { errorMessage } from './api/client'
 import { audioService } from './services/audio'
+import { pageTitle } from './lib/brand'
 
 // Recharts is heavy; load it only when the analytics tab is opened.
 const TAB_ORDER: Tab[] = ['timer', 'projects', 'cards', 'notes', 'history', 'analytics', 'friends', 'mistakes']
@@ -216,7 +217,7 @@ const AppShell: React.FC = () => {
 
   useEffect(() => {
     const label = timer.state.mode === 'work' ? 'Focus' : 'Break'
-    document.title = running ? `${timer.formatted} · ${label} · Meridian` : 'Meridian · Focus timer'
+    document.title = running ? pageTitle(`${timer.formatted} · ${label}`) : pageTitle()
     if (running) favicon?.update(timer.formatted, timer.progress / 100, MODE_COLORS[timer.state.mode])
     else favicon?.restore()
   }, [timer.formatted, timer.state.mode, running, timer.progress])

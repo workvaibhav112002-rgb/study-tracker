@@ -42,6 +42,7 @@ import type {
 } from '../types'
 import { browserTimeZone } from '../lib/time'
 import { captureException } from '../lib/monitoring'
+import { BRAND } from '../lib/brand'
 
 const tz = () => encodeURIComponent(browserTimeZone())
 
@@ -344,9 +345,9 @@ export const api = {
     request<{ status: string; message: string; id: number }>('/feedback', { method: 'POST', body: data }),
 
   // Export: streams the JSON backup to a download.
-  exportBackup: () => download('/export', `meridian_backup_${new Date().toISOString().slice(0, 10)}.json`),
-  exportSessionsCsv: () => download(`/export.csv?tz=${tz()}`, `meridian_sessions_${new Date().toISOString().slice(0, 10)}.csv`),
-  exportWorkbook: () => download(`/export.xlsx?tz=${tz()}`, `meridian_${new Date().toISOString().slice(0, 10)}.xlsx`),
+  exportBackup: () => download('/export', `${BRAND.filePrefix}_backup_${new Date().toISOString().slice(0, 10)}.json`),
+  exportSessionsCsv: () => download(`/export.csv?tz=${tz()}`, `${BRAND.filePrefix}_sessions_${new Date().toISOString().slice(0, 10)}.csv`),
+  exportWorkbook: () => download(`/export.xlsx?tz=${tz()}`, `${BRAND.filePrefix}_${new Date().toISOString().slice(0, 10)}.xlsx`),
 
   // Mock tests and mistake log
   setExamTemplate: (projectId: number, template: ExamTemplate | null) =>

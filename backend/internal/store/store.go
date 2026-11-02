@@ -261,14 +261,14 @@ type Settings struct {
 	ReminderEnabled    bool   `json:"reminder_enabled"`
 	ReminderHour       int    `json:"reminder_hour"`
 	Timezone           string `json:"timezone"`
-	// Optional add-ons (off for new accounts).
+	// Add-ons: Flashcards is off for new accounts; Mistake Lab is on.
 	CardsEnabled      bool `json:"cards_enabled"`
 	MistakeLabEnabled bool `json:"mistake_lab_enabled"`
 }
 
 // DefaultSettings are applied to every new account.
 func DefaultSettings() Settings {
-	return Settings{WorkDuration: 25, ShortBreakDuration: 5, LongBreakDuration: 15, LongBreakInterval: 4, SoundEnabled: true, ReminderHour: 9, Timezone: "UTC"}
+	return Settings{WorkDuration: 25, ShortBreakDuration: 5, LongBreakDuration: 15, LongBreakInterval: 4, SoundEnabled: true, ReminderHour: 9, Timezone: "UTC", MistakeLabEnabled: true}
 }
 
 // GoalStreak is the run of days where the daily goal was met (or frozen).

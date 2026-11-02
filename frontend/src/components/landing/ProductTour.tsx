@@ -4,6 +4,7 @@ import confetti from 'canvas-confetti'
 import { TOUR_STEPS, stepAt } from '../../lib/tour'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { BadgeScene, HeatmapScene, ShareScene, StreakScene, TimerScene, type SceneProps } from './TourScenes'
+import { BRAND } from '../../lib/brand'
 
 const SCENES: Record<string, React.FC<SceneProps>> = { timer: TimerScene, heatmap: HeatmapScene, streak: StreakScene, badge: BadgeScene, share: ShareScene }
 
@@ -95,7 +96,7 @@ const ProductTour: React.FC = () => {
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="eyebrow mb-2">What it looks like</p>
-          <h2 className="text-2xl font-semibold tracking-tight text-ink-50 sm:text-3xl">A week in Meridian</h2>
+          <h2 className="text-2xl font-semibold tracking-tight text-ink-50 sm:text-3xl">A week in {BRAND.name}</h2>
         </div>
         <span className="chip border-fg/[0.06] bg-fg/[0.04] text-ink-500">Example data</span>
       </div>

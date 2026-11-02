@@ -5,6 +5,7 @@ import { useReducedMotion } from '../../hooks/useReducedMotion'
 import { Button } from '../ui/Button'
 import { DemoTimer } from './DemoTimer'
 import { FloatingCards } from './FloatingCards'
+import { BRAND } from '../../lib/brand'
 
 interface Props {
   onSignIn: () => void
@@ -64,12 +65,12 @@ export const Hero: React.FC<Props> = ({ onSignIn, onRegister, onDemoFinished }) 
 
       <div className="grid items-center gap-12 lg:grid-cols-2">
         <div className="text-center lg:text-left">
-          <p className="eyebrow mb-4 animate-fade-up">Find your peak hours</p>
+          <p className="eyebrow mb-4 animate-fade-up">{BRAND.tagline}</p>
           <h1 className="text-5xl font-semibold leading-[1.02] tracking-tight text-ink-50 animate-fade-up sm:text-7xl" style={{ animationDelay: '60ms' }}>
-            Do your best work, <span className="gradient-text">on purpose.</span>
+            Deep work breaks down <span className="gradient-text">in seconds.</span>
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-base text-ink-400 animate-fade-up sm:text-lg lg:mx-0" style={{ animationDelay: '120ms' }}>
-            Meridian is a focus timer that learns when you do your best work. Honest metrics, your peak hours, and a weekly review that tells you what to change.
+            {BRAND.name} tracks the texture of your focus, not just the hours. Catch the three-second slips and the repeat mistakes, fix the root cause, and the big picture takes care of itself.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 animate-fade-up sm:flex-row lg:justify-start" style={{ animationDelay: '180ms' }}>
             <Button size="xl" onClick={onRegister} icon={<ArrowRight className="h-4 w-4" aria-hidden="true" />}>

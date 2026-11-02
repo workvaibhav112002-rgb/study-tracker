@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"study-tracker-backend/internal/brand"
 	"unicode/utf8"
 
 	"study-tracker-backend/internal/store"
@@ -50,7 +51,7 @@ func writeICS(w io.Writer, sessions []store.Session) error {
 	line("PRODID:-//study-tracker//EN")
 	line("CALSCALE:GREGORIAN")
 	line("METHOD:PUBLISH")
-	line("X-WR-CALNAME:Meridian")
+	line("X-WR-CALNAME:" + brand.Name)
 	for _, s := range sessions {
 		desc := fmt.Sprintf("Focus rating: %d/5\nInterruptions: %d", s.FocusRating, s.Interruptions)
 		if s.Notes != "" {

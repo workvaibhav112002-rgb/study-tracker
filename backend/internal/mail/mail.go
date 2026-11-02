@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/smtp"
 	"strings"
+	"study-tracker-backend/internal/brand"
 	"time"
 )
 
@@ -94,7 +95,7 @@ func Build(from, to, subject, body string) string {
 		domain = from[at+1:]
 	}
 	headers := []string{
-		"From: Meridian <" + from + ">",
+		"From: " + brand.Name + " <" + from + ">",
 		"To: " + to,
 		"Subject: " + sanitize(subject),
 		"Date: " + time.Now().UTC().Format(time.RFC1123Z),

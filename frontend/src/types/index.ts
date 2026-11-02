@@ -237,7 +237,7 @@ export const DEFAULT_SETTINGS: Settings = {
   reminder_hour: 9,
   timezone: 'UTC',
   cards_enabled: false,
-  mistake_lab_enabled: false,
+  mistake_lab_enabled: true,
 }
 
 /** Server-side limits, mirrored for form validation. */
