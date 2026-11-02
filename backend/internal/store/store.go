@@ -261,6 +261,9 @@ type Settings struct {
 	ReminderEnabled    bool   `json:"reminder_enabled"`
 	ReminderHour       int    `json:"reminder_hour"`
 	Timezone           string `json:"timezone"`
+	// Optional add-ons (off for new accounts).
+	CardsEnabled      bool `json:"cards_enabled"`
+	MistakeLabEnabled bool `json:"mistake_lab_enabled"`
 }
 
 // DefaultSettings are applied to every new account.

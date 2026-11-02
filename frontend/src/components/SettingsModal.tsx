@@ -122,7 +122,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
       onClose={saving ? undefined : onClose}
       dismissible={!saving}
       title="Settings"
-      description="Timer, alerts, reminders, calendar, data and account."
+      description="Timer, alerts, reminders, add-ons, calendar, data and account."
       icon={<SlidersHorizontal className="h-5 w-5" />}
       size="lg"
     >
@@ -172,6 +172,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
 
         {user && <RemindersSection form={form} setForm={setForm} vapidPublicKey={vapidPublicKey} Toggle={Toggle} />}
 
+        {user && (
+          <>
+            <h3 className="eyebrow pt-2">Add-ons</h3>
+            <div className="space-y-2.5">
+              <Toggle checked={form.cards_enabled} onChange={(v) => setForm({ ...form, cards_enabled: v })} label="Flashcards" hint="Spaced-repetition cards for anything you want to remember. Adds a Cards tab." />
+              <Toggle checked={form.mistake_lab_enabled} onChange={(v) => setForm({ ...form, mistake_lab_enabled: v })} label="Mistake Lab" hint="Log mistakes with your own categories and see the ones you keep repeating. Adds a Mistake Lab tab." />
+              <p className="text-[11px] text-ink-500">Turning an add-on off only hides it. Everything you saved comes back when you turn it on again.</p>
+            </div>
+          </>
+        )}
+
         {error && (
           <p role="alert" className="text-xs font-medium text-rose-400">
             {error}
@@ -183,7 +194,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
             Close
           </Button>
           <Button type="submit" loading={saving}>
-            Save timer settings
+            Save settings
           </Button>
         </div>
       </form>

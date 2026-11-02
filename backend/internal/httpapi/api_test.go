@@ -460,7 +460,7 @@ func TestMigrateIsIdempotent(t *testing.T) {
 		t.Fatal(err)
 	}
 	var n int
-	if err := testPool.QueryRow(ctx, `SELECT count(*) FROM schema_migrations`).Scan(&n); err != nil || n != 9 {
+	if err := testPool.QueryRow(ctx, `SELECT count(*) FROM schema_migrations`).Scan(&n); err != nil || n != 10 {
 		t.Fatalf("schema_migrations rows=%d err=%v", n, err)
 	}
 }
@@ -472,4 +472,44 @@ func minutesOn(s store.DashboardStats, date string) int {
 		}
 	}
 	return -1
+}
+
+func TestSettingsAddons(t *testing.T) {
+	s := newServer(t, nil)
+	token, _ := s.register(t, "addons@example.test")
+	get := func() store.Settings {
+		t.Helper()
+		res, body := s.do(t, "GET", "/api/settings", token, nil)
+		wantStatus(t, res.StatusCode, 200, body)
+		var st store.Settings
+		decode(t, body, &st)
+		return st
+	}
+	if st := get(); st.CardsEnabled || st.MistakeLabEnabled {
+		t.Fatalf("new accounts start with add-ons off: %+v", st)
+	}
+	base := map[string]any{"work_duration": 25, "short_break_duration": 5, "long_break_duration": 15, "long_break_interval": 4, "sound_enabled": true, "reminder_hour": 9, "timezone": "UTC"}
+	with := func(extra map[string]any) map[string]any {
+		out := map[string]any{}
+		for k, v := range base {
+			out[k] = v
+		}
+		for k, v := range extra {
+			out[k] = v
+		}
+		return out
+	}
+	res, body := s.do(t, "POST", "/api/settings", token, with(map[string]any{"cards_enabled": true, "mistake_lab_enabled": true}))
+	wantStatus(t, res.StatusCode, 200, body)
+	// An older client that does not send the flags keeps them as they were.
+	res, body = s.do(t, "POST", "/api/settings", token, with(map[string]any{"work_duration": 50}))
+	wantStatus(t, res.StatusCode, 200, body)
+	if st := get(); !st.CardsEnabled || !st.MistakeLabEnabled || st.WorkDuration != 50 {
+		t.Fatalf("flags lost on a save without them: %+v", st)
+	}
+	res, body = s.do(t, "POST", "/api/settings", token, with(map[string]any{"cards_enabled": false}))
+	wantStatus(t, res.StatusCode, 200, body)
+	if st := get(); st.CardsEnabled || !st.MistakeLabEnabled {
+		t.Fatalf("partial flag update: %+v", st)
+	}
 }

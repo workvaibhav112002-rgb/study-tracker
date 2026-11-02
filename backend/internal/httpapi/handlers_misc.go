@@ -144,11 +144,34 @@ func (a *api) getSettings(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s)
 }
 
+// settingsRequest makes the add-on flags optional so an older client that
+// does not know them cannot switch them off by saving its timer settings.
+type settingsRequest struct {
+	store.Settings
+	CardsEnabled      *bool `json:"cards_enabled"`
+	MistakeLabEnabled *bool `json:"mistake_lab_enabled"`
+}
+
 func (a *api) updateSettings(w http.ResponseWriter, r *http.Request) {
-	var s store.Settings
-	if err := decodeJSON(r, &s); err != nil {
+	var req settingsRequest
+	if err := decodeJSON(r, &req); err != nil {
 		handleErr(w, r, err)
 		return
+	}
+	s := req.Settings
+	if req.CardsEnabled == nil || req.MistakeLabEnabled == nil {
+		current, err := a.store.GetSettings(r.Context(), userID(r))
+		if err != nil {
+			handleErr(w, r, err)
+			return
+		}
+		s.CardsEnabled, s.MistakeLabEnabled = current.CardsEnabled, current.MistakeLabEnabled
+	}
+	if req.CardsEnabled != nil {
+		s.CardsEnabled = *req.CardsEnabled
+	}
+	if req.MistakeLabEnabled != nil {
+		s.MistakeLabEnabled = *req.MistakeLabEnabled
 	}
 	for _, c := range []struct {
 		name   string

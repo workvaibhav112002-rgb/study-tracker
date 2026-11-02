@@ -1,12 +1,16 @@
 import { BrandGlyph } from './ui/BrandMark'
 import React from 'react'
-import { Timer, BarChart3, FolderKanban, History, Settings as SettingsIcon, Flame, LogOut, Layers, NotebookPen, Users, Target } from 'lucide-react'
+import { Settings as SettingsIcon, Flame, LogOut } from 'lucide-react'
 import type { DashboardStats, User } from '../types'
 import { formatMinutes } from '../lib/time'
+
+import { TAB_META } from '../lib/tabs'
 
 export type Tab = 'timer' | 'projects' | 'cards' | 'notes' | 'history' | 'analytics' | 'friends' | 'mistakes'
 
 interface NavbarProps {
+  /** Tabs to show, in order (add-ons that are off are left out). */
+  visibleTabs: Tab[]
   activeTab: Tab
   setActiveTab: (tab: Tab) => void
   onOpenSettings: () => void
@@ -17,16 +21,6 @@ interface NavbarProps {
   timerLabel: string
 }
 
-const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
-  { id: 'timer', label: 'Focus', icon: Timer },
-  { id: 'projects', label: 'Projects', icon: FolderKanban },
-  { id: 'cards', label: 'Cards', icon: Layers },
-  { id: 'notes', label: 'Notes', icon: NotebookPen },
-  { id: 'history', label: 'History', icon: History },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-  { id: 'friends', label: 'Friends', icon: Users },
-  { id: 'mistakes', label: 'Mistake Lab', icon: Target },
-]
 
 const Logo: React.FC = () => (
   <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-300 via-brand-500 to-brand-700 shadow-glow" aria-hidden="true">
@@ -35,6 +29,7 @@ const Logo: React.FC = () => (
 )
 
 export const Navbar: React.FC<NavbarProps> = ({
+  visibleTabs,
   activeTab,
   setActiveTab,
   onOpenSettings,
@@ -66,7 +61,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {user && (
       <nav aria-label="Primary" className="flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-xl border border-fg/[0.06] bg-surface-950/60 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {tabs.map((tab) => {
+        {TAB_META.filter((t) => visibleTabs.includes(t.id)).map((tab) => {
           const Icon = tab.icon
           const isActive = activeTab === tab.id
           return (

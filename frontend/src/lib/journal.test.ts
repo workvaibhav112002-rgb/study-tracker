@@ -44,7 +44,7 @@ describe('journal setup', () => {
     expect(nextColor(DEFAULT_JOURNAL.categories[1].options)).toBe('#e66767')
   })
   it('parses a shared setup and rejects junk', () => {
-    expect(parseSetupFile(JSON.stringify(JOURNAL_PRESETS[4].config))?.preset).toBe('language')
+    expect(parseSetupFile(JSON.stringify(JOURNAL_PRESETS.find((p) => p.key === 'language')!.config))?.preset).toBe('language')
     expect(parseSetupFile('{"categories": 1}')).toBeNull()
     expect(parseSetupFile('not json')).toBeNull()
   })

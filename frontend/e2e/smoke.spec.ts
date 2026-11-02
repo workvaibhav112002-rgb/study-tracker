@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { createProject } from './helpers'
+import { createProject, enableAddons } from './helpers'
 
 const email = `e2e-${Date.now()}@example.test`
 const password = 'e2e-password-123'
@@ -43,6 +43,8 @@ test('register, run a timer, log a session, see analytics', async ({ page }) => 
   await expect(page.getByRole('main').getByText('30m').first()).toBeVisible()
 
   // Flashcards: add one, review it, see it scheduled.
+  // Flashcards is an add-on; switch it on first.
+  await enableAddons(page, { cards: true })
   await page.getByRole('button', { name: 'Cards' }).click()
   await page.getByRole('button', { name: 'New card' }).click()
   const cardDialog = page.getByRole('dialog', { name: 'New card' })

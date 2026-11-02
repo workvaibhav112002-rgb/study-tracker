@@ -221,6 +221,9 @@ export interface Settings {
   reminder_enabled: boolean
   reminder_hour: number
   timezone: string
+  /** Optional add-ons; off for new accounts. */
+  cards_enabled: boolean
+  mistake_lab_enabled: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -233,6 +236,8 @@ export const DEFAULT_SETTINGS: Settings = {
   reminder_enabled: false,
   reminder_hour: 9,
   timezone: 'UTC',
+  cards_enabled: false,
+  mistake_lab_enabled: false,
 }
 
 /** Server-side limits, mirrored for form validation. */

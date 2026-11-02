@@ -8,6 +8,7 @@ import type { Command } from './lib/commands'
 import type { TimerMode } from './types'
 import confetti from 'canvas-confetti'
 import { Navbar, type Tab } from './components/Navbar'
+import { TAB_META } from './lib/tabs'
 import { PomodoroTimer } from './components/PomodoroTimer'
 import { SessionModal } from './components/SessionModal'
 import { ManualSessionModal } from './components/ManualSessionModal'
@@ -128,10 +129,19 @@ const AppShell: React.FC = () => {
       /* ignore */
     }
   }, [])
+  // Add-ons that are off are hidden, and the number keys follow the visible tabs.
+  const visibleTabs = useMemo(
+    () => TAB_ORDER.filter((t) => (t !== 'cards' || data.settings.cards_enabled) && (t !== 'mistakes' || data.settings.mistake_lab_enabled)),
+    [data.settings.cards_enabled, data.settings.mistake_lab_enabled],
+  )
+  const mistakeLabOn = data.settings.mistake_lab_enabled
+  useEffect(() => {
+    if (data.loaded && !visibleTabs.includes(activeTab)) setActiveTab('timer')
+  }, [data.loaded, visibleTabs, activeTab, setActiveTab])
   const friendState = useFriends(userId, activeTab === 'friends')
   const journalState = useJournal(userId, activeTab === 'mistakes')
   const [alertVersion, setAlertVersion] = useState(0)
-  const { alerts: patternAlerts, userConfig: bannerConfig } = usePatternAlerts(userId, alertVersion)
+  const { alerts: patternAlerts, userConfig: bannerConfig } = usePatternAlerts(mistakeLabOn ? userId : null, alertVersion)
   const [journalAction, setJournalAction] = useState<JournalAction | null>(null)
   const [focusAlert, setFocusAlert] = useState<PatternAlert | null>(null)
   const [alertDismissed, setAlertDismissed] = useState<string | null>(() => {
@@ -321,10 +331,10 @@ const AppShell: React.FC = () => {
       if (target && INTERACTIVE.has(target.tagName) && (e.code === 'Space' || e.key === 'Enter')) return
       if (document.querySelector('[role="dialog"]')) return
       const key = e.key
-      const tabIndex = ['1', '2', '3', '4', '5', '6', '7', '8'].indexOf(key)
-      if (tabIndex >= 0) {
+      const tabIndex = ['1', '2', '3', '4', '5', '6', '7', '8', '9'].indexOf(key)
+      if (tabIndex >= 0 && tabIndex < visibleTabs.length) {
         e.preventDefault()
-        setActiveTab(TAB_ORDER[tabIndex])
+        setActiveTab(visibleTabs[tabIndex])
         return
       }
       if (key === '?') {
@@ -365,7 +375,7 @@ const AppShell: React.FC = () => {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [activeTab, auth.status, canStart, timer, toggleZen, setActiveTab])
+  }, [activeTab, auth.status, canStart, timer, toggleZen, setActiveTab, visibleTabs])
 
   const markReviewSeen = useCallback(() => {
     const key = data.review?.week_start ?? null
@@ -378,7 +388,7 @@ const AppShell: React.FC = () => {
   }, [data.review])
   const reviewReady = Boolean(data.review && data.review.minutes > 0 && data.review.week_start !== reviewSeen)
 
-  const commands: Command[] = [
+  const allCommands: Command[] = [
     { id: 'start', label: timer.state.status === 'running' ? 'Pause timer' : timer.state.status === 'paused' ? 'Resume timer' : 'Start timer', hint: 'Space', group: 'Timer', run: () => { setActiveTab('timer'); if (canStart) timer.toggle() } },
     { id: 'reset', label: 'Reset timer', hint: 'R', group: 'Timer', run: timer.reset },
     { id: 'skip', label: 'Skip to next interval', hint: 'S', group: 'Timer', run: timer.skip },
@@ -411,6 +421,18 @@ const AppShell: React.FC = () => {
     { id: 'feedback', label: 'Send feedback', group: 'Actions', run: () => setIsFeedbackOpen(true) },
     { id: 'logout', label: 'Sign out', group: 'Actions', run: auth.logout },
   ]
+  // Hide commands for add-ons that are off; number hints follow the visible tabs.
+  const navIds: Record<Tab, string> = { timer: 'nav-timer', projects: 'nav-projects', cards: 'nav-cards', notes: 'nav-notes', history: 'nav-history', analytics: 'nav-analytics', friends: 'nav-friends', mistakes: 'nav-mistakes' }
+  const hiddenCommands = new Set([
+    ...(data.settings.cards_enabled ? [] : ['nav-cards', 'review']),
+    ...(mistakeLabOn ? [] : ['nav-mistakes', 'log-mistake', 'log-test', 'weekly-review', 'customize-journal']),
+  ])
+  const commands = allCommands
+    .filter((c) => !hiddenCommands.has(c.id))
+    .map((c) => {
+      const tab = visibleTabs.find((t) => navIds[t] === c.id)
+      return tab ? { ...c, hint: String(visibleTabs.indexOf(tab) + 1) } : c
+    })
 
   const saveCompletedSession = async (projectId: number, rating: number, notes: string, taskId: number | null) => {
     if (!completed) return
@@ -472,6 +494,7 @@ const AppShell: React.FC = () => {
       {!zen && <ServerStatusBanner authStatus={auth.status} onRetry={() => void auth.retry()} />}
       {!zen && (
       <Navbar
+        visibleTabs={visibleTabs}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenSettings={() => setIsSettingsOpen(true)}
@@ -524,7 +547,7 @@ const AppShell: React.FC = () => {
                   </span>
                 </div>
               )}
-              {!zen && patternAlerts.length > 0 && alertDismissed !== alertKey && (
+              {!zen && mistakeLabOn && patternAlerts.length > 0 && alertDismissed !== alertKey && (
                 <PatternBanner
                   compact
                   alerts={patternAlerts}
@@ -757,7 +780,7 @@ const AppShell: React.FC = () => {
       )}
 
       <CommandPalette isOpen={paletteOpen} onClose={() => setPaletteOpen(false)} commands={commands} />
-      <ShortcutsModal isOpen={isShortcutsOpen} onClose={() => setIsShortcutsOpen(false)} />
+      <ShortcutsModal isOpen={isShortcutsOpen} onClose={() => setIsShortcutsOpen(false)} tabLabels={TAB_META.filter((t) => visibleTabs.includes(t.id)).map((t) => t.label)} mistakeLab={mistakeLabOn} />
 
       {!zen && (
       <button

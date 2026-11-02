@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
-import { createProject } from './helpers'
+import { createProject, enableAddons } from './helpers'
 
 // Pills are visually hidden radios/checkboxes inside labels: click the label as a user would.
 const pick = (scope: Locator, name: string) => scope.locator('label').filter({ hasText: new RegExp(`^${name.replace(/[()/?.]/g, '\\$&')}$`) }).click()
@@ -17,6 +17,7 @@ async function signUp(page: Page, tag: string) {
 
 test('new accounts start empty, and the journal finds patterns, customizes, reviews and makes flashcards', async ({ page }) => {
   await signUp(page, 'journal')
+  await enableAddons(page, { cards: true, mistakeLab: true })
   // No sample projects.
   await page.keyboard.press('8')
   await expect(page.getByText('Learn from every mistake')).toBeVisible()
@@ -99,8 +100,11 @@ test('new accounts start empty, and the journal finds patterns, customizes, revi
 
 test('tests add-on and drafts', async ({ page }) => {
   await signUp(page, 'journal-tests')
+  await enableAddons(page, { mistakeLab: true })
   await createProject(page, 'AWS')
-  await page.keyboard.press('8')
+  // Only Mistake Lab is on, so it is the 7th tab.
+  await page.keyboard.press('7')
+  await expect(page.getByText('Mistake Lab', { exact: true }).first()).toBeVisible()
 
   // Turn the Tests add-on on from Customize.
   await page.getByRole('button', { name: /^Customize/ }).click()
@@ -139,4 +143,26 @@ test('tests add-on and drafts', async ({ page }) => {
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
     expect(overflow, tab).toBeLessThanOrEqual(0)
   }
+})
+
+test('new accounts see no add-on tabs until they switch them on', async ({ page }) => {
+  await signUp(page, 'addons')
+  const nav = page.getByRole('navigation', { name: 'Primary' })
+  await expect(nav.getByRole('button')).toHaveCount(6)
+  await expect(nav.getByRole('button', { name: 'Cards' })).toHaveCount(0)
+  await expect(nav.getByRole('button', { name: 'Mistake Lab' })).toHaveCount(0)
+  // Number keys follow the visible tabs: 3 is Notes when Cards is off.
+  await page.keyboard.press('3')
+  await expect(nav.getByRole('button', { name: 'Notes' })).toHaveAttribute('aria-current', 'page')
+  await enableAddons(page, { cards: true })
+  await expect(nav.getByRole('button', { name: 'Cards' })).toBeVisible()
+  await page.keyboard.press('3')
+  await expect(nav.getByRole('button', { name: 'Cards' })).toHaveAttribute('aria-current', 'page')
+  // Turning it off again sends you back to Focus and hides the tab.
+  await page.getByRole('button', { name: 'Timer settings' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Settings' })
+  await dialog.locator('label').filter({ hasText: /^Flashcards/ }).click()
+  await dialog.getByRole('button', { name: 'Save settings' }).click()
+  await expect(nav.getByRole('button', { name: 'Cards' })).toHaveCount(0)
+  await expect(nav.getByRole('button', { name: 'Focus' })).toHaveAttribute('aria-current', 'page')
 })

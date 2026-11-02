@@ -62,6 +62,19 @@ const preset = (key: string, over: Partial<JournalConfig>): JournalConfig => ({ 
 export const JOURNAL_PRESETS: JournalPreset[] = [
   { key: 'any', label: 'General', description: 'Topic, mistake type and source. A good start for anything.', config: structuredClone(DEFAULT_JOURNAL) },
   {
+    key: 'work',
+    label: 'Work',
+    description: 'Slips in everyday work: missed requirements, rushed reviews, unclear briefs.',
+    config: preset('work', {
+      categories: [
+        topic('Area'),
+        mistakeType([['missed_requirement', 'Missed a requirement'], ['rushed', 'Rushed it'], ['skipped_check', 'Skipped a check'], ['unclear_brief', 'Unclear brief'], ['forgot_step', 'Forgot a step'], ['interrupted', 'Interrupted']]),
+        source([['self_review', 'Self-review'], ['code_review', 'Code review'], ['client', 'Client feedback'], ['qa', 'QA'], ['meeting', 'Meeting'], ['other', 'Other']]),
+      ],
+      fields: BUILTIN_FIELDS('What went wrong', 'What to do next time', 'How it was fixed', 'Time spent vs expected'),
+    }),
+  },
+  {
     key: 'school',
     label: 'School',
     description: 'Subjects, topics, homework and tests.',
