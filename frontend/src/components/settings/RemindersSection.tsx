@@ -73,7 +73,7 @@ export const RemindersSection: React.FC<Props> = ({ form, setForm, vapidPublicKe
       <Toggle
         checked={form.reminder_enabled}
         onChange={(v) => setForm({ ...form, reminder_enabled: v, timezone: v ? browserTimeZone() || form.timezone : form.timezone })}
-        label="Daily nudge if I have not studied"
+        label="Daily nudge if I have not focused yet"
         hint={`Sent once a day at the hour below, ${form.timezone} time.`}
       />
       {form.reminder_enabled && (

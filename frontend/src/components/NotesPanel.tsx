@@ -122,7 +122,7 @@ export const NotesPanel: React.FC<Props> = ({ projects, notes, loading, onAdd, o
         <div className="card flex flex-col items-center px-6 py-16 text-center">
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-fg/[0.06] bg-fg/[0.04] text-ink-400"><NotebookPen className="h-6 w-6" aria-hidden="true" /></div>
           <h3 className="text-base font-semibold text-ink-50">{notes.length === 0 ? 'No notes yet' : 'Nothing matches'}</h3>
-          <p className="mt-1.5 max-w-sm text-sm text-ink-400">Capture what you learned, link it to a project, tag it, find it later.</p>
+          <p className="mt-1.5 max-w-sm text-sm text-ink-400">Capture ideas and decisions, link them to a project, tag them, find them later.</p>
         </div>
       ) : (
         <ul className="stagger grid gap-3 md:grid-cols-2">

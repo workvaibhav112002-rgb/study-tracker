@@ -192,7 +192,7 @@ func (a *api) runReminders(ctx context.Context, now time.Time) (sent, skipped, f
 			skipped++
 			continue
 		}
-		title, body, url := "Time to study", "", a.cfg.AppURL+"/?from=reminder"
+		title, body, url := "Time to focus", "", a.cfg.AppURL+"/?from=reminder"
 		// On the user's review day, a pending mistake deck takes priority over the study nudge.
 		if cfg, err := a.effectiveConfig(ctx, c.UserID, nil); err == nil && int(local.Weekday()) == cfg.ReviewWeekday {
 			if deck, err := a.store.MistakeReviewDeck(ctx, c.UserID, now, nil); err == nil && len(deck) > 0 {

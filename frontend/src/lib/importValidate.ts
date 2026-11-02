@@ -7,7 +7,7 @@ export interface ImportCheck {
 }
 
 export function validateImport(raw: unknown): ImportCheck {
-  if (!raw || typeof raw !== 'object') return { ok: false, error: 'The file is not a Study Tracker backup.' }
+  if (!raw || typeof raw !== 'object') return { ok: false, error: 'The file is not a Meridian (or Study Tracker) backup.' }
   const obj = raw as Record<string, unknown>
   const projects = obj.projects
   const sessions = obj.sessions ?? []

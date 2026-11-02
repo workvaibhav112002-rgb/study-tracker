@@ -47,12 +47,12 @@ export const ProfileSection: React.FC<Props> = ({ user, appUrl, onChanged }) => 
           {(id) => (
             <div className="relative">
               <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-ink-500">@</span>
-              <input id={id} value={form.handle ?? ''} onChange={(e) => setForm({ ...form, handle: e.target.value })} className={`${inputClass} pl-8 font-mono`} placeholder="study-buddy" maxLength={30} autoComplete="off" />
+              <input id={id} value={form.handle ?? ''} onChange={(e) => setForm({ ...form, handle: e.target.value })} className={`${inputClass} pl-8 font-mono`} placeholder="deep-worker" maxLength={30} autoComplete="off" />
             </div>
           )}
         </Field>
         <Field label="Bio">
-          {(id) => <textarea id={id} value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} className={`${inputClass} min-h-[64px] resize-y`} maxLength={280} placeholder="What are you studying for?" />}
+          {(id) => <textarea id={id} value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} className={`${inputClass} min-h-[64px] resize-y`} maxLength={280} placeholder="What are you working on?" />}
         </Field>
         <label className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-fg/[0.06] bg-fg/[0.03] px-4 py-3">
           <span className="flex items-center gap-2.5">

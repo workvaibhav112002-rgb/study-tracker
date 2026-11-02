@@ -17,10 +17,10 @@ test('project exam fields save, and typing in dialogs never loses focus', async 
   await form.getByLabel('Name').fill('Exam prep')
   const soon = new Date()
   soon.setDate(soon.getDate() + 10)
-  await form.getByLabel('Exam date').fill(soon.toISOString().slice(0, 10))
+  await form.getByLabel('Deadline').fill(soon.toISOString().slice(0, 10))
   await form.getByLabel('Planned hours per week').fill('6')
   await form.getByRole('button', { name: 'Create project' }).click()
-  await expect(page.getByText('Exam in 10d')).toBeVisible()
+  await expect(page.getByText('Due in 10d')).toBeVisible()
   await expect(page.getByText('Behind plan · 0%')).toBeVisible()
 
   // Typing into a later field of a dialog keeps focus there (regression: the

@@ -1,3 +1,4 @@
+import { BrandGlyph } from './ui/BrandMark'
 import React, { useState } from 'react'
 import { Lock, Mail, User as UserIcon, ArrowRight, Wand2, ArrowLeft, Inbox } from 'lucide-react'
 import { api, errorMessage } from '../api/client'
@@ -21,10 +22,7 @@ type View = 'login' | 'register' | 'forgot' | 'magic' | 'sent'
 const MIN_PASSWORD = 8
 
 const Mark: React.FC = () => (
-  <svg viewBox="0 0 24 24" className="h-7 w-7 text-surface-950" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="12" cy="12" r="9" />
-    <path d="M12 7v5l3 2" />
-  </svg>
+  <BrandGlyph className="h-7 w-7 text-surface-950" />
 )
 
 const COPY: Record<View, { title: string; description: string }> = {

@@ -50,7 +50,7 @@ func writeICS(w io.Writer, sessions []store.Session) error {
 	line("PRODID:-//study-tracker//EN")
 	line("CALSCALE:GREGORIAN")
 	line("METHOD:PUBLISH")
-	line("X-WR-CALNAME:Study Tracker")
+	line("X-WR-CALNAME:Meridian")
 	for _, s := range sessions {
 		desc := fmt.Sprintf("Focus rating: %d/5\nInterruptions: %d", s.FocusRating, s.Interruptions)
 		if s.Notes != "" {

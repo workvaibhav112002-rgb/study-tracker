@@ -13,7 +13,7 @@ export interface ShareCardData {
 export function shareDataFromStats(stats: DashboardStats, appUrl: string): ShareCardData {
   const top = stats.project_stats[0]
   return {
-    title: 'My study week',
+    title: 'My focus week',
     streakDays: stats.current_streak_days,
     weekMinutes: stats.weekly_minutes,
     totalMinutes: stats.total_minutes,
@@ -117,14 +117,14 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 }
 
 /** Shares via the Web Share API when files are supported, else downloads. */
-export async function shareOrDownload(canvas: HTMLCanvasElement, filename = 'study-week.png'): Promise<'shared' | 'downloaded' | 'failed'> {
+export async function shareOrDownload(canvas: HTMLCanvasElement, filename = 'focus-week.png'): Promise<'shared' | 'downloaded' | 'failed'> {
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
   if (!blob) return 'failed'
   const file = new File([blob], filename, { type: 'image/png' })
   const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean }
   if (nav.share && nav.canShare?.({ files: [file] })) {
     try {
-      await nav.share({ files: [file], title: 'My study week' })
+      await nav.share({ files: [file], title: 'My focus week' })
       return 'shared'
     } catch {
       /* user cancelled or unsupported; fall through */

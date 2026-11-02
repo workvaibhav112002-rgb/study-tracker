@@ -4,7 +4,7 @@ import { createProject } from './helpers'
 test('the landing page keeps its contracts and the tour respects reduced motion', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1)
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Study with intent')
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Do your best work')
   await expect(page.getByRole('button', { name: 'Start for free' })).toHaveCount(1)
   await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toHaveCount(1)
   await expect(page.getByRole('button', { name: 'Pause tour' })).toBeVisible()

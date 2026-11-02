@@ -1,6 +1,7 @@
 import React, { useMemo, Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import { MessageSquareHeart, Sparkles, X, Minimize2 } from 'lucide-react'
 import { CommandPalette } from './components/CommandPalette'
+import { BrandGlyph } from './components/ui/BrandMark'
 import { ShortcutsModal } from './components/ShortcutsModal'
 import { useZenMode } from './hooks/useZenMode'
 import type { Command } from './lib/commands'
@@ -205,7 +206,7 @@ const AppShell: React.FC = () => {
 
   useEffect(() => {
     const label = timer.state.mode === 'work' ? 'Focus' : 'Break'
-    document.title = running ? `${timer.formatted} · ${label} · Study Tracker` : 'Study Tracker & Pomodoro'
+    document.title = running ? `${timer.formatted} · ${label} · Meridian` : 'Meridian · Focus timer'
     if (running) favicon?.update(timer.formatted, timer.progress / 100, MODE_COLORS[timer.state.mode])
     else favicon?.restore()
   }, [timer.formatted, timer.state.mode, running, timer.progress])
@@ -391,7 +392,7 @@ const AppShell: React.FC = () => {
     { id: 'nav-notes', label: 'Go to notes', hint: '4', group: 'Navigate', run: () => setActiveTab('notes') },
     { id: 'nav-history', label: 'Go to history', hint: '5', group: 'Navigate', run: () => setActiveTab('history') },
     { id: 'nav-analytics', label: 'Go to analytics', hint: '6', keywords: 'stats review heatmap', group: 'Navigate', run: () => setActiveTab('analytics') },
-    { id: 'nav-friends', label: 'Go to friends', hint: '7', keywords: 'leaderboard invite study together', group: 'Navigate', run: () => setActiveTab('friends') },
+    { id: 'nav-friends', label: 'Go to friends', hint: '7', keywords: 'leaderboard invite focus together', group: 'Navigate', run: () => setActiveTab('friends') },
     { id: 'nav-mistakes', label: 'Go to Mistake Lab', hint: '8', keywords: 'mistakes journal error log patterns dashboard', group: 'Navigate', run: () => setActiveTab('mistakes') },
     { id: 'log-mistake', label: 'Log a mistake', keywords: 'error journal wrong question', group: 'Actions', run: () => requestJournal('mistake') },
     { id: 'log-test', label: 'Log a test score', keywords: 'exam mock score sections', group: 'Actions', run: () => requestJournal('test') },
@@ -399,7 +400,7 @@ const AppShell: React.FC = () => {
     { id: 'customize-journal', label: 'Customize Mistake Lab', keywords: 'categories fields setup preset', group: 'Actions', run: () => requestJournal('customize') },
     ...data.projects.map((p) => ({ id: `project-${p.id}`, label: `Focus on ${p.name}`, keywords: 'project select', group: 'Projects' as const, run: () => { data.setSelectedProjectId(p.id); setActiveTab('timer') } })),
     { id: 'new-project', label: 'New project', group: 'Projects', run: requestCreateProject },
-    { id: 'review', label: cardState.stats.due > 0 ? `Review ${cardState.stats.due} due cards` : 'Open flashcards', keywords: 'flashcards srs study', group: 'Actions', run: () => { setActiveTab('cards'); setReviewSignal((n) => n + 1) } },
+    { id: 'review', label: cardState.stats.due > 0 ? `Review ${cardState.stats.due} due cards` : 'Open flashcards', keywords: 'flashcards srs memorise', group: 'Actions', run: () => { setActiveTab('cards'); setReviewSignal((n) => n + 1) } },
     { id: 'new-note', label: 'New note', keywords: 'write markdown', group: 'Actions', run: () => { setActiveTab('notes'); setNewNoteSignal((n) => n + 1) } },
     { id: 'log', label: 'Log a past session', hint: 'N', keywords: 'manual entry', group: 'Actions', run: () => setIsManualOpen(true) },
     { id: 'settings', label: 'Open settings', hint: ',', keywords: 'preferences calendar import account', group: 'Actions', run: () => setIsSettingsOpen(true) },
@@ -442,10 +443,7 @@ const AppShell: React.FC = () => {
       <div className="flex min-h-screen flex-col items-center justify-center gap-4" role="status">
         <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-300 via-brand-500 to-brand-700 shadow-glow-lg">
           <span className="absolute inset-0 animate-breathe rounded-2xl bg-brand-400/40 blur-xl" aria-hidden="true" />
-          <svg viewBox="0 0 24 24" className="relative h-7 w-7 text-surface-950" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="9" />
-            <path d="M12 7v5l3 2" />
-          </svg>
+          <BrandGlyph className="relative h-7 w-7 text-surface-950" />
         </div>
         <span className="text-sm text-ink-500">Signing you in…</span>
       </div>
@@ -610,7 +608,7 @@ const AppShell: React.FC = () => {
                 void cardState.refresh().catch(() => undefined)
                 if (summary.reviewed === 0) return
                 toast.success(`Reviewed ${summary.reviewed} card${summary.reviewed === 1 ? '' : 's'}${summary.again ? `, ${summary.again} to repeat` : ''}.`)
-                // Reviews of a minute or more count as study time on the project.
+                // Reviews of a minute or more count as focus time on the project.
                 if (summary.seconds >= 60 && data.selectedProjectId !== null) {
                   const end = new Date()
                   void data

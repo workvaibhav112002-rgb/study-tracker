@@ -94,7 +94,7 @@ func Build(from, to, subject, body string) string {
 		domain = from[at+1:]
 	}
 	headers := []string{
-		"From: Study Tracker <" + from + ">",
+		"From: Meridian <" + from + ">",
 		"To: " + to,
 		"Subject: " + sanitize(subject),
 		"Date: " + time.Now().UTC().Format(time.RFC1123Z),

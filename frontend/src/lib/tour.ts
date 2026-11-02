@@ -13,7 +13,7 @@ export interface TourStep {
 
 export const TOUR_STEPS: TourStep[] = [
   { id: 'timer', title: 'A timer that never forgets', caption: 'Close the laptop, switch tabs, come back: the countdown is still right.', durationMs: 3500 },
-  { id: 'heatmap', title: 'Every day you showed up', caption: 'A year of study at a glance. Darker means more minutes.', durationMs: 3500 },
+  { id: 'heatmap', title: 'Every day you showed up', caption: 'A year of focus at a glance. Darker means more minutes.', durationMs: 3500 },
   { id: 'streak', title: 'Streaks that forgive', caption: 'Hit your daily goal to grow it. One freeze a week covers a bad day.', durationMs: 3500 },
   { id: 'badge', title: 'Milestones unlock', caption: 'Hours, pomodoros, cards and streaks each earn a badge.', durationMs: 3500 },
   { id: 'share', title: 'Share your week', caption: 'One tap makes a card of your numbers to post anywhere.', durationMs: 3500 },

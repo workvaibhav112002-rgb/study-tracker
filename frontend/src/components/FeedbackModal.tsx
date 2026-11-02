@@ -64,7 +64,7 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, u
     >
       {submitted ? (
         <div className="flex justify-end">
-          <Button onClick={onClose}>Back to studying</Button>
+          <Button onClick={onClose}>Back to work</Button>
         </div>
       ) : (
         <>

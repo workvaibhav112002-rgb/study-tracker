@@ -95,7 +95,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, h
   const WowIcon = !wow || wow.delta_minutes === 0 ? Minus : wow.delta_minutes > 0 ? TrendingUp : TrendingDown
   const cards = [
     { label: 'Today', value: formatMinutes(stats.today_minutes), hint: 'Resets at your local midnight', icon: <Clock className="h-4 w-4" aria-hidden="true" />, tone: 'text-brand-400 bg-brand-500/10 border-brand-500/20' },
-    { label: 'Streak', value: `${stats.current_streak_days}d`, hint: 'Consecutive study days', icon: <Flame className="h-4 w-4 fill-current" aria-hidden="true" />, tone: 'text-orange-400 bg-orange-400/10 border-orange-400/20' },
+    { label: 'Streak', value: `${stats.current_streak_days}d`, hint: 'Consecutive focus days', icon: <Flame className="h-4 w-4 fill-current" aria-hidden="true" />, tone: 'text-orange-400 bg-orange-400/10 border-orange-400/20' },
     { label: 'Last 7 days', value: formatMinutes(stats.weekly_minutes), hint: wowText, icon: <WowIcon className="h-4 w-4" aria-hidden="true" />, tone: 'text-accent-sky bg-accent-sky/10 border-accent-sky/20' },
     { label: 'Pomodoros', value: String(stats.completed_pomodoros), hint: 'Completed focus cycles', icon: <Sparkles className="h-4 w-4" aria-hidden="true" />, tone: 'text-accent-amber bg-accent-amber/10 border-accent-amber/20' },
     { label: 'Interruptions', value: (stats.avg_interruptions ?? 0).toFixed(1), hint: 'Average per session', icon: <Zap className="h-4 w-4" aria-hidden="true" />, tone: 'text-accent-amber bg-accent-amber/10 border-accent-amber/20' },
@@ -108,7 +108,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, h
         <div>
           <p className="eyebrow mb-2">Insights</p>
           <h2 className="text-2xl font-semibold tracking-tight text-ink-50 sm:text-3xl">Analytics</h2>
-          <p className="mt-1.5 text-sm text-ink-400">{formatMinutes(stats.total_minutes)} studied in total, across every project.</p>
+          <p className="mt-1.5 text-sm text-ink-400">{formatMinutes(stats.total_minutes)} of focus in total, across every project.</p>
         </div>
         <div className="flex items-center gap-2">
           <ShareCardButton stats={stats} appUrl={appUrl} />
@@ -144,7 +144,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, h
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-        <section className="card p-5 sm:p-6 lg:col-span-3" aria-label="Daily study activity">
+        <section className="card p-5 sm:p-6 lg:col-span-3" aria-label="Daily focus">
           <div className="mb-5 flex items-start justify-between gap-4">
             <div>
               <h3 className="text-base font-semibold text-ink-50">Daily activity</h3>
@@ -188,7 +188,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, h
 
         <section className="card p-5 sm:p-6 lg:col-span-2" aria-label="Time distribution by project">
           <h3 className="text-base font-semibold text-ink-50">By project</h3>
-          <p className="mt-0.5 text-xs text-ink-500">Share of all study time</p>
+          <p className="mt-0.5 text-xs text-ink-500">Share of all focus time</p>
           {pieData.length === 0 ? (
             <div className="flex h-64 flex-col items-center justify-center text-xs text-ink-500">
               <Award className="mb-2 h-7 w-7 text-ink-700" aria-hidden="true" />
@@ -244,7 +244,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats, h
 
         <section className="card p-5 sm:p-6 lg:col-span-5" aria-label="Last twelve months">
           <h3 className="text-base font-semibold text-ink-50">Last twelve months</h3>
-          <p className="mb-4 mt-0.5 text-xs text-ink-500">Every day you studied, darker means more minutes</p>
+          <p className="mb-4 mt-0.5 text-xs text-ink-500">Every day you focused, darker means more minutes</p>
           <HeatmapYear days={heatmap} />
         </section>
 

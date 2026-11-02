@@ -64,12 +64,12 @@ export const Hero: React.FC<Props> = ({ onSignIn, onRegister, onDemoFinished }) 
 
       <div className="grid items-center gap-12 lg:grid-cols-2">
         <div className="text-center lg:text-left">
-          <p className="eyebrow mb-4 animate-fade-up">Pomodoro, projects, analytics</p>
+          <p className="eyebrow mb-4 animate-fade-up">Find your peak hours</p>
           <h1 className="text-5xl font-semibold leading-[1.02] tracking-tight text-ink-50 animate-fade-up sm:text-7xl" style={{ animationDelay: '60ms' }}>
-            Study with intent. <span className="gradient-text">See it add up.</span>
+            Do your best work, <span className="gradient-text">on purpose.</span>
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-base text-ink-400 animate-fade-up sm:text-lg lg:mx-0" style={{ animationDelay: '120ms' }}>
-            A focus timer that survives anything, honest metrics on how you actually work, and a weekly review that tells you what to change.
+            Meridian is a focus timer that learns when you do your best work. Honest metrics, your peak hours, and a weekly review that tells you what to change.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 animate-fade-up sm:flex-row lg:justify-start" style={{ animationDelay: '180ms' }}>
             <Button size="xl" onClick={onRegister} icon={<ArrowRight className="h-4 w-4" aria-hidden="true" />}>

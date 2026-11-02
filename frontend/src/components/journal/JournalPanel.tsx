@@ -195,7 +195,7 @@ const JournalPanel: React.FC<Props> = ({ userId, projects, selectedProjectId, on
       <div className="card mx-auto mt-6 max-w-xl p-8 text-center">
         <Target className="mx-auto mb-3 h-8 w-8 text-brand-400" aria-hidden="true" />
         <h2 className="text-lg font-semibold text-ink-50">Learn from every mistake</h2>
-        <p className="mt-1 text-sm text-ink-400">Create a project for a subject, course or exam, then log mistakes against it. The app finds what keeps going wrong.</p>
+        <p className="mt-1 text-sm text-ink-400">Create a project for any area of work, then log mistakes against it. The app finds what keeps going wrong.</p>
         <Button className="mt-5" onClick={onCreateProject} icon={<Plus className="h-4 w-4" aria-hidden="true" />}>Create a project</Button>
       </div>
     )

@@ -344,9 +344,9 @@ export const api = {
     request<{ status: string; message: string; id: number }>('/feedback', { method: 'POST', body: data }),
 
   // Export: streams the JSON backup to a download.
-  exportBackup: () => download('/export', `study_tracker_backup_${new Date().toISOString().slice(0, 10)}.json`),
-  exportSessionsCsv: () => download(`/export.csv?tz=${tz()}`, `study_tracker_sessions_${new Date().toISOString().slice(0, 10)}.csv`),
-  exportWorkbook: () => download(`/export.xlsx?tz=${tz()}`, `study_tracker_${new Date().toISOString().slice(0, 10)}.xlsx`),
+  exportBackup: () => download('/export', `meridian_backup_${new Date().toISOString().slice(0, 10)}.json`),
+  exportSessionsCsv: () => download(`/export.csv?tz=${tz()}`, `meridian_sessions_${new Date().toISOString().slice(0, 10)}.csv`),
+  exportWorkbook: () => download(`/export.xlsx?tz=${tz()}`, `meridian_${new Date().toISOString().slice(0, 10)}.xlsx`),
 
   // Mock tests and mistake log
   setExamTemplate: (projectId: number, template: ExamTemplate | null) =>

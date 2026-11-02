@@ -52,7 +52,7 @@ export const CoachPanel: React.FC<Props> = ({ stats, review, streak, projects })
   }
 
   return (
-    <section className="card p-5 sm:p-6" aria-label="AI study coach">
+    <section className="card p-5 sm:p-6" aria-label="AI focus coach">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="eyebrow">AI coach</p>

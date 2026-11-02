@@ -1,3 +1,4 @@
+import { BrandGlyph } from './ui/BrandMark'
 import React from 'react'
 import { Timer, BarChart3, FolderKanban, History, Settings as SettingsIcon, Flame, LogOut, Layers, NotebookPen, Users, Target } from 'lucide-react'
 import type { DashboardStats, User } from '../types'
@@ -29,10 +30,7 @@ const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
 
 const Logo: React.FC = () => (
   <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-300 via-brand-500 to-brand-700 shadow-glow" aria-hidden="true">
-    <svg viewBox="0 0 24 24" className="h-[18px] w-[18px] text-surface-950" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 2" />
-    </svg>
+    <BrandGlyph className="h-[18px] w-[18px] text-surface-950" />
   </div>
 )
 
@@ -51,7 +49,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="flex shrink-0 items-center gap-3 pl-1">
         <Logo />
         <span className="hidden items-center gap-1 text-[15px] font-semibold tracking-tight text-ink-50 md:flex">
-          Study<span className="text-brand-400">Tracker</span>
+          Meridian
         </span>
         {timerRunning && activeTab !== 'timer' && (
           <button
@@ -98,7 +96,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Flame className="h-3.5 w-3.5 fill-orange-400 text-orange-400" aria-hidden="true" />
               {stats.current_streak_days}d
             </div>
-            <div className="chip border-fg/[0.06] bg-fg/[0.04] text-ink-300" title="Studied today">
+            <div className="chip border-fg/[0.06] bg-fg/[0.04] text-ink-300" title="Focused today">
               <span className="text-ink-500">Today</span>
               <span className="text-ink-50">{formatMinutes(stats.today_minutes)}</span>
             </div>

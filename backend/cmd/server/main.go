@@ -1,4 +1,4 @@
-// Command server runs the Study Tracker API.
+// Command server runs the Meridian API.
 package main
 
 import (

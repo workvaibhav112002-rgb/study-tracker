@@ -1,6 +1,8 @@
-# Study Tracker & Pomodoro
+# Meridian
 
-A multi-user study tracker with a drift-free Pomodoro timer, projects, focus ratings, streaks and analytics.
+*Find your peak hours.* A focus timer for anyone doing deep work: a drift-free Pomodoro timer, projects,
+honest focus metrics, peak hours, streaks and weekly reviews, with optional Flashcards and Mistake Lab add-ons.
+(Formerly "Study Tracker"; internal identifiers such as storage keys, the Go module and hosting names keep the old name.)
 Go API on Postgres, React frontend. Runs entirely on free tiers.
 
 | Layer    | Tech                                   | Hosting                     |

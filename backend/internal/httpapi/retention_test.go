@@ -310,7 +310,7 @@ func TestPushSubscribeAndReminders(t *testing.T) {
 	if n := s.push.count(live); n != 1 {
 		t.Fatalf("live endpoint got %d pushes", n)
 	}
-	if !strings.Contains(s.push.sent[live][0], "Time to study") {
+	if !strings.Contains(s.push.sent[live][0], "Time to focus") {
 		t.Fatalf("payload: %s", s.push.sent[live][0])
 	}
 	// Second run the same day: already reminded today, so nothing new.

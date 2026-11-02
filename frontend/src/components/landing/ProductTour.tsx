@@ -95,7 +95,7 @@ const ProductTour: React.FC = () => {
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="eyebrow mb-2">What it looks like</p>
-          <h2 className="text-2xl font-semibold tracking-tight text-ink-50 sm:text-3xl">A week in Study Tracker</h2>
+          <h2 className="text-2xl font-semibold tracking-tight text-ink-50 sm:text-3xl">A week in Meridian</h2>
         </div>
         <span className="chip border-fg/[0.06] bg-fg/[0.04] text-ink-500">Example data</span>
       </div>

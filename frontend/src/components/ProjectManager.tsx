@@ -168,7 +168,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                     {p.exam_date && (() => { const d = daysUntil(p.exam_date); return (
                       <span className={`chip ${d !== null && d <= 7 ? 'border-rose-500/20 bg-rose-500/10 text-rose-300' : 'border-fg/[0.06] bg-fg/[0.04] text-ink-300'}`}>
                         <CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />
-                        {d === null ? 'Exam set' : d < 0 ? 'Exam passed' : d === 0 ? 'Exam today' : `Exam in ${d}d`}
+                        {d === null ? 'Deadline set' : d < 0 ? 'Past due' : d === 0 ? 'Due today' : `Due in ${d}d`}
                       </span>
                     ) })()}
                     {p.planned_hours_per_week && (() => { const ps = planStatus(p.week_minutes, p.planned_hours_per_week); const tone = ps.status === 'behind' ? 'border-accent-amber/20 bg-accent-amber/10 text-amber-200' : 'border-brand-500/20 bg-brand-500/10 text-brand-300'; return (
@@ -207,7 +207,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
         onClose={saving ? undefined : () => setIsModalOpen(false)}
         dismissible={!saving}
         title={editing ? 'Edit project' : 'New project'}
-        description={editing ? 'Update the details below.' : 'Group your study time by subject or goal.'}
+        description={editing ? 'Update the details below.' : 'Group your focus time by project, client or goal.'}
         icon={<FolderKanban className="h-5 w-5" />}
       >
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -244,7 +244,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
           </Field>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label="Exam date" hint="Optional. Shows a countdown on the project.">
+            <Field label="Deadline" hint="Optional. Shows a countdown on the project.">
               {(id) => <input id={id} type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} className={inputClass} />}
             </Field>
             <Field label="Planned hours per week" hint="Optional. Compares plan with actual time.">
@@ -272,7 +272,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
       <ConfirmDialog
         isOpen={pendingDelete !== null}
         title={`Delete "${pendingDelete?.name}"?`}
-        message="All study sessions logged against this project will be deleted too. This cannot be undone."
+        message="All sessions logged against this project will be deleted too. This cannot be undone."
         onCancel={() => setPendingDelete(null)}
         onConfirm={async () => {
           if (!pendingDelete) return

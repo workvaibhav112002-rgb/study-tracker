@@ -45,7 +45,7 @@ export const HeatmapYear: React.FC<Props> = ({ days, end }) => {
           height={height}
           viewBox={`0 0 ${width} ${height}`}
           role="grid"
-          aria-label="Study minutes per day over the last year"
+          aria-label="Focus minutes per day over the last year"
           className="block"
           onMouseLeave={() => setHover(null)}
         >
@@ -86,7 +86,7 @@ export const HeatmapYear: React.FC<Props> = ({ days, end }) => {
             className="pointer-events-none absolute z-10"
             style={{ left: Math.min(width - 160, LEFT + hover.col * STEP - 60), top: TOP + hover.row * STEP + STEP + 4 }}
           >
-            <ChartTooltip title={formatHeatDate(hover.date)} value={hover.minutes > 0 ? formatMinutes(hover.minutes) : 'No study time'} />
+            <ChartTooltip title={formatHeatDate(hover.date)} value={hover.minutes > 0 ? formatMinutes(hover.minutes) : 'No focus time'} />
           </div>
         )}
       </div>

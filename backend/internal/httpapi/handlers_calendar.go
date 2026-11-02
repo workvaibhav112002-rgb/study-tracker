@@ -64,7 +64,7 @@ func (a *api) calendarFeed(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/calendar; charset=utf-8")
 	w.Header().Set("Cache-Control", "private, max-age=300")
-	w.Header().Set("Content-Disposition", `inline; filename="study-tracker.ics"`)
+	w.Header().Set("Content-Disposition", `inline; filename="meridian.ics"`)
 	w.WriteHeader(http.StatusOK)
 	_ = writeICS(w, sessions)
 }

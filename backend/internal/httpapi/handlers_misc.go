@@ -188,7 +188,7 @@ func (a *api) export(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Disposition",
-		fmt.Sprintf(`attachment; filename="study_tracker_backup_%s.json"`, data.ExportedAt.Format("2006-01-02")))
+		fmt.Sprintf(`attachment; filename="meridian_backup_%s.json"`, data.ExportedAt.Format("2006-01-02")))
 	writeJSON(w, http.StatusOK, data)
 }
 

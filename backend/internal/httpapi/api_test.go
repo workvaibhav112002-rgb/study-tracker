@@ -394,7 +394,7 @@ func TestExportAndFeedback(t *testing.T) {
 
 	res, body = s.do(t, "GET", "/api/export", token, nil)
 	wantStatus(t, res.StatusCode, 200, body)
-	if cd := res.Header.Get("Content-Disposition"); !strings.HasPrefix(cd, `attachment; filename="study_tracker_backup_`) {
+	if cd := res.Header.Get("Content-Disposition"); !strings.HasPrefix(cd, `attachment; filename="meridian_backup_`) {
 		t.Errorf("content-disposition %q", cd)
 	}
 	var exp store.Export

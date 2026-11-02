@@ -25,7 +25,7 @@ describe('coach', () => {
     expect(p.user).toContain('exam on 2026-06-01')
     expect(p.user).toContain('2026-03-09:50')
     expect(p.user).toMatch(/Question: How am I doing/)
-    expect(p.system).toMatch(/study coach/)
+    expect(p.system).toMatch(/focus coach/)
   })
 
   it('stores the key locally only and validates its shape', () => {

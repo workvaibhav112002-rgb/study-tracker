@@ -64,7 +64,7 @@ export const FriendsPanel: React.FC<Props> = ({ user, stats, friends, loaded, er
     <div className="mx-auto max-w-4xl px-2 pb-10">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="eyebrow mb-2">Study together</p>
+          <p className="eyebrow mb-2">Focus together</p>
           <h2 className="text-2xl font-semibold tracking-tight text-ink-50 sm:text-3xl">Friends</h2>
           <p className="mt-1.5 text-sm text-ink-400">See who is focusing right now and keep each other honest with a weekly leaderboard.</p>
         </div>
@@ -104,7 +104,7 @@ export const FriendsPanel: React.FC<Props> = ({ user, stats, friends, loaded, er
             <Users className="h-6 w-6" aria-hidden="true" />
           </span>
           <h3 className="mt-4 text-base font-semibold text-ink-50">No friends yet</h3>
-          <p className="mt-1 max-w-sm text-sm text-ink-400">Generate an invite link and send it to someone you study with. They accept it once, and you both appear on each other&apos;s list.</p>
+          <p className="mt-1 max-w-sm text-sm text-ink-400">Generate an invite link and send it to someone you work alongside. They accept it once, and you both appear on each other&apos;s list.</p>
         </div>
       )}
 
@@ -144,7 +144,7 @@ export const FriendsPanel: React.FC<Props> = ({ user, stats, friends, loaded, er
                     </span>
                     {r.handle && <span className="hidden truncate text-[11px] text-ink-500 sm:inline">@{r.handle}</span>}
                   </span>
-                  <span className="chip border-orange-400/20 bg-orange-400/10 text-orange-300" title="Study streak">
+                  <span className="chip border-orange-400/20 bg-orange-400/10 text-orange-300" title="Focus streak">
                     <Flame className="h-3 w-3 fill-current" aria-hidden="true" />
                     {r.current_streak_days}d
                   </span>

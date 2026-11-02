@@ -92,7 +92,7 @@ export const ManualSessionModal: React.FC<ManualSessionModalProps> = ({ isOpen, 
       onClose={saving ? undefined : onClose}
       dismissible={!saving}
       title="Log a session"
-      description="Add offline or past study time."
+      description="Add offline or past focus time."
       icon={<PlusCircle className="h-5 w-5" />}
     >
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -122,7 +122,7 @@ export const ManualSessionModal: React.FC<ManualSessionModalProps> = ({ isOpen, 
         </div>
 
         <Field label="Notes">
-          {(id) => <textarea id={id} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="What did you study?" rows={2} maxLength={2000} className={`${inputClass} resize-none`} />}
+          {(id) => <textarea id={id} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="What did you work on?" rows={2} maxLength={2000} className={`${inputClass} resize-none`} />}
         </Field>
 
         {error && (

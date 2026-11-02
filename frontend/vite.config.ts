@@ -11,9 +11,9 @@ export default defineConfig({
       injectRegister: false,
       includeAssets: ['icons/*.png'],
       manifest: {
-        name: 'Study Tracker',
-        short_name: 'Study',
-        description: 'Pomodoro timer and study tracker with projects, focus ratings, streaks and analytics.',
+        name: 'Meridian · Focus timer',
+        short_name: 'Meridian',
+        description: 'A focus timer that learns when you do your best work: projects, honest focus metrics, peak hours and weekly reviews.',
         theme_color: '#07080c',
         background_color: '#07080c',
         display: 'standalone',

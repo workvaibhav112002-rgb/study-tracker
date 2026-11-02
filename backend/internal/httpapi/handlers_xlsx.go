@@ -154,7 +154,7 @@ func (a *api) exportXLSX(w http.ResponseWriter, r *http.Request) {
 	_ = f.SetColWidth("Summary", "B", "B", 22)
 
 	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="study_tracker_%s.xlsx"`, time.Now().In(loc).Format("2006-01-02")))
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="meridian_%s.xlsx"`, time.Now().In(loc).Format("2006-01-02")))
 	w.WriteHeader(http.StatusOK)
 	_ = f.Write(w)
 }

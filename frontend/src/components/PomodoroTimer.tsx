@@ -325,7 +325,7 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({
               <span className="h-3 w-3 rounded-full" style={{ backgroundColor: activeProject.color, boxShadow: `0 0 16px ${activeProject.color}` }} />
             </span>
             <div className="min-w-0">
-              <p className="eyebrow">Studying</p>
+              <p className="eyebrow">Working on</p>
               <h3 className="flex items-center gap-2 truncate text-[15px] font-semibold text-ink-50">
                 {activeProject.name}
                 {activeProject.exam_date && (() => { const d = daysUntil(activeProject.exam_date); return d !== null && d >= 0 ? <span className={`chip ${d <= 7 ? 'border-rose-500/20 bg-rose-500/10 text-rose-300' : 'border-fg/[0.06] bg-fg/[0.04] text-ink-400'}`}>{d === 0 ? 'exam today' : `exam in ${d}d`}</span> : null })()}

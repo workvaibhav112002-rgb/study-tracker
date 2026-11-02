@@ -15,7 +15,7 @@ interface Props {
 const RADIUS = 104
 const STROKE = 8
 const { size: SIZE, circumference: CIRC } = ringGeometry(RADIUS, STROKE)
-const DEFAULT_TITLE = 'Study Tracker & Pomodoro'
+const DEFAULT_TITLE = 'Meridian · Focus timer'
 
 /**
  * A real focus timer anyone can run before signing up. When it ends, or when
@@ -43,7 +43,7 @@ export const DemoTimer: React.FC<Props> = ({ onSave }) => {
 
   // Tab title shows the countdown while running, like the real app.
   useEffect(() => {
-    if (running) document.title = `${formatClock(state.secondsLeft)} · Focus · Study Tracker`
+    if (running) document.title = `${formatClock(state.secondsLeft)} · Focus · Meridian`
     else document.title = DEFAULT_TITLE
     return () => {
       document.title = DEFAULT_TITLE

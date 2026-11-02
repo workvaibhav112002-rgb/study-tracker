@@ -72,7 +72,7 @@ type Friend struct {
 // AuthTokenKinds is the closed set of single-use token purposes.
 var AuthTokenKinds = []string{"reset", "magic"}
 
-// Project is a study subject owned by one user.
+// Project is an area of work owned by one user.
 type Project struct {
 	ID                  int64          `json:"id"`
 	UserID              int64          `json:"user_id"`
@@ -151,7 +151,7 @@ type CardSchedule struct {
 	DueAt        time.Time
 }
 
-// Note is free-form study text.
+// Note is free-form text.
 type Note struct {
 	ID        int64     `json:"id"`
 	UserID    int64     `json:"user_id"`
@@ -181,7 +181,7 @@ type NoteFilter struct {
 	Limit     int
 }
 
-// Session is one block of study time.
+// Session is one block of focus time.
 type Session struct {
 	ID              int64     `json:"id"`
 	UserID          int64     `json:"user_id"`

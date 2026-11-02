@@ -60,7 +60,7 @@ export interface JournalPreset {
 const preset = (key: string, over: Partial<JournalConfig>): JournalConfig => ({ ...structuredClone(DEFAULT_JOURNAL), ...over, preset: key })
 
 export const JOURNAL_PRESETS: JournalPreset[] = [
-  { key: 'any', label: 'Any learner', description: 'Topic, mistake type and source. A good start for anything.', config: structuredClone(DEFAULT_JOURNAL) },
+  { key: 'any', label: 'General', description: 'Topic, mistake type and source. A good start for anything.', config: structuredClone(DEFAULT_JOURNAL) },
   {
     key: 'school',
     label: 'School',

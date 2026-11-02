@@ -1,4 +1,4 @@
-/** Exam countdown and planned-versus-actual helpers. */
+/** Deadline countdown and planned-versus-actual helpers. */
 export function daysUntil(dateISO: string | null | undefined, now = new Date()): number | null {
   if (!dateISO) return null
   const [y, m, d] = dateISO.split('-').map(Number)

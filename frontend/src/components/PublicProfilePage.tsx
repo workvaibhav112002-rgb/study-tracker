@@ -35,7 +35,7 @@ export const PublicProfilePage: React.FC<Props> = ({ handle, onHome }) => {
       <div className="card mx-auto mt-16 max-w-md px-6 py-12 text-center">
         <p className="text-sm text-ink-300">{error}</p>
         <Button className="mt-5" variant="secondary" onClick={onHome} icon={<ArrowLeft className="h-4 w-4" aria-hidden="true" />}>
-          Back to Study Tracker
+          Back to Meridian
         </Button>
       </div>
     )
@@ -51,7 +51,7 @@ export const PublicProfilePage: React.FC<Props> = ({ handle, onHome }) => {
   const tiles = [
     { label: 'Total focus', value: formatMinutes(profile.total_minutes), icon: Clock, tone: 'text-brand-300 bg-brand-500/10 border-brand-500/20' },
     { label: 'This week', value: formatMinutes(profile.week_minutes), icon: CalendarDays, tone: 'text-sky-300 bg-sky-400/10 border-sky-400/20' },
-    { label: 'Study streak', value: `${profile.current_streak_days}d`, icon: Flame, tone: 'text-orange-300 bg-orange-400/10 border-orange-400/20' },
+    { label: 'Focus streak', value: `${profile.current_streak_days}d`, icon: Flame, tone: 'text-orange-300 bg-orange-400/10 border-orange-400/20' },
     { label: 'Goal streak', value: `${profile.goal_streak_days}d`, icon: Target, tone: 'text-emerald-300 bg-emerald-400/10 border-emerald-400/20' },
   ]
   const peak = Math.max(1, ...profile.heatmap.map((d) => d.minutes))
@@ -68,7 +68,7 @@ export const PublicProfilePage: React.FC<Props> = ({ handle, onHome }) => {
           {profile.bio && <p className="mt-3 max-w-xl text-sm leading-relaxed text-ink-300">{profile.bio}</p>}
         </div>
         <Button variant="secondary" onClick={onHome} icon={<ArrowLeft className="h-4 w-4" aria-hidden="true" />}>
-          Study Tracker
+          Meridian
         </Button>
       </div>
 

@@ -80,7 +80,7 @@ export const BadgeScene: React.FC<SceneProps> = ({ progress }) => {
           {unlocked ? <Trophy className="h-7 w-7" aria-hidden="true" /> : <Award className="h-7 w-7" aria-hidden="true" />}
         </span>
         <p className="mt-4 text-[15px] font-semibold text-ink-50">Fifty hours</p>
-        <p className="mt-1 text-xs text-ink-500">Study for 50 hours in total</p>
+        <p className="mt-1 text-xs text-ink-500">Focus for 50 hours in total</p>
         <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-fg/[0.06]">
           <div className="h-full rounded-full bg-brand-500 transition-all duration-700" style={{ width: `${Math.min(100, 92 + progress * 8)}%` }} />
         </div>
@@ -108,7 +108,7 @@ export const ShareScene: React.FC<SceneProps> = ({ progress }) => {
   return (
     <div className="flex items-center justify-center" style={{ height: 220 }}>
       {src ? (
-        <img src={src} alt="Example share card with a week of study numbers" width={360} height={189} className="rounded-2xl border border-fg/[0.08] shadow-card" style={{ transform: `translateY(${(1 - Math.min(1, progress * 3)) * 12}px)`, opacity: Math.min(1, progress * 3), transition: 'transform 300ms, opacity 300ms' }} />
+        <img src={src} alt="Example share card with a week of focus numbers" width={360} height={189} className="rounded-2xl border border-fg/[0.08] shadow-card" style={{ transform: `translateY(${(1 - Math.min(1, progress * 3)) * 12}px)`, opacity: Math.min(1, progress * 3), transition: 'transform 300ms, opacity 300ms' }} />
       ) : (
         <div className="card flex h-[189px] w-[360px] items-center justify-center text-sm text-ink-500">Share card preview</div>
       )}

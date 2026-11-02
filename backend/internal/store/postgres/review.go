@@ -148,13 +148,13 @@ func reviewInsights(r store.WeeklyReview) []string {
 	}
 	switch {
 	case r.DeltaPercent == nil:
-		out = append(out, fmt.Sprintf("You studied %s across %d sessions, your first full week of data.", fmtMinutes(r.Minutes), r.Sessions))
+		out = append(out, fmt.Sprintf("You focused for %s across %d sessions, your first full week of data.", fmtMinutes(r.Minutes), r.Sessions))
 	case *r.DeltaPercent >= 10:
-		out = append(out, fmt.Sprintf("You studied %s, up %.0f%% on the week before.", fmtMinutes(r.Minutes), *r.DeltaPercent))
+		out = append(out, fmt.Sprintf("You focused for %s, up %.0f%% on the week before.", fmtMinutes(r.Minutes), *r.DeltaPercent))
 	case *r.DeltaPercent <= -10:
-		out = append(out, fmt.Sprintf("You studied %s, down %.0f%% on the week before.", fmtMinutes(r.Minutes), -*r.DeltaPercent))
+		out = append(out, fmt.Sprintf("You focused for %s, down %.0f%% on the week before.", fmtMinutes(r.Minutes), -*r.DeltaPercent))
 	default:
-		out = append(out, fmt.Sprintf("You studied %s, about the same as the week before.", fmtMinutes(r.Minutes)))
+		out = append(out, fmt.Sprintf("You focused for %s, about the same as the week before.", fmtMinutes(r.Minutes)))
 	}
 	if r.BestDay != nil {
 		d, _ := time.Parse(dateLayout, r.BestDay.Date)
@@ -166,7 +166,7 @@ func reviewInsights(r store.WeeklyReview) []string {
 	if r.ActiveDays >= 6 {
 		out = append(out, fmt.Sprintf("You showed up on %d of 7 days. That consistency is the whole game.", r.ActiveDays))
 	} else if r.ActiveDays <= 3 {
-		out = append(out, fmt.Sprintf("You studied on %d days. Spreading the same time over more days tends to stick better.", r.ActiveDays))
+		out = append(out, fmt.Sprintf("You focused on %d days. Spreading the same time over more days builds a steadier habit.", r.ActiveDays))
 	}
 	if r.AvgInterruptions >= 2 {
 		out = append(out, fmt.Sprintf("Sessions averaged %.1f interruptions. Try silencing notifications before you start.", r.AvgInterruptions))

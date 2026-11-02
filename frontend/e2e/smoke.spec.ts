@@ -6,7 +6,7 @@ const password = 'e2e-password-123'
 
 test('register, run a timer, log a session, see analytics', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Study with intent')
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Do your best work')
 
   await page.getByRole('button', { name: 'Start for free' }).click()
   const dialog = page.getByRole('dialog')
