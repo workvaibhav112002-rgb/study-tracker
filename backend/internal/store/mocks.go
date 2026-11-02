@@ -63,40 +63,39 @@ type MockInput struct {
 	Notes       string
 }
 
-// Root causes and review statuses for mistakes.
+// Review statuses for mistakes.
 var (
-	RootCauses       = []string{"concept", "procedural", "time_ego"}
 	MistakeStatuses  = []string{"active", "locked_in", "review_next_week", "needs_drill"}
 	MistakeReviewSet = []string{"locked_in", "review_next_week", "needs_drill"}
 )
 
-// Mistake is one logged error from a mock or practice.
+// Mistake is one logged error. Its categories are user-defined tags: the
+// keys come from the user's journal setup, values are option keys or free
+// text (a string, or an array of strings for multi-select categories).
 type Mistake struct {
-	ID             int64      `json:"id"`
-	UserID         int64      `json:"user_id"`
-	ProjectID      int64      `json:"project_id"`
-	MockID         *int64     `json:"mock_id"`
-	Subject        string     `json:"subject"`
-	Pattern        string     `json:"pattern"`
-	RootCause      string     `json:"root_cause"`
-	Question       string     `json:"question"`
-	Rule           string     `json:"rule"`
-	Solution       string     `json:"solution"`
-	ActualSeconds  *int       `json:"actual_seconds"`
-	IdealSeconds   *int       `json:"ideal_seconds"`
-	Status         string     `json:"status"`
-	LastReviewedAt *time.Time `json:"last_reviewed_at"`
-	CreatedAt      time.Time  `json:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at"`
+	ID             int64          `json:"id"`
+	UserID         int64          `json:"user_id"`
+	ProjectID      int64          `json:"project_id"`
+	MockID         *int64         `json:"mock_id"`
+	Tags           map[string]any `json:"tags"`
+	Extra          map[string]any `json:"extra"`
+	Question       string         `json:"question"`
+	Rule           string         `json:"rule"`
+	Solution       string         `json:"solution"`
+	ActualSeconds  *int           `json:"actual_seconds"`
+	IdealSeconds   *int           `json:"ideal_seconds"`
+	Status         string         `json:"status"`
+	LastReviewedAt *time.Time     `json:"last_reviewed_at"`
+	CreatedAt      time.Time      `json:"created_at"`
+	UpdatedAt      time.Time      `json:"updated_at"`
 }
 
 // MistakeInput is the validated payload for a mistake.
 type MistakeInput struct {
 	ProjectID     int64
 	MockID        *int64
-	Subject       string
-	Pattern       string
-	RootCause     string
+	Tags          map[string]any
+	Extra         map[string]any
 	Question      string
 	Rule          string
 	Solution      string
@@ -107,26 +106,32 @@ type MistakeInput struct {
 	CreatedAt *time.Time
 }
 
+// TagFilter matches a mistake whose category holds the value (directly or
+// inside a multi-select array).
+type TagFilter struct {
+	Category string
+	Value    string
+}
+
 // MistakeFilter narrows ListMistakes; zero values mean "any".
 type MistakeFilter struct {
 	ProjectID *int64
 	MockID    *int64
-	Subject   string
-	Pattern   string
-	RootCause string
+	Tag       *TagFilter
 	Status    string
 	Query     string
 	Since     *time.Time
 	Limit     int
 }
 
-// RepeatAlert is a pattern and root cause the user keeps getting wrong.
-type RepeatAlert struct {
-	Subject   string    `json:"subject"`
-	Pattern   string    `json:"pattern"`
-	RootCause string    `json:"root_cause"`
-	Count     int       `json:"count"`
-	LastAt    time.Time `json:"last_at"`
+// PatternAlert is a combination of category values the user keeps hitting.
+type PatternAlert struct {
+	ProjectID  int64     `json:"project_id"`
+	Categories []string  `json:"categories"`
+	Values     []string  `json:"values"`
+	Count      int       `json:"count"`
+	LastAt     time.Time `json:"last_at"`
+	MistakeIDs []int64   `json:"mistake_ids"`
 }
 
 // MockStore is the persistence for mocks and mistakes.
@@ -144,10 +149,14 @@ type MockStore interface {
 	CreateMistakes(ctx context.Context, userID int64, in []MistakeInput) (int, error)
 	UpdateMistake(ctx context.Context, userID, id int64, in MistakeInput) (Mistake, error)
 	DeleteMistake(ctx context.Context, userID, id int64) error
-	// RepeatMistakes groups mistakes since `since` by pattern and root cause
-	// and returns the groups with at least minCount entries.
-	RepeatMistakes(ctx context.Context, userID int64, since time.Time, minCount int) ([]RepeatAlert, error)
-	// MistakeReviewDeck returns the Sunday Reset deck as of now.
-	MistakeReviewDeck(ctx context.Context, userID int64, now time.Time) ([]Mistake, error)
+	// RetagMistakes renames (or, with an empty to, removes) a category value
+	// on the user's mistakes, optionally within one project.
+	RetagMistakes(ctx context.Context, userID int64, projectID *int64, category, from, to string) (int, error)
+	// MistakeReviewDeck returns the weekly review deck as of now.
+	MistakeReviewDeck(ctx context.Context, userID int64, now time.Time, tag *TagFilter) ([]Mistake, error)
+
+	GetJournalConfig(ctx context.Context, userID int64) (*JournalConfig, error)
+	SetJournalConfig(ctx context.Context, userID int64, c *JournalConfig) error
+	SetProjectJournal(ctx context.Context, userID, projectID int64, c *JournalConfig) (Project, error)
 	GradeMistake(ctx context.Context, userID, id int64, status string, now time.Time) (Mistake, error)
 }

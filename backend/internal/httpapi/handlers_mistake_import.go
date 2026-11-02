@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -19,32 +20,54 @@ const (
 	maxImportRowErrors   = 50
 )
 
-// mistakeTemplate serves an empty workbook with the import columns.
+// mistakeTemplate serves an empty workbook laid out from the user's setup
+// (or a project's, with ?project_id=).
 func (a *api) mistakeTemplate(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	uid := userID(r)
+	pid, err := parseOptionalID(r.URL.Query().Get("project_id"), "project_id")
+	if err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	cfg, err := a.effectiveConfig(ctx, uid, nil)
+	if pid != nil {
+		cfg, err = a.projectConfig(ctx, uid, *pid)
+	}
+	if err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	cols := buildMistakeColumns(cfg, nil)
 	f := excelize.NewFile()
 	defer f.Close()
 	f.SetSheetName("Sheet1", "Mistakes")
-	writeSheet(f, "Mistakes", mistakeSheetColumns, 0, nil)
+	writeSheet(f, "Mistakes", cols.headers(), 0, nil)
 	f.NewSheet("How to fill")
-	help := [][]any{
-		{"Column", "What to put"},
-		{"Date", "YYYY-MM-DD (or a date cell). Blank means today."},
-		{"Project", "Exact name of one of your projects. Blank uses the project chosen in the app."},
-		{"Mock", "Name of a mock you logged (optional)."},
-		{"Subject", "Required. e.g. Quant, Reasoning, English, Professional Knowledge."},
-		{"Pattern", "Required. e.g. Data Interpretation, Seating Arrangement."},
-		{"Root cause", "Required. concept, procedural (calculation) or time_ego (time panic / ego trap)."},
-		{"Question / trap", "What the question was and the trap you fell into."},
-		{"Execution rule", "The rule that prevents the mistake next time."},
-		{"Solution", "Solution notes."},
-		{"Actual seconds / Ideal seconds", "Whole seconds, 0 to 3600 (optional)."},
-		{"Status", "active, locked_in, review_next_week or needs_drill (optional)."},
+	help := [][]any{{"Column", "What to put"}, {"Date", "YYYY-MM-DD (or a date cell). Blank means today."}, {"Project", "Exact name of one of your projects. Blank uses the project chosen in the app."}, {"Test", "Name of a test you logged (optional)."}}
+	for _, cat := range cfg.Categories {
+		what := "Any text."
+		if !cat.AllowNew {
+			labels := make([]string, 0, len(cat.Options))
+			for _, o := range cat.Options {
+				labels = append(labels, o.Label)
+			}
+			what = "One of: " + strings.Join(labels, ", ")
+		}
+		if cat.Multi {
+			what += " Separate several with commas."
+		}
+		if cat.Required {
+			what = "Required. " + what
+		}
+		help = append(help, []any{cat.Label, what})
 	}
+	help = append(help, []any{"Actual / Expected seconds", "Whole seconds, 0 to 3600 (optional)."}, []any{"Status", "active, locked_in, review_next_week or needs_drill (optional)."})
 	for i, row := range help {
 		_ = f.SetSheetRow("How to fill", fmt.Sprintf("A%d", i+1), &row)
 	}
 	_ = f.SetColWidth("How to fill", "A", "A", 28)
-	_ = f.SetColWidth("How to fill", "B", "B", 80)
+	_ = f.SetColWidth("How to fill", "B", "B", 90)
 	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	w.Header().Set("Content-Disposition", `attachment; filename="mistake_log_template.xlsx"`)
 	if err := f.Write(w); err != nil {
@@ -58,26 +81,42 @@ type importRowError struct {
 }
 
 type mistakeImportResult struct {
-	Rows     int                 `json:"rows"`
-	Valid    int                 `json:"valid"`
-	Imported int                 `json:"imported"`
-	DryRun   bool                `json:"dry_run"`
-	Errors   []importRowError    `json:"errors"`
-	Sample   []map[string]string `json:"sample"`
+	Rows     int              `json:"rows"`
+	Valid    int              `json:"valid"`
+	Imported int              `json:"imported"`
+	DryRun   bool             `json:"dry_run"`
+	Errors   []importRowError `json:"errors"`
+	Sample   []map[string]any `json:"sample"`
 }
 
-// parseRootCause accepts the stored values and the PRD's wording.
-func parseRootCause(s string) (string, bool) {
+// legacyMistakeType maps the old exam wording onto the default mistake types.
+func legacyMistakeType(s string) (string, bool) {
 	s = strings.ToLower(strings.TrimSpace(s))
 	switch {
 	case s == "":
 		return "", false
-	case strings.Contains(s, "concept"):
-		return "concept", true
-	case strings.Contains(s, "proced"), strings.Contains(s, "calc"), strings.Contains(s, "silly"):
-		return "procedural", true
+	case strings.Contains(s, "concept"), strings.Contains(s, "didn"):
+		return "didnt_know", true
+	case strings.Contains(s, "proced"), strings.Contains(s, "calc"), strings.Contains(s, "silly"), strings.Contains(s, "careless"):
+		return "careless", true
 	case strings.Contains(s, "time"), strings.Contains(s, "ego"), strings.Contains(s, "panic"):
-		return "time_ego", true
+		return "time", true
+	}
+	return "", false
+}
+
+// matchOption resolves a cell to an option key by key or label.
+func matchOption(cat store.JournalCategory, cell string) (string, bool) {
+	c := strings.ToLower(strings.TrimSpace(cell))
+	for _, o := range cat.Options {
+		if strings.ToLower(o.Key) == c || strings.ToLower(o.Label) == c {
+			return o.Key, true
+		}
+	}
+	if cat.Key == "mistake_type" {
+		if k, ok := legacyMistakeType(cell); ok && slices.ContainsFunc(cat.Options, func(o store.JournalOption) bool { return o.Key == k }) {
+			return k, true
+		}
 	}
 	return "", false
 }
@@ -155,27 +194,17 @@ func (a *api) importMistakes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	col := map[string]int{}
-	aliases := map[string]string{
-		"date": "date", "created": "date", "project": "project", "mock": "mock", "subject": "subject",
-		"pattern": "pattern", "pattern tag": "pattern", "root cause": "root", "rootcause": "root",
-		"question / trap": "question", "question": "question", "trap": "question", "trap description": "question",
-		"execution rule": "rule", "rule": "rule", "correct execution rule": "rule",
-		"solution": "solution", "solution notes": "solution",
-		"actual seconds": "actual", "actual time": "actual", "ideal seconds": "ideal", "ideal time": "ideal", "status": "status",
-	}
+	header := make([]string, len(rows[0]))
 	for i, h := range rows[0] {
-		if k, ok := aliases[strings.ToLower(strings.TrimSpace(h))]; ok {
-			if _, dup := col[k]; !dup {
-				col[k] = i
+		header[i] = strings.ToLower(strings.TrimSpace(h))
+	}
+	colOf := func(names ...string) int {
+		for _, n := range names {
+			if i := slices.Index(header, strings.ToLower(n)); i >= 0 {
+				return i
 			}
 		}
-	}
-	for _, need := range []string{"subject", "pattern", "root"} {
-		if _, ok := col[need]; !ok {
-			handleErr(w, r, invalid("the first row must have Subject, Pattern and Root cause columns"))
-			return
-		}
+		return -1
 	}
 
 	ctx := r.Context()
@@ -189,15 +218,25 @@ func (a *api) importMistakes(w http.ResponseWriter, r *http.Request) {
 		handleErr(w, r, invalid("create a project before importing"))
 		return
 	}
+	defaultCfg, err := a.effectiveConfig(ctx, uid, nil)
+	if err != nil {
+		handleErr(w, r, err)
+		return
+	}
 	byName := make(map[string]int64, len(projects))
-	owned := make(map[int64]bool, len(projects))
+	cfgOf := make(map[int64]store.JournalConfig, len(projects))
 	for _, p := range projects {
 		byName[strings.ToLower(p.Name)] = p.ID
-		owned[p.ID] = true
+		cfgOf[p.ID] = defaultCfg
+		if p.JournalConfig != nil {
+			cfgOf[p.ID] = *p.JournalConfig
+		}
 	}
-	if defaultProject != nil && !owned[*defaultProject] {
-		handleErr(w, r, invalid("project_id is not one of your projects"))
-		return
+	if defaultProject != nil {
+		if _, ok := cfgOf[*defaultProject]; !ok {
+			handleErr(w, r, invalid("project_id is not one of your projects"))
+			return
+		}
 	}
 	mocks, err := a.store.ListMocks(ctx, uid, nil)
 	if err != nil {
@@ -209,12 +248,49 @@ func (a *api) importMistakes(w http.ResponseWriter, r *http.Request) {
 		mockByName[strings.ToLower(m.Name)] = m.ID
 	}
 
+	// Category columns are found per setup; old exam headers still work.
+	legacy := map[string][]string{"subject": {"subject"}, "topic": {"pattern", "pattern tag"}, "mistake_type": {"root cause", "rootcause"}}
+	catCol := func(cat store.JournalCategory) int {
+		return colOf(append([]string{cat.Label, cat.Key}, legacy[cat.Key]...)...)
+	}
+	fieldCol := func(fd store.JournalField) int {
+		names := []string{fd.Label, fd.Key}
+		switch fd.Key {
+		case "question":
+			names = append(names, "question / trap", "question", "trap", "trap description", "what went wrong")
+		case "rule":
+			names = append(names, "execution rule", "rule", "correct execution rule", "lesson", "lesson for next time")
+		case "solution":
+			names = append(names, "solution", "solution notes", "correct approach")
+		}
+		return colOf(names...)
+	}
+	dateCol, projectCol, testCol := colOf("date", "created"), colOf("project"), colOf("test", "mock")
+	actualCol, idealCol, statusCol := colOf("actual seconds", "actual time"), colOf("expected seconds", "ideal seconds", "ideal time"), colOf("status")
+	known := 0
+	for _, cat := range defaultCfg.Categories {
+		if catCol(cat) >= 0 {
+			known++
+		}
+	}
+	for _, c := range cfgOf {
+		for _, cat := range c.Categories {
+			if catCol(cat) >= 0 {
+				known++
+			}
+		}
+	}
+	if known == 0 {
+		handleErr(w, r, invalid("the first row needs column headers that match your categories (for example Topic and Mistake type)"))
+		return
+	}
+
 	now := time.Now()
-	res := mistakeImportResult{DryRun: dryRun, Errors: []importRowError{}, Sample: []map[string]string{}}
+	res := mistakeImportResult{DryRun: dryRun, Errors: []importRowError{}, Sample: []map[string]any{}}
 	valid := make([]store.MistakeInput, 0, len(rows)-1)
 	for i, row := range rows[1:] {
-		get := func(k string) string {
-			if c, ok := col[k]; ok && c < len(row) {
+		cell := func(c int) string {
+			if c >= 0 && c < len(row) {
 				return strings.TrimSpace(row[c])
 			}
 			return ""
@@ -230,7 +306,7 @@ func (a *api) importMistakes(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		var pid int64
-		if name := get("project"); name != "" {
+		if name := cell(projectCol); name != "" {
 			id, ok := byName[strings.ToLower(name)]
 			if !ok {
 				fail(fmt.Sprintf("project %q does not exist", name))
@@ -242,35 +318,93 @@ func (a *api) importMistakes(w http.ResponseWriter, r *http.Request) {
 		} else {
 			pid = projects[0].ID
 		}
-		root, ok := parseRootCause(get("root"))
-		if !ok {
-			fail("root cause must be concept, procedural or time_ego")
+		cfg := cfgOf[pid]
+		tags := map[string]any{}
+		bad := ""
+		for _, cat := range cfg.Categories {
+			raw := cell(catCol(cat))
+			if raw == "" {
+				continue
+			}
+			parts := []string{raw}
+			if cat.Multi {
+				parts = strings.Split(raw, ",")
+			}
+			var vals []any
+			for _, part := range parts {
+				part = strings.TrimSpace(part)
+				if part == "" {
+					continue
+				}
+				if k, ok := matchOption(cat, part); ok {
+					vals = append(vals, k)
+				} else if cat.AllowNew {
+					vals = append(vals, part)
+				} else {
+					bad = fmt.Sprintf("%q is not an option of %s", part, cat.Label)
+					break
+				}
+			}
+			if bad != "" {
+				break
+			}
+			if cat.Multi {
+				tags[cat.Key] = vals
+			} else if len(vals) > 0 {
+				tags[cat.Key] = vals[0]
+			}
+		}
+		if bad != "" {
+			fail(bad)
 			continue
 		}
-		actual, err := parseOptSeconds("actual seconds", get("actual"))
+		actual, err := parseOptSeconds("actual seconds", cell(actualCol))
 		if err != nil {
 			fail(err.Error())
 			continue
 		}
-		ideal, err := parseOptSeconds("ideal seconds", get("ideal"))
+		ideal, err := parseOptSeconds("expected seconds", cell(idealCol))
 		if err != nil {
 			fail(err.Error())
 			continue
 		}
-		req := mistakeRequest{
-			ProjectID: pid, Subject: get("subject"), Pattern: get("pattern"), RootCause: root,
-			Question: get("question"), Rule: get("rule"), Solution: get("solution"),
-			ActualSeconds: actual, IdealSeconds: ideal, Status: strings.ToLower(get("status")),
+		req := mistakeRequest{ProjectID: pid, Tags: tags, Extra: map[string]any{}, ActualSeconds: actual, IdealSeconds: ideal, Status: strings.ToLower(cell(statusCol))}
+		for _, fd := range cfg.Fields {
+			v := cell(fieldCol(fd))
+			switch fd.Key {
+			case "question":
+				req.Question = v
+			case "rule":
+				req.Rule = v
+			case "solution":
+				req.Solution = v
+			case "time":
+			default:
+				if v == "" {
+					continue
+				}
+				switch fd.Type {
+				case "number":
+					if n, err := strconv.ParseFloat(v, 64); err == nil {
+						req.Extra[fd.Key] = n
+					}
+				case "yesno":
+					l := strings.ToLower(v)
+					req.Extra[fd.Key] = l == "yes" || l == "true" || l == "y" || l == "1"
+				default:
+					req.Extra[fd.Key] = v
+				}
+			}
 		}
-		if id, ok := mockByName[strings.ToLower(get("mock"))]; ok {
+		if id, ok := mockByName[strings.ToLower(cell(testCol))]; ok {
 			req.MockID = &id
 		}
-		in, err := req.validate()
+		in, err := req.validate(cfg)
 		if err != nil {
 			fail(err.Error())
 			continue
 		}
-		created, err := parseImportDate(get("date"), now)
+		created, err := parseImportDate(cell(dateCol), now)
 		if err != nil {
 			fail(err.Error())
 			continue
@@ -278,7 +412,7 @@ func (a *api) importMistakes(w http.ResponseWriter, r *http.Request) {
 		in.CreatedAt = created
 		valid = append(valid, in)
 		if len(res.Sample) < 5 {
-			res.Sample = append(res.Sample, map[string]string{"subject": in.Subject, "pattern": in.Pattern, "root_cause": in.RootCause, "question": in.Question})
+			res.Sample = append(res.Sample, map[string]any{"tags": in.Tags, "question": in.Question})
 		}
 	}
 	res.Valid = len(valid)

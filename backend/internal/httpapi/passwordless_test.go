@@ -109,8 +109,8 @@ func TestMagicLinkSignsInAndSignsUp(t *testing.T) {
 	}
 	res, body = s.do(t, "GET", "/api/projects", out.Token, nil)
 	wantStatus(t, res.StatusCode, 200, body)
-	if !strings.Contains(string(body), "Go Programming") {
-		t.Error("magic signup did not seed projects")
+	if strings.TrimSpace(string(body)) != "[]" {
+		t.Errorf("magic signup must start with no projects: %s", body)
 	}
 
 	// Password login is impossible for a password-less account; link reuse fails.

@@ -74,18 +74,19 @@ var AuthTokenKinds = []string{"reset", "magic"}
 
 // Project is a study subject owned by one user.
 type Project struct {
-	ID                  int64         `json:"id"`
-	UserID              int64         `json:"user_id"`
-	Name                string        `json:"name"`
-	Color               string        `json:"color"`
-	Description         string        `json:"description"`
-	TargetMinutesPerDay int           `json:"target_minutes_per_day"`
-	ExamDate            *string       `json:"exam_date"`
-	PlannedHoursPerWeek *int          `json:"planned_hours_per_week"`
-	ExamTemplate        *ExamTemplate `json:"exam_template"`
-	CreatedAt           time.Time     `json:"created_at"`
-	TotalMinutes        int           `json:"total_minutes"`
-	WeekMinutes         int           `json:"week_minutes"`
+	ID                  int64          `json:"id"`
+	UserID              int64          `json:"user_id"`
+	Name                string         `json:"name"`
+	Color               string         `json:"color"`
+	Description         string         `json:"description"`
+	TargetMinutesPerDay int            `json:"target_minutes_per_day"`
+	ExamDate            *string        `json:"exam_date"`
+	PlannedHoursPerWeek *int           `json:"planned_hours_per_week"`
+	ExamTemplate        *ExamTemplate  `json:"exam_template"`
+	JournalConfig       *JournalConfig `json:"journal_config"`
+	CreatedAt           time.Time      `json:"created_at"`
+	TotalMinutes        int            `json:"total_minutes"`
+	WeekMinutes         int            `json:"week_minutes"`
 }
 
 // ProjectInput is the validated payload for creating or replacing a project.

@@ -88,15 +88,15 @@ func TestRegisterValidation(t *testing.T) {
 	wantStatus(t, res.StatusCode, 400, body)
 }
 
-func TestNewUserGetsSeedData(t *testing.T) {
+func TestNewUserStartsEmpty(t *testing.T) {
 	s := newServer(t, nil)
 	token, _ := s.register(t, "seed@example.com")
 	res, body := s.do(t, "GET", "/api/projects", token, nil)
 	wantStatus(t, res.StatusCode, 200, body)
 	var projects []store.Project
 	decode(t, body, &projects)
-	if len(projects) != 3 {
-		t.Fatalf("expected 3 seed projects, got %d", len(projects))
+	if len(projects) != 0 {
+		t.Fatalf("new accounts must not get sample projects, got %d", len(projects))
 	}
 	res, body = s.do(t, "GET", "/api/settings", token, nil)
 	wantStatus(t, res.StatusCode, 200, body)
@@ -399,7 +399,7 @@ func TestExportAndFeedback(t *testing.T) {
 	}
 	var exp store.Export
 	decode(t, body, &exp)
-	if len(exp.Projects) != 4 || len(exp.Sessions) != 1 || exp.User.Email != "exp@example.com" || strings.Contains(string(body), "password_hash") || strings.Contains(string(body), "$2a$") {
+	if len(exp.Projects) != 1 || len(exp.Sessions) != 1 || exp.User.Email != "exp@example.com" || strings.Contains(string(body), "password_hash") || strings.Contains(string(body), "$2a$") {
 		t.Errorf("export: %d projects %d sessions", len(exp.Projects), len(exp.Sessions))
 	}
 
@@ -460,7 +460,7 @@ func TestMigrateIsIdempotent(t *testing.T) {
 		t.Fatal(err)
 	}
 	var n int
-	if err := testPool.QueryRow(ctx, `SELECT count(*) FROM schema_migrations`).Scan(&n); err != nil || n != 8 {
+	if err := testPool.QueryRow(ctx, `SELECT count(*) FROM schema_migrations`).Scan(&n); err != nil || n != 9 {
 		t.Fatalf("schema_migrations rows=%d err=%v", n, err)
 	}
 }

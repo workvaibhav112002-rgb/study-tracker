@@ -181,8 +181,8 @@ func TestImportRoundTrip(t *testing.T) {
 	wantStatus(t, res.StatusCode, 201, body)
 	var result store.ImportResult
 	decode(t, body, &result)
-	// Bob already has the 3 seed projects; Alice's export has 3 seeds + "Shared Name".
-	if result.ProjectsCreated != 1 || result.ProjectsUpdated != 3 || result.SessionsInserted != 1 || result.SessionsSkipped != 0 {
+	// New accounts start empty, so Alice's one project is new to Bob.
+	if result.ProjectsCreated != 1 || result.ProjectsUpdated != 0 || result.SessionsInserted != 1 || result.SessionsSkipped != 0 {
 		t.Fatalf("first import: %+v", result)
 	}
 	res, body = s.do(t, "GET", "/api/sessions", bob, nil)
@@ -193,7 +193,7 @@ func TestImportRoundTrip(t *testing.T) {
 	res, body = s.do(t, "POST", "/api/import", bob, payload)
 	wantStatus(t, res.StatusCode, 201, body)
 	decode(t, body, &result)
-	if result.SessionsInserted != 0 || result.SessionsSkipped != 1 || result.ProjectsCreated != 0 || result.ProjectsUpdated != 4 {
+	if result.SessionsInserted != 0 || result.SessionsSkipped != 1 || result.ProjectsCreated != 0 || result.ProjectsUpdated != 1 {
 		t.Fatalf("second import: %+v", result)
 	}
 

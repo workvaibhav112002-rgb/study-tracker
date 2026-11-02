@@ -3,6 +3,7 @@ package httpapi
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -59,9 +60,18 @@ func (a *api) exportXLSX(w http.ResponseWriter, r *http.Request) {
 
 	projectName := make(map[int64]string, len(projects))
 	templates := make(map[int64]*store.ExamTemplate, len(projects))
+	defaultCfg, err := a.effectiveConfig(ctx, uid, nil)
+	if err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	configs := make(map[int64]store.JournalConfig, len(projects))
 	for _, p := range projects {
 		projectName[p.ID] = p.Name
 		templates[p.ID] = p.ExamTemplate
+		if p.JournalConfig != nil {
+			configs[p.ID] = *p.JournalConfig
+		}
 	}
 	ts := func(t time.Time) string { return t.In(loc).Format("2006-01-02 15:04") }
 	optTs := func(t *time.Time) any {
@@ -122,7 +132,7 @@ func (a *api) exportXLSX(w http.ResponseWriter, r *http.Request) {
 		return []any{proj, n.Title, n.Body, strings.Join(n.Tags, ", "), n.Pinned, ts(n.UpdatedAt)}
 	})
 
-	writeMockSheets(f, mocks, mistakes, projectName, templates, ts)
+	writeMockSheets(f, mocks, mistakes, projectName, templates, configs, defaultCfg, ts)
 
 	f.NewSheet("Summary")
 	rows := [][]any{
@@ -170,10 +180,6 @@ func writeSheet(f *excelize.File, sheet string, headers []string, n int, row fun
 	}
 }
 
-// mistakeColumns is shared by the Mistakes export sheet and the import
-// template so an exported workbook can be imported again.
-var mistakeSheetColumns = []string{"Date", "Project", "Mock", "Subject", "Pattern", "Root cause", "Question / trap", "Execution rule", "Solution", "Actual seconds", "Ideal seconds", "Status"}
-
 func optInt(v *int) any {
 	if v == nil {
 		return ""
@@ -181,7 +187,7 @@ func optInt(v *int) any {
 	return *v
 }
 
-func writeMockSheets(f *excelize.File, mocks []store.Mock, mistakes []store.Mistake, projectName map[int64]string, templates map[int64]*store.ExamTemplate, ts func(time.Time) string) {
+func writeMockSheets(f *excelize.File, mocks []store.Mock, mistakes []store.Mistake, projectName map[int64]string, templates map[int64]*store.ExamTemplate, configs map[int64]store.JournalConfig, defaultCfg store.JournalConfig, ts func(time.Time) string) {
 	mockName := make(map[int64]string, len(mocks))
 	type sectionRow struct {
 		mock store.Mock
@@ -221,13 +227,92 @@ func writeMockSheets(f *excelize.File, mocks []store.Mock, mistakes []store.Mist
 		return []any{r.mock.Name, r.mock.AttemptedOn, r.sc.Name, r.in.Questions, r.in.Correct, r.in.Incorrect, r.sc.Attempted, r.sc.Net, r.sc.Accuracy, r.sc.AttemptRate, round2(float64(r.in.Seconds) / 60), strings.Join(flags, ", ")}
 	})
 
-	f.NewSheet("Mistakes")
-	writeSheet(f, "Mistakes", mistakeSheetColumns, len(mistakes), func(i int) []any {
+	writeMistakeSheet(f, "Mistakes", mistakes, projectName, mockName, configs, defaultCfg, ts)
+}
+
+// mistakeColumns lays out the Mistakes sheet from the user's setups: the
+// default setup's categories and fields first, then any extra ones used by
+// project overrides. The import reads the same headers back.
+type mistakeColumns struct {
+	cats   []store.JournalCategory
+	fields []store.JournalField // built-in text fields and custom fields
+}
+
+func buildMistakeColumns(defaultCfg store.JournalConfig, configs map[int64]store.JournalConfig) mistakeColumns {
+	var cols mistakeColumns
+	seenCat := map[string]bool{}
+	seenField := map[string]bool{}
+	add := func(c store.JournalConfig) {
+		for _, cat := range c.Categories {
+			if !seenCat[cat.Key] {
+				seenCat[cat.Key] = true
+				cols.cats = append(cols.cats, cat)
+			}
+		}
+		for _, fd := range c.Fields {
+			if fd.Key == "time" || seenField[fd.Key] {
+				continue
+			}
+			seenField[fd.Key] = true
+			cols.fields = append(cols.fields, fd)
+		}
+	}
+	add(defaultCfg)
+	ids := make([]int64, 0, len(configs))
+	for id := range configs {
+		ids = append(ids, id)
+	}
+	slices.Sort(ids)
+	for _, id := range ids {
+		add(configs[id])
+	}
+	return cols
+}
+
+func (c mistakeColumns) headers() []string {
+	h := []string{"Date", "Project", "Test"}
+	for _, cat := range c.cats {
+		h = append(h, cat.Label)
+	}
+	for _, fd := range c.fields {
+		h = append(h, fd.Label)
+	}
+	return append(h, "Actual seconds", "Expected seconds", "Status")
+}
+
+func writeMistakeSheet(f *excelize.File, sheet string, mistakes []store.Mistake, projectName, mockName map[int64]string, configs map[int64]store.JournalConfig, defaultCfg store.JournalConfig, ts func(time.Time) string) {
+	cols := buildMistakeColumns(defaultCfg, configs)
+	f.NewSheet(sheet)
+	writeSheet(f, sheet, cols.headers(), len(mistakes), func(i int) []any {
 		m := mistakes[i]
+		cfg, ok := configs[m.ProjectID]
+		if !ok {
+			cfg = defaultCfg
+		}
 		mock := ""
 		if m.MockID != nil {
 			mock = mockName[*m.MockID]
 		}
-		return []any{ts(m.CreatedAt), projectName[m.ProjectID], mock, m.Subject, m.Pattern, m.RootCause, m.Question, m.Rule, m.Solution, optInt(m.ActualSeconds), optInt(m.IdealSeconds), m.Status}
+		row := []any{ts(m.CreatedAt), projectName[m.ProjectID], mock}
+		for _, cat := range cols.cats {
+			row = append(row, joinTagLabels(cfg, m, cat.Key))
+		}
+		for _, fd := range cols.fields {
+			switch fd.Key {
+			case "question":
+				row = append(row, m.Question)
+			case "rule":
+				row = append(row, m.Rule)
+			case "solution":
+				row = append(row, m.Solution)
+			default:
+				v := m.Extra[fd.Key]
+				if v == nil {
+					v = ""
+				}
+				row = append(row, v)
+			}
+		}
+		return append(row, optInt(m.ActualSeconds), optInt(m.IdealSeconds), m.Status)
 	})
 }

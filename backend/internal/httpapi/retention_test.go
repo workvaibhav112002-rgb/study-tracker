@@ -19,7 +19,7 @@ type streakResp struct {
 	FreezeDays      []string `json:"freeze_days"`
 }
 
-// clearProjects removes the seed projects (which carry daily targets).
+// clearProjects removes any existing projects (which carry daily targets).
 func clearProjects(t *testing.T, s *testServer, token string) {
 	t.Helper()
 	res0, body0 := s.do(t, "GET", "/api/projects", token, nil)
@@ -407,7 +407,7 @@ func TestSundayResetReminder(t *testing.T) {
 	if res, body := s.createSession(t, token, pid, at.Add(-2*time.Hour), 1500); res.StatusCode != 201 {
 		t.Fatalf("session: %d %s", res.StatusCode, body)
 	}
-	if res, body := s.do(t, "POST", "/api/mistakes", token, map[string]any{"project_id": pid, "subject": "Quant", "pattern": "DI", "root_cause": "procedural"}); res.StatusCode != 201 {
+	if res, body := s.do(t, "POST", "/api/mistakes", token, map[string]any{"project_id": pid, "tags": map[string]any{"topic": "DI", "mistake_type": "careless"}}); res.StatusCode != 201 {
 		t.Fatalf("mistake: %d %s", res.StatusCode, body)
 	}
 	req, _ := http.NewRequest("POST", s.URL+"/api/cron/reminders?now="+at.Format(time.RFC3339), nil)
@@ -417,7 +417,7 @@ func TestSundayResetReminder(t *testing.T) {
 		t.Fatal(err)
 	}
 	res.Body.Close()
-	if s.push.count(endpoint) != 1 || !strings.Contains(s.push.sent[endpoint][0], "Sunday Reset") || !strings.Contains(s.push.sent[endpoint][0], "tab=mocks") {
+	if s.push.count(endpoint) != 1 || !strings.Contains(s.push.sent[endpoint][0], "Weekly review") || !strings.Contains(s.push.sent[endpoint][0], "tab=mistakes") {
 		t.Fatalf("sunday push: %v", s.push.sent[endpoint])
 	}
 }

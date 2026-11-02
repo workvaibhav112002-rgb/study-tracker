@@ -11,20 +11,8 @@ import (
 	"study-tracker-backend/internal/store"
 )
 
-type seedProject struct {
-	name, color, description string
-	target                   int
-}
-
-// seedProjects are created for every new account so the UI is not empty.
-var seedProjects = []seedProject{
-	{"Go Programming", "#3987e5", "Mastering Go backend development & distributed systems", 90},
-	{"Algorithms & DSA", "#9085e9", "Problem solving, data structures, and LeetCode practice", 60},
-	{"System Design", "#199e70", "Scalability, microservices, databases, and architectures", 45},
-}
-
-// CreateUser inserts the user, a default settings row and seed projects in
-// one transaction. A duplicate email yields store.ErrConflict.
+// CreateUser inserts the user and a default settings row in one
+// transaction. New accounts start with no projects. A duplicate email yields store.ErrConflict.
 func (s *Store) CreateUser(ctx context.Context, email, passwordHash, name string) (store.User, error) {
 	return s.createUser(ctx, email, passwordHash, name, nil, false)
 }
@@ -63,15 +51,6 @@ func (s *Store) createUser(ctx context.Context, email, passwordHash, name string
 	if _, err := tx.Exec(ctx, `INSERT INTO settings (user_id) VALUES ($1)`, u.ID); err != nil {
 		return store.User{}, fmt.Errorf("seed settings: %w", mapErr(err))
 	}
-	for _, p := range seedProjects {
-		if _, err := tx.Exec(ctx,
-			`INSERT INTO projects (user_id, name, color, description, target_minutes_per_day) VALUES ($1, $2, $3, $4, $5)`,
-			u.ID, p.name, p.color, p.description, p.target,
-		); err != nil {
-			return store.User{}, fmt.Errorf("seed project %q: %w", p.name, mapErr(err))
-		}
-	}
-
 	if err := tx.Commit(ctx); err != nil {
 		return store.User{}, err
 	}

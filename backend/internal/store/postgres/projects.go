@@ -10,7 +10,7 @@ import (
 
 const projectWithTotals = `
 	SELECT p.id, p.user_id, p.name, p.color, p.description, p.target_minutes_per_day,
-	       to_char(p.exam_date, 'YYYY-MM-DD'), p.planned_hours_per_week, p.exam_template, p.created_at,
+	       to_char(p.exam_date, 'YYYY-MM-DD'), p.planned_hours_per_week, p.exam_template, p.journal_config, p.created_at,
 	       COALESCE(SUM(s.duration_seconds), 0) / 60 AS total_minutes,
 	       COALESCE(SUM(s.duration_seconds) FILTER (WHERE s.start_time >= now() - interval '7 days'), 0) / 60 AS week_minutes
 	FROM projects p
@@ -20,7 +20,7 @@ const projectWithTotals = `
 func scanProject(row pgx.Row) (store.Project, error) {
 	var p store.Project
 	err := row.Scan(&p.ID, &p.UserID, &p.Name, &p.Color, &p.Description, &p.TargetMinutesPerDay,
-		&p.ExamDate, &p.PlannedHoursPerWeek, &p.ExamTemplate, &p.CreatedAt, &p.TotalMinutes, &p.WeekMinutes)
+		&p.ExamDate, &p.PlannedHoursPerWeek, &p.ExamTemplate, &p.JournalConfig, &p.CreatedAt, &p.TotalMinutes, &p.WeekMinutes)
 	return p, mapErr(err)
 }
 

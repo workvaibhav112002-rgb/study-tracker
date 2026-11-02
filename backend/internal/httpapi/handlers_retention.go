@@ -193,12 +193,12 @@ func (a *api) runReminders(ctx context.Context, now time.Time) (sent, skipped, f
 			continue
 		}
 		title, body, url := "Time to study", "", a.cfg.AppURL+"/?from=reminder"
-		// On Sundays, a pending mistake deck takes priority over the study nudge.
-		if local.Weekday() == time.Sunday {
-			if deck, err := a.store.MistakeReviewDeck(ctx, c.UserID, now); err == nil && len(deck) > 0 {
-				title = "Sunday Reset"
-				body = itoa(len(deck)) + " mistakes from this week are ready to revise. Lock them in before the next mock."
-				url = a.cfg.AppURL + "/?from=reminder&tab=mocks"
+		// On the user's review day, a pending mistake deck takes priority over the study nudge.
+		if cfg, err := a.effectiveConfig(ctx, c.UserID, nil); err == nil && int(local.Weekday()) == cfg.ReviewWeekday {
+			if deck, err := a.store.MistakeReviewDeck(ctx, c.UserID, now, nil); err == nil && len(deck) > 0 {
+				title = "Weekly review"
+				body = itoa(len(deck)) + " mistakes are ready to review. Lock in the lessons so they don't repeat."
+				url = a.cfg.AppURL + "/?from=reminder&tab=mistakes"
 			}
 		}
 		if body == "" {
