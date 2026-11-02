@@ -46,10 +46,22 @@ func (a *api) exportXLSX(w http.ResponseWriter, r *http.Request) {
 		handleErr(w, r, err)
 		return
 	}
+	mocks, err := a.store.ListMocks(ctx, uid, nil)
+	if err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	mistakes, err := a.store.ListMistakes(ctx, uid, store.MistakeFilter{})
+	if err != nil {
+		handleErr(w, r, err)
+		return
+	}
 
 	projectName := make(map[int64]string, len(projects))
+	templates := make(map[int64]*store.ExamTemplate, len(projects))
 	for _, p := range projects {
 		projectName[p.ID] = p.Name
+		templates[p.ID] = p.ExamTemplate
 	}
 	ts := func(t time.Time) string { return t.In(loc).Format("2006-01-02 15:04") }
 	optTs := func(t *time.Time) any {
@@ -110,6 +122,8 @@ func (a *api) exportXLSX(w http.ResponseWriter, r *http.Request) {
 		return []any{proj, n.Title, n.Body, strings.Join(n.Tags, ", "), n.Pinned, ts(n.UpdatedAt)}
 	})
 
+	writeMockSheets(f, mocks, mistakes, projectName, templates, ts)
+
 	f.NewSheet("Summary")
 	rows := [][]any{
 		{"Exported", ts(time.Now())},
@@ -120,6 +134,8 @@ func (a *api) exportXLSX(w http.ResponseWriter, r *http.Request) {
 		{"Tasks", len(tasks)},
 		{"Flashcards", len(cards)},
 		{"Notes", len(notes)},
+		{"Mocks", len(mocks)},
+		{"Mistakes", len(mistakes)},
 	}
 	for i, row := range rows {
 		_ = f.SetSheetRow("Summary", fmt.Sprintf("A%d", i+1), &row)
@@ -152,4 +168,66 @@ func writeSheet(f *excelize.File, sheet string, headers []string, n int, row fun
 	if last, err := excelize.ColumnNumberToName(len(headers)); err == nil {
 		_ = f.SetColWidth(sheet, "A", last, 18)
 	}
+}
+
+// mistakeColumns is shared by the Mistakes export sheet and the import
+// template so an exported workbook can be imported again.
+var mistakeSheetColumns = []string{"Date", "Project", "Mock", "Subject", "Pattern", "Root cause", "Question / trap", "Execution rule", "Solution", "Actual seconds", "Ideal seconds", "Status"}
+
+func optInt(v *int) any {
+	if v == nil {
+		return ""
+	}
+	return *v
+}
+
+func writeMockSheets(f *excelize.File, mocks []store.Mock, mistakes []store.Mistake, projectName map[int64]string, templates map[int64]*store.ExamTemplate, ts func(time.Time) string) {
+	mockName := make(map[int64]string, len(mocks))
+	type sectionRow struct {
+		mock store.Mock
+		sc   SectionScore
+		in   store.MockSection
+	}
+	var sectionRows []sectionRow
+	scores := make([]MockScore, len(mocks))
+	for i, m := range mocks {
+		mockName[m.ID] = m.Name
+		scores[i] = ScoreMock(m, templates[m.ProjectID])
+		for j, sc := range scores[i].Sections {
+			sectionRows = append(sectionRows, sectionRow{m, sc, m.Sections[j]})
+		}
+	}
+
+	f.NewSheet("Mocks")
+	writeSheet(f, "Mocks", []string{"Project", "Mock", "Provider", "Date", "Net score", "Max marks", "Accuracy %", "Attempt rate %", "Marks lost to negatives", "Percentile", "Rank"}, len(mocks), func(i int) []any {
+		m, sc := mocks[i], scores[i]
+		pctl := any("")
+		if m.Percentile != nil {
+			pctl = *m.Percentile
+		}
+		return []any{projectName[m.ProjectID], m.Name, m.Provider, m.AttemptedOn, sc.Net, sc.MaxMarks, sc.Accuracy, sc.AttemptRate, sc.Penalty, pctl, optInt(m.Rank)}
+	})
+
+	f.NewSheet("Mock sections")
+	writeSheet(f, "Mock sections", []string{"Mock", "Date", "Section", "Questions", "Correct", "Incorrect", "Attempted", "Net", "Accuracy %", "Attempt rate %", "Minutes", "Flag"}, len(sectionRows), func(i int) []any {
+		r := sectionRows[i]
+		var flags []string
+		if r.sc.LowAccuracy {
+			flags = append(flags, "low accuracy")
+		}
+		if r.sc.HighPenalty {
+			flags = append(flags, "high negatives")
+		}
+		return []any{r.mock.Name, r.mock.AttemptedOn, r.sc.Name, r.in.Questions, r.in.Correct, r.in.Incorrect, r.sc.Attempted, r.sc.Net, r.sc.Accuracy, r.sc.AttemptRate, round2(float64(r.in.Seconds) / 60), strings.Join(flags, ", ")}
+	})
+
+	f.NewSheet("Mistakes")
+	writeSheet(f, "Mistakes", mistakeSheetColumns, len(mistakes), func(i int) []any {
+		m := mistakes[i]
+		mock := ""
+		if m.MockID != nil {
+			mock = mockName[*m.MockID]
+		}
+		return []any{ts(m.CreatedAt), projectName[m.ProjectID], mock, m.Subject, m.Pattern, m.RootCause, m.Question, m.Rule, m.Solution, optInt(m.ActualSeconds), optInt(m.IdealSeconds), m.Status}
+	})
 }

@@ -74,17 +74,18 @@ var AuthTokenKinds = []string{"reset", "magic"}
 
 // Project is a study subject owned by one user.
 type Project struct {
-	ID                  int64     `json:"id"`
-	UserID              int64     `json:"user_id"`
-	Name                string    `json:"name"`
-	Color               string    `json:"color"`
-	Description         string    `json:"description"`
-	TargetMinutesPerDay int       `json:"target_minutes_per_day"`
-	ExamDate            *string   `json:"exam_date"`
-	PlannedHoursPerWeek *int      `json:"planned_hours_per_week"`
-	CreatedAt           time.Time `json:"created_at"`
-	TotalMinutes        int       `json:"total_minutes"`
-	WeekMinutes         int       `json:"week_minutes"`
+	ID                  int64         `json:"id"`
+	UserID              int64         `json:"user_id"`
+	Name                string        `json:"name"`
+	Color               string        `json:"color"`
+	Description         string        `json:"description"`
+	TargetMinutesPerDay int           `json:"target_minutes_per_day"`
+	ExamDate            *string       `json:"exam_date"`
+	PlannedHoursPerWeek *int          `json:"planned_hours_per_week"`
+	ExamTemplate        *ExamTemplate `json:"exam_template"`
+	CreatedAt           time.Time     `json:"created_at"`
+	TotalMinutes        int           `json:"total_minutes"`
+	WeekMinutes         int           `json:"week_minutes"`
 }
 
 // ProjectInput is the validated payload for creating or replacing a project.
@@ -452,6 +453,8 @@ type ImportResult struct {
 // Store is everything the HTTP layer needs from persistence. Every method
 // that touches user data takes the owning userID and must scope to it.
 type Store interface {
+	MockStore
+
 	Ping(ctx context.Context) error
 
 	// CreateUser creates an account; passwordHash may be empty for social-only

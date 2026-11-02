@@ -192,23 +192,34 @@ func (a *api) runReminders(ctx context.Context, now time.Time) (sent, skipped, f
 			skipped++
 			continue
 		}
-		studied, err := a.store.StudiedOn(ctx, c.UserID, loc, local)
-		if err != nil {
-			failed++
-			continue
+		title, body, url := "Time to study", "", a.cfg.AppURL+"/?from=reminder"
+		// On Sundays, a pending mistake deck takes priority over the study nudge.
+		if local.Weekday() == time.Sunday {
+			if deck, err := a.store.MistakeReviewDeck(ctx, c.UserID, now); err == nil && len(deck) > 0 {
+				title = "Sunday Reset"
+				body = itoa(len(deck)) + " mistakes from this week are ready to revise. Lock them in before the next mock."
+				url = a.cfg.AppURL + "/?from=reminder&tab=mocks"
+			}
 		}
-		if studied {
-			// Nothing to nudge; still mark so we do not re-check all day.
-			_ = a.store.MarkReminded(ctx, c.UserID, day)
-			skipped++
-			continue
+		if body == "" {
+			studied, err := a.store.StudiedOn(ctx, c.UserID, loc, local)
+			if err != nil {
+				failed++
+				continue
+			}
+			if studied {
+				// Nothing to nudge; still mark so we do not re-check all day.
+				_ = a.store.MarkReminded(ctx, c.UserID, day)
+				skipped++
+				continue
+			}
+			streak, _ := a.store.GoalStreak(ctx, c.UserID, loc, now)
+			body = "No session logged yet today. A single pomodoro keeps the habit alive."
+			if streak.Days > 0 {
+				body = "Your " + itoa(streak.Days) + "-day goal streak is waiting. Log a session today to keep it."
+			}
 		}
-		streak, _ := a.store.GoalStreak(ctx, c.UserID, loc, now)
-		body := "No session logged yet today. A single pomodoro keeps the habit alive."
-		if streak.Days > 0 {
-			body = "Your " + itoa(streak.Days) + "-day goal streak is waiting. Log a session today to keep it."
-		}
-		payload, _ := json.Marshal(reminderPayload{Title: "Time to study", Body: body, URL: a.cfg.AppURL + "/?from=reminder", Tag: "reminder-" + day})
+		payload, _ := json.Marshal(reminderPayload{Title: title, Body: body, URL: url, Tag: "reminder-" + day})
 		delivered := false
 		for _, sub := range c.Subscriptions {
 			err := a.push.Send(ctx, push.Subscription{Endpoint: sub.Endpoint, P256dh: sub.P256dh, Auth: sub.Auth}, payload)

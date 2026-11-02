@@ -61,7 +61,7 @@ func TestDeleteAccount(t *testing.T) {
 	wantStatus(t, res.StatusCode, 401, body)
 
 	ctx := context.Background()
-	for _, table := range []string{"projects", "sessions", "tasks", "settings"} {
+	for _, table := range []string{"projects", "sessions", "tasks", "settings", "mocks", "mistakes"} {
 		var n int
 		_ = testPool.QueryRow(ctx, `SELECT count(*) FROM `+table+` WHERE user_id = $1`, uid).Scan(&n)
 		if n != 0 {

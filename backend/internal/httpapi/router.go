@@ -138,6 +138,7 @@ func NewRouter(d Deps) http.Handler {
 			})
 
 			r.With(maxBody(d.Config.ImportMaxBodyBytes)).Post("/import", a.importAll)
+			r.With(maxBody(d.Config.ImportMaxBodyBytes)).Post("/import/mistakes.xlsx", a.importMistakes)
 
 			r.Group(func(r chi.Router) {
 				r.Use(body)
@@ -169,6 +170,19 @@ func NewRouter(d Deps) http.Handler {
 				r.Post("/cards/{id}/review", a.reviewCard)
 				r.Delete("/cards/{id}", a.deleteCard)
 
+				r.Put("/projects/{id}/exam-template", a.setExamTemplate)
+				r.Get("/mocks", a.listMocks)
+				r.Post("/mocks", a.createMock)
+				r.Put("/mocks/{id}", a.updateMock)
+				r.Delete("/mocks/{id}", a.deleteMock)
+				r.Get("/mistakes", a.listMistakes)
+				r.Post("/mistakes", a.createMistake)
+				r.Get("/mistakes/repeats", a.repeatMistakes)
+				r.Get("/mistakes/review", a.mistakeReviewDeck)
+				r.Put("/mistakes/{id}", a.updateMistake)
+				r.Post("/mistakes/{id}/review", a.gradeMistake)
+				r.Delete("/mistakes/{id}", a.deleteMistake)
+
 				r.Get("/notes", a.listNotes)
 				r.Post("/notes", a.createNote)
 				r.Put("/notes/{id}", a.updateNote)
@@ -198,6 +212,7 @@ func NewRouter(d Deps) http.Handler {
 				r.Get("/export", a.export)
 				r.Get("/export.csv", a.exportCSV)
 				r.Get("/export.xlsx", a.exportXLSX)
+				r.Get("/import/mistakes-template.xlsx", a.mistakeTemplate)
 			})
 		})
 	})

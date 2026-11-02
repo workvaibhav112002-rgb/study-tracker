@@ -34,7 +34,7 @@ func TestExportXLSX(t *testing.T) {
 		t.Fatalf("open workbook: %v", err)
 	}
 	defer f.Close()
-	want := []string{"Sessions", "Projects", "Tasks", "Flashcards", "Notes", "Summary"}
+	want := []string{"Sessions", "Projects", "Tasks", "Flashcards", "Notes", "Mocks", "Mock sections", "Mistakes", "Summary"}
 	if got := f.GetSheetList(); strings.Join(got, ",") != strings.Join(want, ",") {
 		t.Fatalf("sheets: %v", got)
 	}

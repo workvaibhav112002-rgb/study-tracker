@@ -381,3 +381,43 @@ func TestGoalStreakAcrossDST(t *testing.T) {
 		t.Fatalf("best streak across DST: %+v", st)
 	}
 }
+
+func TestSundayResetReminder(t *testing.T) {
+	s := newServer(t, nil)
+	token, _ := s.register(t, "sunday@example.test")
+	pid := s.createProject(t, token, "IBPS PO")
+	endpoint := "https://push.example/sunday"
+	if res, body := s.do(t, "POST", "/api/push/subscribe", token, map[string]any{"endpoint": endpoint, "keys": map[string]string{"p256dh": "p", "auth": "a"}}); res.StatusCode != 204 {
+		t.Fatalf("subscribe: %d %s", res.StatusCode, body)
+	}
+	settings := map[string]any{"work_duration": 25, "short_break_duration": 5, "long_break_duration": 15, "long_break_interval": 4, "sound_enabled": true,
+		"reminder_enabled": true, "reminder_hour": 10, "timezone": "UTC"}
+	if res, body := s.do(t, "POST", "/api/settings", token, settings); res.StatusCode != 200 {
+		t.Fatalf("settings: %d %s", res.StatusCode, body)
+	}
+	// Studied today, but a mistake is waiting: Sunday still sends the reset.
+	sunday := time.Now().UTC().Truncate(24 * time.Hour)
+	for sunday.Weekday() != time.Sunday {
+		sunday = sunday.AddDate(0, 0, -1)
+	}
+	at := sunday.Add(10*time.Hour + 5*time.Minute)
+	if at.After(time.Now()) {
+		at = at.AddDate(0, 0, -7)
+	}
+	if res, body := s.createSession(t, token, pid, at.Add(-2*time.Hour), 1500); res.StatusCode != 201 {
+		t.Fatalf("session: %d %s", res.StatusCode, body)
+	}
+	if res, body := s.do(t, "POST", "/api/mistakes", token, map[string]any{"project_id": pid, "subject": "Quant", "pattern": "DI", "root_cause": "procedural"}); res.StatusCode != 201 {
+		t.Fatalf("mistake: %d %s", res.StatusCode, body)
+	}
+	req, _ := http.NewRequest("POST", s.URL+"/api/cron/reminders?now="+at.Format(time.RFC3339), nil)
+	req.Header.Set("Authorization", "Bearer cron-secret-for-tests")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if s.push.count(endpoint) != 1 || !strings.Contains(s.push.sent[endpoint][0], "Sunday Reset") || !strings.Contains(s.push.sent[endpoint][0], "tab=mocks") {
+		t.Fatalf("sunday push: %v", s.push.sent[endpoint])
+	}
+}
