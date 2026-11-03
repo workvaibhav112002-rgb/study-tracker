@@ -15,6 +15,7 @@ import { SOUNDS, type SoundId } from '../lib/sounds'
 import { Modal } from './ui/Modal'
 import { Button } from './ui/Button'
 import { Field, inputClass } from './ui/Field'
+import { isNativeApp } from '../lib/native'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -193,7 +194,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
           )}
         </div>
 
-        {user && <RemindersSection form={form} setForm={setForm} vapidPublicKey={vapidPublicKey} Toggle={Toggle} />}
+        {user && !isNativeApp() && <RemindersSection form={form} setForm={setForm} vapidPublicKey={vapidPublicKey} Toggle={Toggle} />}
 
         {user && (
           <>

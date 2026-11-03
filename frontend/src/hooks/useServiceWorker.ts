@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { isNativeApp } from '../lib/native'
 
 interface Handlers {
   onNeedRefresh: (reload: () => void) => void
@@ -12,7 +13,7 @@ export function useServiceWorker({ onNeedRefresh, onOfflineReady }: Handlers): v
     handlers.current = { onNeedRefresh, onOfflineReady }
   })
   useEffect(() => {
-    if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return
+    if (!import.meta.env.PROD || !('serviceWorker' in navigator) || isNativeApp()) return
     let cancelled = false
     void import('virtual:pwa-register')
       .then(({ registerSW }) => {

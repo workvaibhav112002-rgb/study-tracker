@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { isNativeApp, nativeKeepAwake } from '../lib/native'
 
 interface WakeLockSentinelLike {
   released: boolean
@@ -12,6 +13,10 @@ export function useWakeLock(active: boolean): { held: boolean } {
   const sentinel = useRef<WakeLockSentinelLike | null>(null)
 
   useEffect(() => {
+    if (isNativeApp()) {
+      void nativeKeepAwake(active).then((ok) => setHeld(ok && active)).catch(() => undefined)
+      return () => void nativeKeepAwake(false).catch(() => undefined)
+    }
     const wakeLock = (navigator as Navigator & { wakeLock?: { request(type: 'screen'): Promise<WakeLockSentinelLike> } }).wakeLock
     if (!active || !wakeLock) return
 

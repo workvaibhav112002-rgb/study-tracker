@@ -1,6 +1,7 @@
 // Web Audio API synthesized sounds (no audio files).
 import { schedule, soundById, VIBRATION, type SoundId } from '../lib/sounds'
 import { getPrefs } from '../lib/prefs'
+import { isNativeApp, nativeVibrate } from '../lib/native'
 
 class AudioService {
   private ctx: AudioContext | null = null
@@ -58,11 +59,15 @@ class AudioService {
   /** Vibrates on phones that support it (Android browsers; not iOS). */
   vibrate(kind: keyof typeof VIBRATION) {
     if (!getPrefs().vibrate) return
-    try {
-      navigator.vibrate?.([...VIBRATION[kind]])
-    } catch {
-      /* unsupported */
-    }
+    const pattern = VIBRATION[kind]
+    void nativeVibrate(pattern).then((done) => {
+      if (done) return
+      try {
+        navigator.vibrate?.([...pattern])
+      } catch {
+        /* unsupported */
+      }
+    })
   }
 
   // Subtle click tick for button presses
@@ -89,4 +94,4 @@ class AudioService {
 export const audioService = new AudioService()
 
 /** True when this browser can vibrate (most Android browsers). */
-export const canVibrate = () => typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function'
+export const canVibrate = () => isNativeApp() || (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function')

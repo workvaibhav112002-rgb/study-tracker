@@ -7,6 +7,7 @@ import { Modal } from './ui/Modal'
 import { Button } from './ui/Button'
 import { Field, inputClass } from './ui/Field'
 import { GoogleSignInButton } from './GoogleSignInButton'
+import { isNativeApp } from '../lib/native'
 
 interface AuthModalProps {
   isOpen: boolean
@@ -157,15 +158,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, config, initialVie
         </form>
       )}
 
-      {(view === 'login' || view === 'register') && (config.google_client_id || config.email_enabled) && (
+      {(view === 'login' || view === 'register') && !isNativeApp() && (config.google_client_id || config.email_enabled) && (
         <div className="mt-5 space-y-3">
           <div className="flex items-center gap-3 text-[11px] uppercase tracking-[0.14em] text-ink-600" aria-hidden="true">
             <span className="h-px flex-1 bg-fg/[0.06]" />
             or
             <span className="h-px flex-1 bg-fg/[0.06]" />
           </div>
-          <GoogleSignInButton clientId={config.google_client_id} disabled={loading} onCredential={(cred) => void run(() => onGoogle(cred), 'Google sign-in failed.')} />
-          {config.email_enabled && (
+          {!isNativeApp() && <GoogleSignInButton clientId={config.google_client_id} disabled={loading} onCredential={(cred) => void run(() => onGoogle(cred), 'Google sign-in failed.')} />}
+          {config.email_enabled && !isNativeApp() && (
             <Button variant="secondary" size="lg" className="w-full" onClick={() => go('magic')} icon={<Wand2 className="h-4 w-4 text-brand-400" aria-hidden="true" />}>
               Email me a sign-in link
             </Button>

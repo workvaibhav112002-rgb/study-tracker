@@ -55,6 +55,7 @@ import { formatMinutes } from './lib/time'
 import { errorMessage } from './api/client'
 import { audioService } from './services/audio'
 import { pageTitle } from './lib/brand'
+import { cancelTimerDone, isNativeApp, onNativeBack, scheduleTimerDone } from './lib/native'
 
 // Recharts is heavy; load it only when the analytics tab is opened.
 const TAB_ORDER: Tab[] = ['timer', 'projects', 'cards', 'notes', 'history', 'analytics', 'friends', 'mistakes']
@@ -139,6 +140,8 @@ const AppShell: React.FC = () => {
   useEffect(() => {
     if (data.loaded && !visibleTabs.includes(activeTab)) setActiveTab('timer')
   }, [data.loaded, visibleTabs, activeTab, setActiveTab])
+  const activeTabRef = useRef(activeTab)
+  activeTabRef.current = activeTab
   const friendState = useFriends(userId, activeTab === 'friends')
   const journalState = useJournal(userId, activeTab === 'mistakes')
   const [alertVersion, setAlertVersion] = useState(0)
@@ -216,6 +219,15 @@ const AppShell: React.FC = () => {
   const timer = useTimer({ settings: data.settings, onFinish: onTimerFinish, userId, notificationsEnabled: prefs.notifications_enabled })
   const running = timer.state.status === 'running'
   useWakeLock(running)
+
+  // In the Android app, a notification fires when the interval ends even if
+  // the app is closed. Rescheduled whenever the countdown changes.
+  const nativeEnd = running ? timer.state.targetEndAt : null
+  useEffect(() => {
+    if (!isNativeApp()) return
+    if (nativeEnd) void scheduleTimerDone(nativeEnd, timer.state.mode).catch(() => undefined)
+    else void cancelTimerDone().catch(() => undefined)
+  }, [nativeEnd, timer.state.mode])
 
   useEffect(() => {
     const label = timer.state.mode === 'work' ? 'Focus' : 'Break'
@@ -309,6 +321,22 @@ const AppShell: React.FC = () => {
       })
       .catch((err) => toast.error(errorMessage(err, 'This invite link is invalid or has expired.')))
   }, [pendingFriendToken, auth.status, friendState, toast, setActiveTab])
+
+  useEffect(() => {
+    let off: (() => void) | undefined
+    void onNativeBack(() => {
+      if (document.querySelector('[role="dialog"]')) {
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+        return true
+      }
+      if (activeTabRef.current !== 'timer') {
+        setActiveTab('timer')
+        return true
+      }
+      return false
+    }).then((f) => (off = f))
+    return () => off?.()
+  }, [setActiveTab])
 
   useServiceWorker({
     onNeedRefresh: (reload) => toast.action('A new version is available.', 'Reload', reload),

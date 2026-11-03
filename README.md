@@ -257,3 +257,18 @@ filenames). The logo glyph is `frontend/src/components/ui/BrandMark.tsx`; after 
 Internal ids (storage keys, JWT issuer, calendar UIDs, Go module, hosting names) keep the original
 `study-tracker` id on purpose so nobody is signed out. Outside the code: the Google OAuth consent
 screen name and logo, the email sender name in Brevo, and later the domain.
+
+
+## Android app
+The Android app wraps the web build with Capacitor (`frontend/android`, `frontend/capacitor.config.ts`).
+Native extras live in `frontend/src/lib/native.ts`: a notification when an interval ends even with the app
+closed, keep-screen-awake, haptics and the back button. Google sign-in, magic links and web-push reminders
+are hidden in the app (they need a browser).
+
+Build a debug APK (needs the Android SDK in `~/Android/Sdk` and Java 21; the Capacitor CLI runs on Node 22
+via npx):
+
+    cd frontend && npm run android:apk    # -> android/app/build/outputs/apk/debug/app-debug.apk
+
+The app loads from `https://localhost`, so that origin must be in the API's `CORS_ORIGINS`.
+Regenerate icons and splash screens after changing the logo with `npm run android:assets`.
