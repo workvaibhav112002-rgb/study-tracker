@@ -334,10 +334,12 @@ func TestStatsTimezoneAndStreak(t *testing.T) {
 	token, _ := s.register(t, "tz@example.com")
 	pid := s.createProject(t, token, "TZ")
 
-	// 22:30 UTC today is already "tomorrow" in Asia/Kolkata (UTC+5:30).
-	// To keep the test deterministic we anchor on a fixed instant in the past
-	// and check the daily trend buckets rather than "today".
-	anchor := time.Date(2026, 10, 20, 22, 30, 0, 0, time.UTC)
+	// 22:30 UTC is already the next day in Asia/Kolkata (UTC+5:30). Anchor
+	// three days back (inside the 14-day trend, whatever today is) and check
+	// the daily buckets rather than "today".
+	day := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -3)
+	anchor := day.Add(22*time.Hour + 30*time.Minute)
+	utcDay, nextDay := day.Format("2006-01-02"), day.AddDate(0, 0, 1).Format("2006-01-02")
 	res, body := s.createSession(t, token, pid, anchor, 600)
 	wantStatus(t, res.StatusCode, 201, body)
 
@@ -350,10 +352,10 @@ func TestStatsTimezoneAndStreak(t *testing.T) {
 	var ist store.DashboardStats
 	decode(t, body, &ist)
 
-	if minutesOn(utc, "2026-10-20") != 10 || minutesOn(utc, "2026-10-21") != 0 {
+	if minutesOn(utc, utcDay) != 10 || minutesOn(utc, nextDay) != 0 {
 		t.Errorf("utc trend: %+v", utc.DailyTrend)
 	}
-	if minutesOn(ist, "2026-10-21") != 10 || minutesOn(ist, "2026-10-20") != 0 {
+	if minutesOn(ist, nextDay) != 10 || minutesOn(ist, utcDay) != 0 {
 		t.Errorf("ist trend: %+v", ist.DailyTrend)
 	}
 	if len(utc.DailyTrend) != 14 || utc.DailyTrend[0].Date >= utc.DailyTrend[13].Date {
