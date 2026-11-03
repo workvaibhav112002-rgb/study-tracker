@@ -1,4 +1,6 @@
-// Web Audio API synthesized sound generator (Zero external MP3 dependencies)
+// Web Audio API synthesized sounds (no audio files).
+import { schedule, soundById, VIBRATION, type SoundId } from '../lib/sounds'
+import { getPrefs } from '../lib/prefs'
 
 class AudioService {
   private ctx: AudioContext | null = null
@@ -14,61 +16,52 @@ class AudioService {
     return this.ctx
   }
 
-  // Pleasant bell chime for completing work pomodoro
-  playWorkCompleteChime() {
+  /** Plays a sound with the given volume (0..1) and gentle mode. */
+  play(id: SoundId, volume: number, gentle: boolean) {
+    const notes = schedule(soundById(id), volume, gentle)
+    if (notes.length === 0) return
     try {
       const ctx = this.getContext()
-      const now = ctx.currentTime
-
-      const freqs = [523.25, 659.25, 783.99, 1046.50] // C5, E5, G5, C6 arpeggio
-      freqs.forEach((freq, index) => {
+      const now = ctx.currentTime + 0.02
+      for (const n of notes) {
         const osc = ctx.createOscillator()
         const gain = ctx.createGain()
-
-        osc.type = 'sine'
-        osc.frequency.setValueAtTime(freq, now + index * 0.12)
-
-        gain.gain.setValueAtTime(0, now + index * 0.12)
-        gain.gain.linearRampToValueAtTime(0.3, now + index * 0.12 + 0.04)
-        gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.12 + 1.2)
-
+        const start = now + n.at
+        osc.type = n.wave
+        osc.frequency.setValueAtTime(n.freq, start)
+        if (n.glideTo) osc.frequency.exponentialRampToValueAtTime(n.glideTo, start + n.decay)
+        gain.gain.setValueAtTime(0, start)
+        gain.gain.linearRampToValueAtTime(n.peak, start + n.attack)
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + n.attack + n.decay)
         osc.connect(gain)
         gain.connect(ctx.destination)
-
-        osc.start(now + index * 0.12)
-        osc.stop(now + index * 0.12 + 1.3)
-      })
+        osc.start(start)
+        osc.stop(start + n.attack + n.decay + 0.05)
+      }
     } catch (e) {
       console.warn('Audio playback error:', e)
     }
   }
 
-  // Calming gong sound for break complete
+  /** End of a focus session, using this device's sound preferences. */
+  playWorkCompleteChime() {
+    const p = getPrefs()
+    this.play(p.focus_sound, p.volume, p.gentle_sound)
+  }
+
+  /** End of a break, using this device's sound preferences. */
   playBreakCompleteChime() {
+    const p = getPrefs()
+    this.play(p.break_sound, p.volume, p.gentle_sound)
+  }
+
+  /** Vibrates on phones that support it (Android browsers; not iOS). */
+  vibrate(kind: keyof typeof VIBRATION) {
+    if (!getPrefs().vibrate) return
     try {
-      const ctx = this.getContext()
-      const now = ctx.currentTime
-
-      const freqs = [440, 554.37, 659.25] // A4, C#5, E5
-      freqs.forEach((freq, index) => {
-        const osc = ctx.createOscillator()
-        const gain = ctx.createGain()
-
-        osc.type = 'triangle'
-        osc.frequency.setValueAtTime(freq, now + index * 0.15)
-
-        gain.gain.setValueAtTime(0, now + index * 0.15)
-        gain.gain.linearRampToValueAtTime(0.25, now + index * 0.15 + 0.05)
-        gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.15 + 1.5)
-
-        osc.connect(gain)
-        gain.connect(ctx.destination)
-
-        osc.start(now + index * 0.15)
-        osc.stop(now + index * 0.15 + 1.6)
-      })
-    } catch (e) {
-      console.warn('Audio playback error:', e)
+      navigator.vibrate?.([...VIBRATION[kind]])
+    } catch {
+      /* unsupported */
     }
   }
 
@@ -77,19 +70,14 @@ class AudioService {
     try {
       const ctx = this.getContext()
       const now = ctx.currentTime
-
       const osc = ctx.createOscillator()
       const gain = ctx.createGain()
-
       osc.type = 'sine'
       osc.frequency.setValueAtTime(800, now)
-
-      gain.gain.setValueAtTime(0.05, now)
+      gain.gain.setValueAtTime(0.05 * getPrefs().volume, now)
       gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05)
-
       osc.connect(gain)
       gain.connect(ctx.destination)
-
       osc.start(now)
       osc.stop(now + 0.06)
     } catch {
@@ -99,3 +87,6 @@ class AudioService {
 }
 
 export const audioService = new AudioService()
+
+/** True when this browser can vibrate (most Android browsers). */
+export const canVibrate = () => typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function'

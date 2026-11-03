@@ -1,3 +1,5 @@
+import type { SoundId } from './sounds'
+
 /** Per-device preferences that never need to reach the server. */
 export type Theme = 'dark' | 'light' | 'system'
 export type Accent = 'emerald' | 'sky' | 'violet' | 'amber' | 'rose'
@@ -6,10 +8,19 @@ export interface LocalPrefs {
   notifications_enabled: boolean
   theme: Theme
   accent: Accent
+  /** Sound at the end of a focus session and of a break. */
+  focus_sound: SoundId
+  break_sound: SoundId
+  /** 0..1, applied on top of the device volume. */
+  volume: number
+  /** Vibrate on phones that support it. */
+  vibrate: boolean
+  /** Play the sound three times, quiet to full, instead of all at once. */
+  gentle_sound: boolean
 }
 
 const KEY = 'study_tracker_prefs_v1'
-const DEFAULTS: LocalPrefs = { notifications_enabled: false, theme: 'dark', accent: 'emerald' }
+const DEFAULTS: LocalPrefs = { notifications_enabled: false, theme: 'dark', accent: 'emerald', focus_sound: 'chime', break_sound: 'soft', volume: 0.8, vibrate: true, gentle_sound: false }
 const listeners = new Set<() => void>()
 let cached: LocalPrefs | null = null
 

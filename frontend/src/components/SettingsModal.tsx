@@ -10,7 +10,8 @@ import { AccountSection } from './settings/AccountSection'
 import { AppearanceSection } from './settings/AppearanceSection'
 import { RemindersSection } from './settings/RemindersSection'
 import { ProfileSection } from './settings/ProfileSection'
-import { audioService } from '../services/audio'
+import { audioService, canVibrate } from '../services/audio'
+import { SOUNDS, type SoundId } from '../lib/sounds'
 import { Modal } from './ui/Modal'
 import { Button } from './ui/Button'
 import { Field, inputClass } from './ui/Field'
@@ -148,7 +149,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
         <h3 className="eyebrow pt-2">Sounds & alerts</h3>
         <div className="space-y-2.5">
           <Toggle checked={form.auto_start_breaks} onChange={(v) => setForm({ ...form, auto_start_breaks: v })} label="Auto-start next interval" hint="Breaks and focus sessions begin on their own." />
-          <Toggle checked={form.sound_enabled} onChange={(v) => setForm({ ...form, sound_enabled: v })} label="Sound" hint="Chimes on completion and soft ticks on controls." />
+          <Toggle checked={form.sound_enabled} onChange={(v) => setForm({ ...form, sound_enabled: v })} label="Sound" hint="Plays a sound when an interval ends, and soft ticks on controls." />
           {supportsNotifications() && (
             <Toggle
               checked={prefs.notifications_enabled && permission() !== 'denied'}
@@ -160,14 +161,36 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
               hint={permission() === 'denied' ? 'Blocked in your browser settings.' : 'Get alerted when a session ends, even in another tab.'}
             />
           )}
-          <button
-            type="button"
-            onClick={() => audioService.playWorkCompleteChime()}
-            className="focus-ring flex items-center gap-1.5 rounded-md text-[12px] font-medium text-brand-400 hover:text-brand-300"
-          >
-            <Volume2 className="h-3.5 w-3.5" aria-hidden="true" />
-            Preview chime
-          </button>
+          {form.sound_enabled && (
+            <div className="space-y-3 rounded-2xl border border-fg/[0.06] bg-fg/[0.02] p-4" role="group" aria-label="Sound choices">
+              <p className="text-[11px] text-ink-500">Saved on this device right away.</p>
+              {([['focus_sound', 'When a focus session ends'], ['break_sound', 'When a break ends']] as const).map(([key, label]) => (
+                <div key={key} className="flex flex-wrap items-center gap-2">
+                  <label htmlFor={`sound-${key}`} className="min-w-[11rem] flex-1 text-[13px] text-ink-200">{label}</label>
+                  <div className="flex items-center gap-1">
+                  <select id={`sound-${key}`} className={`${inputClass} h-9 w-40 py-0 text-[13px]`} value={prefs[key]} onChange={(e) => { const id = e.target.value as SoundId; setPrefs({ [key]: id }); audioService.play(id, prefs.volume, prefs.gentle_sound) }}>
+                    {SOUNDS.map((snd) => <option key={snd.id} value={snd.id}>{snd.label}</option>)}
+                  </select>
+                  <button type="button" aria-label={`Preview: ${label.toLowerCase()}`} onClick={() => audioService.play(prefs[key], prefs.volume, prefs.gentle_sound)} title="Preview" className="focus-ring flex h-9 w-9 items-center justify-center rounded-lg text-brand-400 hover:bg-fg/[0.06] hover:text-brand-300">
+                    <Volume2 className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                  </div>
+                </div>
+              ))}
+              <div className="flex flex-wrap items-center gap-3">
+                <label htmlFor="sound-volume" className="min-w-[11rem] flex-1 text-[13px] text-ink-200">Volume</label>
+                <input id="sound-volume" type="range" min={0} max={100} step={5} value={Math.round(prefs.volume * 100)} onChange={(e) => setPrefs({ volume: Number(e.target.value) / 100 })} onPointerUp={() => audioService.play(prefs.focus_sound, prefs.volume, false)} onKeyUp={(e) => { if (e.key.startsWith('Arrow')) audioService.play(prefs.focus_sound, prefs.volume, false) }} className="w-40 accent-brand-500" aria-valuetext={`${Math.round(prefs.volume * 100)} percent`} />
+                <span className="w-10 text-right font-mono text-[12px] tabular-nums text-ink-300">{Math.round(prefs.volume * 100)}%</span>
+              </div>
+              <Toggle checked={prefs.gentle_sound} onChange={(v) => setPrefs({ gentle_sound: v })} label="Gentle mode" hint="Plays the sound three times, from quiet to full, instead of all at once. Nicer with headphones." />
+              <Toggle
+                checked={prefs.vibrate}
+                onChange={(v) => { setPrefs({ vibrate: v }); if (v) audioService.vibrate('focus') }}
+                label="Vibrate"
+                hint={canVibrate() ? 'Buzz the phone when an interval ends.' : 'Works on Android phones. This browser cannot vibrate.'}
+              />
+            </div>
+          )}
         </div>
 
         {user && <RemindersSection form={form} setForm={setForm} vapidPublicKey={vapidPublicKey} Toggle={Toggle} />}

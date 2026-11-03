@@ -196,6 +196,7 @@ const AppShell: React.FC = () => {
       const hidden = document.visibilityState === 'hidden' || !document.hasFocus()
       if (result.mode === 'work') {
         if (data.settings.sound_enabled && !result.stale) audioService.playWorkCompleteChime()
+        if (!result.stale) audioService.vibrate('focus')
         if (!result.stale) confetti({ particleCount: 90, spread: 70, origin: { y: 0.7 }, colors: ['#34d399', '#4cc2f5', '#f5b63d', '#8b7cf6'] })
         if (hidden || result.stale) {
           notify('Focus session done', `${formatMinutes(result.elapsedSeconds / 60)} logged${result.interruptions ? `, ${result.interruptions} interruption${result.interruptions === 1 ? '' : 's'}` : ''}. Rate it when you're back.`)
@@ -203,6 +204,7 @@ const AppShell: React.FC = () => {
         setCompleted(result)
       } else {
         if (data.settings.sound_enabled && !result.stale) audioService.playBreakCompleteChime()
+        if (!result.stale) audioService.vibrate('break')
         if (hidden) notify('Break over', 'Back to it when you are ready.')
       }
     },
