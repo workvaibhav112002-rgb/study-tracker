@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"errors"
 
 	"github.com/jackc/pgx/v5"
 
@@ -55,6 +56,19 @@ func (s *Store) ListSessions(ctx context.Context, userID int64, f store.SessionF
 // is missing, foreign, or on another project violates the composite FK and
 // yields store.ErrNotFound with nothing inserted.
 func (s *Store) CreateSession(ctx context.Context, userID int64, in store.SessionInput) (store.Session, error) {
+	// Saving the same session twice (a client retry after a lost response)
+	// returns the stored one instead of a duplicate.
+	existing, err := scanSession(s.pool.QueryRow(ctx, `
+		SELECT `+sessionColumns+`
+		FROM sessions s JOIN projects p ON p.id = s.project_id
+		WHERE s.user_id = $1 AND s.project_id = $2 AND s.start_time = $3 AND s.duration_seconds = $4
+		LIMIT 1`, userID, in.ProjectID, in.StartTime, in.DurationSeconds))
+	if err == nil {
+		return existing, nil
+	}
+	if !errors.Is(err, store.ErrNotFound) {
+		return store.Session{}, err
+	}
 	return scanSession(s.pool.QueryRow(ctx, `
 		WITH ins AS (
 			INSERT INTO sessions (user_id, project_id, start_time, end_time, duration_seconds, session_type, focus_rating, notes, interruptions, task_id)
@@ -72,14 +86,34 @@ func (s *Store) CreateSession(ctx context.Context, userID int64, in store.Sessio
 	))
 }
 
-// DeleteSession removes one session owned by userID.
+// UpdateSessionReview changes the rating and/or notes of a saved session.
+func (s *Store) UpdateSessionReview(ctx context.Context, userID, id int64, rating *int, notes *string) (store.Session, error) {
+	return scanSession(s.pool.QueryRow(ctx, `
+		WITH upd AS (
+			UPDATE sessions SET focus_rating = COALESCE($3, focus_rating), notes = COALESCE($4, notes)
+			WHERE id = $1 AND user_id = $2
+			RETURNING *
+		)
+		SELECT `+sessionColumns+`
+		FROM upd s JOIN projects p ON p.id = s.project_id`, id, userID, rating, notes))
+}
+
+// DeleteSession removes one session owned by userID and takes back the
+// pomodoro it added to its task, if any.
 func (s *Store) DeleteSession(ctx context.Context, userID, id int64) error {
-	tag, err := s.pool.Exec(ctx, `DELETE FROM sessions WHERE id = $1 AND user_id = $2`, id, userID)
+	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return mapErr(err)
 	}
-	if tag.RowsAffected() == 0 {
-		return store.ErrNotFound
+	defer func() { _ = tx.Rollback(ctx) }()
+	var taskID *int64
+	if err := tx.QueryRow(ctx, `DELETE FROM sessions WHERE id = $1 AND user_id = $2 RETURNING task_id`, id, userID).Scan(&taskID); err != nil {
+		return mapErr(err) // no rows -> store.ErrNotFound
 	}
-	return nil
+	if taskID != nil {
+		if _, err := tx.Exec(ctx, `UPDATE tasks SET completed_pomodoros = GREATEST(0, completed_pomodoros - 1) WHERE id = $1 AND user_id = $2`, *taskID, userID); err != nil {
+			return mapErr(err)
+		}
+	}
+	return mapErr(tx.Commit(ctx))
 }

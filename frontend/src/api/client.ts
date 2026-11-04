@@ -262,6 +262,7 @@ export const api = {
   },
   createSession: (data: SessionInput) => request<Session>('/sessions', { method: 'POST', body: data }),
   deleteSession: (id: number) => request<void>(`/sessions/${id}`, { method: 'DELETE' }),
+  reviewSession: (id: number, data: { focus_rating?: number; notes?: string }) => request<Session>(`/sessions/${id}`, { method: 'PUT', body: data }),
 
   // Tasks
   getTasks: (projectId?: number) => request<Task[]>(projectId ? `/tasks?project_id=${projectId}` : '/tasks'),

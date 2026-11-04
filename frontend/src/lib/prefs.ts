@@ -17,10 +17,14 @@ export interface LocalPrefs {
   vibrate: boolean
   /** Play the sound three times, quiet to full, instead of all at once. */
   gentle_sound: boolean
+  /** Show the rating dialog after each session instead of saving automatically. */
+  rate_each_session: boolean
+  /** Rating given to auto-saved sessions (the last one chosen). */
+  last_rating: number
 }
 
 const KEY = 'study_tracker_prefs_v1'
-const DEFAULTS: LocalPrefs = { notifications_enabled: false, theme: 'dark', accent: 'emerald', focus_sound: 'chime', break_sound: 'soft', volume: 0.8, vibrate: true, gentle_sound: false }
+const DEFAULTS: LocalPrefs = { notifications_enabled: false, theme: 'dark', accent: 'emerald', focus_sound: 'chime', break_sound: 'soft', volume: 0.8, vibrate: true, gentle_sound: false, rate_each_session: false, last_rating: 3 }
 const listeners = new Set<() => void>()
 let cached: LocalPrefs | null = null
 

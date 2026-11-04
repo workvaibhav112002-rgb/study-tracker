@@ -150,6 +150,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, s
         <h3 className="eyebrow pt-2">Sounds & alerts</h3>
         <div className="space-y-2.5">
           <Toggle checked={form.auto_start_breaks} onChange={(v) => setForm({ ...form, auto_start_breaks: v })} label="Auto-start next interval" hint="Breaks and focus sessions begin on their own." />
+          <Toggle checked={prefs.rate_each_session} onChange={(v) => setPrefs({ rate_each_session: v })} label="Ask me to rate each session" hint="Off: sessions save automatically and a small card lets you rate them. On: a rating dialog opens after every focus session. Saved on this device." />
           <Toggle checked={form.sound_enabled} onChange={(v) => setForm({ ...form, sound_enabled: v })} label="Sound" hint="Plays a sound when an interval ends, and soft ticks on controls." />
           {supportsNotifications() && (
             <Toggle

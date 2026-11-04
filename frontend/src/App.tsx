@@ -52,10 +52,12 @@ import { notify } from './lib/notify'
 import { createFavicon } from './lib/favicon'
 import { clearTimer } from './lib/timerStorage'
 import { formatMinutes } from './lib/time'
-import { errorMessage } from './api/client'
+import { ApiError, errorMessage } from './api/client'
 import { audioService } from './services/audio'
 import { pageTitle } from './lib/brand'
 import { cancelTimerDone, isNativeApp, onNativeBack, scheduleTimerDone } from './lib/native'
+import { SavedSessionCard, type SavedCardState } from './components/SavedSessionCard'
+import { enqueue as enqueuePending, flushPending, listPending, remove as removePending } from './lib/pendingSessions'
 
 // Recharts is heavy; load it only when the analytics tab is opened.
 const TAB_ORDER: Tab[] = ['timer', 'projects', 'cards', 'notes', 'history', 'analytics', 'friends', 'mistakes']
@@ -169,6 +171,9 @@ const AppShell: React.FC = () => {
   const [profileHandle, setProfileHandle] = useState<string | null>(() => (entry?.kind === 'profile' ? entry.handle : null))
   const [createProjectSignal, setCreateProjectSignal] = useState(0)
   const [completed, setCompleted] = useState<TimerFinish | null>(null)
+  const [savedCard, setSavedCard] = useState<SavedCardState | null>(null)
+  // Set below once data and tasks exist; called from onTimerFinish.
+  const finishWorkRef = useRef<(r: TimerFinish) => void>(() => undefined)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const { zen, toggle: toggleZen, exit: exitZen } = useZenMode()
   const [reviewSeen, setReviewSeen] = useState<string | null>(() => {
@@ -202,9 +207,9 @@ const AppShell: React.FC = () => {
         if (!result.stale) audioService.vibrate('focus')
         if (!result.stale) confetti({ particleCount: 90, spread: 70, origin: { y: 0.7 }, colors: ['#34d399', '#4cc2f5', '#f5b63d', '#8b7cf6'] })
         if (hidden || result.stale) {
-          notify('Focus session done', `${formatMinutes(result.elapsedSeconds / 60)} logged${result.interruptions ? `, ${result.interruptions} interruption${result.interruptions === 1 ? '' : 's'}` : ''}. Rate it when you're back.`)
+          notify('Focus session done', `${formatMinutes(result.elapsedSeconds / 60)} saved${result.interruptions ? `, ${result.interruptions} interruption${result.interruptions === 1 ? '' : 's'}` : ''}.`)
         }
-        setCompleted(result)
+        finishWorkRef.current(result)
       } else {
         if (data.settings.sound_enabled && !result.stale) audioService.playBreakCompleteChime()
         if (!result.stale) audioService.vibrate('break')
@@ -467,6 +472,7 @@ const AppShell: React.FC = () => {
 
   const saveCompletedSession = async (projectId: number, rating: number, notes: string, taskId: number | null) => {
     if (!completed) return
+    setPrefs({ last_rating: rating })
     await run(
       () =>
         data.createSession({
@@ -484,6 +490,97 @@ const AppShell: React.FC = () => {
     )
     setCompleted(null)
     if (taskId !== null) void taskState.refresh().catch(() => undefined)
+  }
+
+  // ---- Auto-save: a finished session is saved without a dialog ----
+  // It is queued on the device first, so a failed request never loses it.
+  const isPermanentSaveError = (err: unknown) =>
+    err instanceof ApiError && err.status >= 400 && err.status < 500 && ![401, 408, 429].includes(err.status)
+  const flushingRef = useRef(false)
+  const flushSessions = useCallback(async () => {
+    if (userId === null || flushingRef.current) return
+    flushingRef.current = true
+    try {
+      const res = await flushPending(userId, (input) => api.createSession(input), isPermanentSaveError)
+      if (res.saved.length > 0) void data.refreshStats().catch(() => undefined)
+      for (const { item, value } of res.saved) {
+        setSavedCard((c) => (c && c.key === item.key ? { ...c, status: 'saved', sessionId: value.id } : c))
+        if (item.input.task_id !== null) void taskState.refresh().catch(() => undefined)
+      }
+      for (const { item, error } of res.dropped) {
+        setSavedCard((c) => (c && c.key === item.key ? null : c))
+        toast.error(`A session could not be saved: ${errorMessage(error)}`)
+      }
+      if (res.waiting > 0) setSavedCard((c) => (c && c.status === 'saving' ? { ...c, status: 'waiting' } : c))
+    } finally {
+      flushingRef.current = false
+    }
+  }, [userId, data, taskState, toast])
+
+  finishWorkRef.current = (result: TimerFinish) => {
+    const project = data.projects.find((p) => p.id === data.selectedProjectId)
+    if (prefs.rate_each_session || !project || userId === null) {
+      setCompleted(result)
+      return
+    }
+    const input = {
+      project_id: project.id,
+      start_time: result.startedAt,
+      end_time: result.endedAt,
+      duration_seconds: result.elapsedSeconds,
+      session_type: 'pomodoro' as const,
+      focus_rating: prefs.last_rating,
+      notes: '',
+      interruptions: result.interruptions,
+      task_id: taskState.currentTaskId,
+    }
+    const item = enqueuePending(userId, input)
+    setSavedCard({ key: item.key, status: 'saving', sessionId: null, minutes: result.elapsedSeconds / 60, projectName: project.name, projectColor: project.color, rating: prefs.last_rating })
+    void flushSessions()
+  }
+
+  // Retry anything still queued: on sign-in, when the connection returns, and every minute.
+  useEffect(() => {
+    if (auth.status !== 'authenticated' || !data.loaded || userId === null) return
+    void flushSessions()
+    const onOnline = () => void flushSessions()
+    window.addEventListener('online', onOnline)
+    const id = window.setInterval(() => {
+      if (listPending(userId).length > 0) void flushSessions()
+    }, 60_000)
+    return () => {
+      window.removeEventListener('online', onOnline)
+      window.clearInterval(id)
+    }
+  }, [auth.status, data.loaded, userId, flushSessions])
+
+  const rateSavedSession = (rating: number) => {
+    setPrefs({ last_rating: rating })
+    setSavedCard((c) => (c ? { ...c, rating } : c))
+    const id = savedCard?.sessionId
+    if (id) void api.reviewSession(id, { focus_rating: rating }).then(() => data.refreshStats()).catch((err) => toast.error(errorMessage(err)))
+  }
+  const noteSavedSession = async (note: string) => {
+    const id = savedCard?.sessionId
+    if (!id) return
+    await run(async () => {
+      await api.reviewSession(id, { notes: note })
+      await data.refreshStats()
+    }, 'Note added.')
+  }
+  const undoSavedSession = () => {
+    const card = savedCard
+    setSavedCard(null)
+    if (!card || userId === null) return
+    if (card.sessionId === null) {
+      removePending(userId, card.key)
+      toast.info('Session discarded.')
+      return
+    }
+    void run(async () => {
+      await data.deleteSession(card.sessionId!)
+      void taskState.refresh().catch(() => undefined)
+    }, 'Session removed.').catch(() => undefined)
   }
 
   function requestCreateProject() {
@@ -748,6 +845,10 @@ const AppShell: React.FC = () => {
           )}
         </div>
       </main>
+
+      {savedCard && signedIn && (
+        <SavedSessionCard state={savedCard} onRate={rateSavedSession} onNote={noteSavedSession} onUndo={undoSavedSession} onClose={() => setSavedCard(null)} />
+      )}
 
       <SessionModal
         isOpen={completed !== null}

@@ -298,3 +298,70 @@ func TestStatsGoalsHeatmapHoursAndWeekOverWeek(t *testing.T) {
 		t.Errorf("avg interruptions: %v", dash.AvgInterruptions)
 	}
 }
+
+func TestSessionAutoSaveReviewAndUndo(t *testing.T) {
+	s := newServer(t, nil)
+	token, _ := s.register(t, "autosave@example.test")
+	other, _ := s.register(t, "autosave-other@example.test")
+	pid := s.createProject(t, token, "Writing")
+	tid := s.createTask(t, token, pid, "Draft chapter")
+	start := time.Now().Add(-30 * time.Minute).UTC().Truncate(time.Second)
+	body := map[string]any{"project_id": pid, "start_time": start, "end_time": start.Add(25 * time.Minute), "duration_seconds": 1500,
+		"session_type": "pomodoro", "focus_rating": 3, "task_id": tid}
+	completed := func() int {
+		t.Helper()
+		res, raw := s.do(t, "GET", "/api/tasks", token, nil)
+		wantStatus(t, res.StatusCode, 200, raw)
+		var tasks []store.Task
+		decode(t, raw, &tasks)
+		for _, x := range tasks {
+			if x.ID == tid {
+				return x.CompletedPomodoros
+			}
+		}
+		t.Fatal("task missing")
+		return -1
+	}
+
+	res, raw := s.do(t, "POST", "/api/sessions", token, body)
+	wantStatus(t, res.StatusCode, 201, raw)
+	var first store.Session
+	decode(t, raw, &first)
+	// A retry of the same session (lost response) returns the same row and does not bump the task twice.
+	res, raw = s.do(t, "POST", "/api/sessions", token, body)
+	wantStatus(t, res.StatusCode, 201, raw)
+	var again store.Session
+	decode(t, raw, &again)
+	if again.ID != first.ID || completed() != 1 {
+		t.Fatalf("retry made a duplicate: %d vs %d, completed %d", again.ID, first.ID, completed())
+	}
+
+	// Rate and annotate after saving; fields left out keep their value.
+	res, raw = s.do(t, "PUT", "/api/sessions/"+itoa(first.ID), token, map[string]any{"focus_rating": 5})
+	wantStatus(t, res.StatusCode, 200, raw)
+	res, raw = s.do(t, "PUT", "/api/sessions/"+itoa(first.ID), token, map[string]any{"notes": "  Outline done  "})
+	wantStatus(t, res.StatusCode, 200, raw)
+	var reviewed store.Session
+	decode(t, raw, &reviewed)
+	if reviewed.FocusRating != 5 || reviewed.Notes != "Outline done" || reviewed.ProjectName != "Writing" {
+		t.Fatalf("reviewed: %+v", reviewed)
+	}
+	for name, b := range map[string]any{"empty": map[string]any{}, "rating 0": map[string]any{"focus_rating": 0}, "rating 6": map[string]any{"focus_rating": 6}} {
+		if res, raw := s.do(t, "PUT", "/api/sessions/"+itoa(first.ID), token, b); res.StatusCode != 400 {
+			t.Errorf("%s: %d %s", name, res.StatusCode, raw)
+		}
+	}
+	res, raw = s.do(t, "PUT", "/api/sessions/"+itoa(first.ID), other, map[string]any{"focus_rating": 1})
+	wantStatus(t, res.StatusCode, 404, raw)
+	res, raw = s.do(t, "DELETE", "/api/sessions/"+itoa(first.ID), other, nil)
+	wantStatus(t, res.StatusCode, 404, raw)
+
+	// Undo: deleting gives the task's pomodoro back; a second delete is 404.
+	res, raw = s.do(t, "DELETE", "/api/sessions/"+itoa(first.ID), token, nil)
+	wantStatus(t, res.StatusCode, 204, raw)
+	if n := completed(); n != 0 {
+		t.Fatalf("task count after undo: %d", n)
+	}
+	res, raw = s.do(t, "DELETE", "/api/sessions/"+itoa(first.ID), token, nil)
+	wantStatus(t, res.StatusCode, 404, raw)
+}

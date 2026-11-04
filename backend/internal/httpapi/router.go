@@ -153,6 +153,7 @@ func NewRouter(d Deps) http.Handler {
 
 				r.Get("/sessions", a.listSessions)
 				r.Post("/sessions", a.createSession)
+				r.Put("/sessions/{id}", a.reviewSession)
 				r.Delete("/sessions/{id}", a.deleteSession)
 
 				r.Get("/tasks", a.listTasks)

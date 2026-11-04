@@ -87,6 +87,8 @@ jobs:
           DATABASE_URL: postgres://test:test@localhost:5432/study_e2e?sslmode=disable
           JWT_SECRET: e2e-secret-0123456789abcdefghijklmnop
           CORS_ORIGINS: http://localhost:4173
+          # The e2e suite signs up many accounts within a minute; production keeps the default limit.
+          AUTH_RATE_LIMIT: "300"
           APP_ENV: development
           PORT: "8080"
         run: |

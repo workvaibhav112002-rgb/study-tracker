@@ -494,6 +494,8 @@ type Store interface {
 	ListSessions(ctx context.Context, userID int64, f SessionFilter) ([]Session, error)
 	CreateSession(ctx context.Context, userID int64, in SessionInput) (Session, error)
 	DeleteSession(ctx context.Context, userID, id int64) error
+	// UpdateSessionReview changes a saved session's rating and/or notes (nil keeps the value).
+	UpdateSessionReview(ctx context.Context, userID, id int64, rating *int, notes *string) (Session, error)
 
 	ListTasks(ctx context.Context, userID int64, f TaskFilter) ([]Task, error)
 	CreateTask(ctx context.Context, userID int64, in TaskInput) (Task, error)

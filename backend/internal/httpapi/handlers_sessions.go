@@ -149,3 +149,45 @@ func (a *api) deleteSession(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// reviewSession rates a session after it was saved automatically, or edits
+// its notes. Fields left out keep their value.
+func (a *api) reviewSession(w http.ResponseWriter, r *http.Request) {
+	id, err := pathID(r, "id")
+	if err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	var req struct {
+		FocusRating *int    `json:"focus_rating"`
+		Notes       *string `json:"notes"`
+	}
+	if err := decodeJSON(r, &req); err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	if req.FocusRating == nil && req.Notes == nil {
+		handleErr(w, r, invalid("send focus_rating and/or notes"))
+		return
+	}
+	if req.FocusRating != nil {
+		if err := inRange("focus_rating", *req.FocusRating, 1, 5); err != nil {
+			handleErr(w, r, err)
+			return
+		}
+	}
+	if req.Notes != nil {
+		n, err := cleanText("notes", *req.Notes, maxNotesLen, false)
+		if err != nil {
+			handleErr(w, r, err)
+			return
+		}
+		req.Notes = &n
+	}
+	s, err := a.store.UpdateSessionReview(r.Context(), userID(r), id, req.FocusRating, req.Notes)
+	if err != nil {
+		handleErr(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, s)
+}
