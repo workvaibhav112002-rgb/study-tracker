@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, errorMessage } from '../api/client'
+import { loadLastProject, pickProject, saveLastProject } from '../lib/lastProject'
 import {
   DEFAULT_SETTINGS,
   type DailyStat,
@@ -39,6 +40,15 @@ export function useAppData(userId: number | null) {
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  /** A project picked by the user; remembered on this device for the next visit. */
+  const selectProject = useCallback(
+    (id: number) => {
+      setSelectedProjectId(id)
+      if (userId !== null) saveLastProject(userId, id)
+    },
+    [userId],
+  )
+
   const reload = useCallback(async () => {
     if (userId === null) return
     setLoading(true)
@@ -65,7 +75,7 @@ export function useAppData(userId: number | null) {
       setReview(rv)
       setStreak(sk)
       setMilestones(ms)
-      setSelectedProjectId((prev) => (prev !== null && p.some((x) => x.id === prev) ? prev : (p[0]?.id ?? null)))
+      setSelectedProjectId((prev) => pickProject(p, prev, loadLastProject(userId), se[0]?.project_id ?? null))
       setError(null)
       setLoaded(true)
     } catch (err) {
@@ -202,7 +212,7 @@ export function useAppData(userId: number | null) {
     review,
     refreshStats,
     selectedProjectId,
-    setSelectedProjectId,
+    setSelectedProjectId: selectProject,
     loading,
     loaded,
     error,
