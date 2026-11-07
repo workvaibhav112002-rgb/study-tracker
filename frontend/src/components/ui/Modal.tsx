@@ -87,7 +87,8 @@ export const Modal: React.FC<ModalProps> = ({
     return () => {
       document.removeEventListener('keydown', onKeyDown)
       document.body.style.overflow = prevOverflow
-      previouslyFocused?.focus?.()
+      // Return focus without scrolling: on phones a wide table would jump sideways.
+      previouslyFocused?.focus?.({ preventScroll: true })
     }
   }, [isOpen])
 

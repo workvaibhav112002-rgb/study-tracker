@@ -82,3 +82,32 @@ test('undo removes the auto-saved session, and the dialog comes back when asked 
   await expect(page.getByRole('dialog')).toBeVisible()
   await expect(page.getByTestId('saved-session-card')).toHaveCount(0)
 })
+
+test('notes and rating can be edited later from History', async ({ page }) => {
+  await signUpWithOneMinuteFocus(page, 'history-edit')
+  await runOneSession(page)
+  await expect(page.getByTestId('saved-session-card')).toContainText('Saved 1m to Writing')
+
+  await page.getByRole('navigation', { name: 'Primary' }).getByRole('button', { name: 'History' }).click()
+  const row = page.locator('table tbody tr').first()
+  await row.getByRole('button', { name: /Edit session from/ }).click()
+  const dialog = page.getByRole('dialog', { name: 'Edit session' })
+  await dialog.getByRole('radio', { name: '2 stars' }).click()
+  await dialog.getByLabel('Notes').fill('Phone kept buzzing; try airplane mode')
+  await dialog.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByText('Session updated.')).toBeVisible()
+  await expect(dialog).toHaveCount(0)
+  await expect(row).toContainText('Phone kept buzzing; try airplane mode')
+  await expect(row.getByRole('img', { name: '2 out of 5' })).toHaveCount(1)
+
+  // The edit is stored on the server, not only on screen.
+  await page.reload()
+  await page.getByRole('navigation', { name: 'Primary' }).getByRole('button', { name: 'History' }).click()
+  await expect(page.locator('table tbody tr').first()).toContainText('Phone kept buzzing; try airplane mode')
+
+  // Clicking the note itself opens the editor too; clearing it works.
+  await page.locator('table tbody tr').first().getByRole('button', { name: /Edit note:/ }).click()
+  await dialog.getByLabel('Notes').fill('')
+  await dialog.getByRole('button', { name: 'Save' }).click()
+  await expect(page.locator('table tbody tr').first().getByRole('button', { name: /Add a note/ })).toBeVisible()
+})

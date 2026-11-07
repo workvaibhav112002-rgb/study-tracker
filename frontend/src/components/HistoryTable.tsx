@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
-import { Star, Trash2, Plus, BookOpen, ChevronDown, Zap } from 'lucide-react'
+import { Star, Trash2, Plus, BookOpen, ChevronDown, Zap, PencilLine } from 'lucide-react'
 import type { Project, Session } from '../types'
 import { Button } from './ui/Button'
 import { ConfirmDialog } from './ui/ConfirmDialog'
 import { Skeleton } from './ui/Skeleton'
+import { EditSessionModal } from './EditSessionModal'
 import { formatDateTime, formatDurationSeconds, formatMinutes } from '../lib/time'
 
 interface HistoryTableProps {
@@ -11,12 +12,14 @@ interface HistoryTableProps {
   projects: Project[]
   loading?: boolean
   onDeleteSession: (id: number) => Promise<void>
+  onEditSession: (id: number, changes: { focus_rating?: number; notes?: string }) => Promise<void>
   onOpenManualModal: () => void
 }
 
-export const HistoryTable: React.FC<HistoryTableProps> = ({ sessions, projects, loading = false, onDeleteSession, onOpenManualModal }) => {
+export const HistoryTable: React.FC<HistoryTableProps> = ({ sessions, projects, loading = false, onDeleteSession, onEditSession, onOpenManualModal }) => {
   const [filterProjectId, setFilterProjectId] = useState<number | 'all'>('all')
   const [pendingDelete, setPendingDelete] = useState<Session | null>(null)
+  const [editing, setEditing] = useState<Session | null>(null)
 
   const filtered = filterProjectId === 'all' ? sessions : sessions.filter((s) => s.project_id === filterProjectId)
   const filteredMinutes = filtered.reduce((sum, s) => sum + s.duration_seconds / 60, 0)
@@ -120,10 +123,26 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({ sessions, projects, 
                         ))}
                       </div>
                     </td>
-                    <td className="max-w-xs truncate px-5 py-3.5 text-ink-400" title={session.notes || undefined}>
-                      {session.notes || <span className="text-ink-700">—</span>}
+                    <td className="max-w-xs px-5 py-3.5 text-ink-400">
+                      <button
+                        type="button"
+                        onClick={() => setEditing(session)}
+                        title={session.notes || 'Add a note'}
+                        aria-label={session.notes ? `Edit note: ${session.notes}` : `Add a note to the session from ${formatDateTime(session.start_time)}`}
+                        className="focus-ring block max-w-full truncate rounded-md text-left hover:text-ink-100"
+                      >
+                        {session.notes || <span className="text-ink-700">—</span>}
+                      </button>
                     </td>
                     <td className="whitespace-nowrap px-5 py-3.5 text-right">
+                      <button
+                        type="button"
+                        onClick={() => setEditing(session)}
+                        aria-label={`Edit session from ${formatDateTime(session.start_time)}`}
+                        className="focus-ring rounded-lg p-1.5 text-ink-600 opacity-60 transition-all hover:bg-fg/[0.06] hover:text-brand-300 group-hover:opacity-100"
+                      >
+                        <PencilLine className="h-4 w-4" />
+                      </button>
                       <button
                         type="button"
                         onClick={() => setPendingDelete(session)}
@@ -140,6 +159,8 @@ export const HistoryTable: React.FC<HistoryTableProps> = ({ sessions, projects, 
           </div>
         </div>
       )}
+
+      <EditSessionModal session={editing} onClose={() => setEditing(null)} onSave={onEditSession} />
 
       <ConfirmDialog
         isOpen={pendingDelete !== null}

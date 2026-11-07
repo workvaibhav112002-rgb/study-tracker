@@ -828,6 +828,7 @@ const AppShell: React.FC = () => {
               projects={data.projects}
               loading={initialLoading}
               onDeleteSession={(id) => run(() => data.deleteSession(id), 'Entry deleted.')}
+              onEditSession={(id, changes) => run(() => data.updateSession(id, changes), 'Session updated.')}
               onOpenManualModal={() => setIsManualOpen(true)}
             />
           )}

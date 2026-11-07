@@ -169,6 +169,15 @@ export function useAppData(userId: number | null) {
     [refreshStats],
   )
 
+  const updateSession = useCallback(
+    async (id: number, changes: { focus_rating?: number; notes?: string }) => {
+      const updated = await api.reviewSession(id, changes)
+      setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, notes: updated.notes, focus_rating: updated.focus_rating } : s)))
+      await refreshStats()
+    },
+    [refreshStats],
+  )
+
   const deleteSession = useCallback(
     async (id: number) => {
       await api.deleteSession(id)
@@ -204,6 +213,7 @@ export function useAppData(userId: number | null) {
     setProjectJournal,
     deleteProject,
     createSession,
+    updateSession,
     deleteSession,
     updateSettings,
     streak,
