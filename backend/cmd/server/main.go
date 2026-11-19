@@ -8,11 +8,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
 	"time"
 	_ "time/tzdata" // embed the IANA database so ?tz= works in minimal images
 
 	"github.com/getsentry/sentry-go"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"study-tracker-backend/internal/auth"
 	"study-tracker-backend/internal/config"
@@ -44,20 +46,18 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	startCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
-	pool, err := postgres.NewPool(startCtx, cfg.DatabaseURL)
+	// The pool connects lazily, so this only fails on a malformed URL.
+	pool, err := postgres.NewPool(ctx, cfg.DatabaseURL)
 	if err != nil {
-		cancel()
 		logger.Error("database", "err", err)
 		os.Exit(1)
 	}
-	if err := postgres.Migrate(startCtx, pool); err != nil {
-		cancel()
-		logger.Error("migrate", "err", err)
-		os.Exit(1)
-	}
-	cancel()
-	logger.Info("database ready")
+	// Migrate in the background and keep retrying: if the database is
+	// unreachable (cold start, outage, or suspended over a quota) the server
+	// still starts, answers /api/live, and returns a clear 503 elsewhere
+	// instead of exiting and being restarted in a loop.
+	var ready atomic.Bool
+	go migrateUntilReady(ctx, logger, pool, &ready)
 
 	var mailer mail.Mailer = mail.Nop{}
 	if cfg.EmailEnabled() {
@@ -93,6 +93,7 @@ func main() {
 		Mailer: mailer,
 		Google: google,
 		Push:   pusher,
+		Ready:  ready.Load,
 	})
 
 	srv := &http.Server{
@@ -133,4 +134,29 @@ func newLogger(cfg config.Config) *slog.Logger {
 		return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	}
 	return slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+}
+
+// migrateUntilReady runs migrations, retrying with backoff (5 s doubling to
+// 5 min) until they succeed or the server shuts down. Failed attempts against
+// a suspended database don't wake it or use compute.
+func migrateUntilReady(ctx context.Context, logger *slog.Logger, pool *pgxpool.Pool, ready *atomic.Bool) {
+	const maxWait = 5 * time.Minute
+	wait := 5 * time.Second
+	for attempt := 1; ; attempt++ {
+		attemptCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+		err := postgres.Migrate(attemptCtx, pool)
+		cancel()
+		if err == nil {
+			ready.Store(true)
+			logger.Info("database ready", "attempts", attempt)
+			return
+		}
+		logger.Error("migrate", "err", err, "attempt", attempt, "retry_in", wait.String())
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(wait):
+		}
+		wait = min(wait*2, maxWait)
+	}
 }

@@ -5,7 +5,7 @@ services:
     dockerfilePath: ./Dockerfile
     plan: free
     region: oregon            # pair with a Neon project in AWS us-west-2
-    healthCheckPath: /api/health
+    healthCheckPath: /api/live
     autoDeploy: true
     envVars:
       - key: PORT

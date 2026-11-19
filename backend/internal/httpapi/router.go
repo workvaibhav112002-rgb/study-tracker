@@ -29,6 +29,9 @@ type Deps struct {
 	Google auth.GoogleVerifier
 	// Push may be nil (reminders disabled).
 	Push push.Sender
+	// Ready reports whether the database is migrated and usable. Until it
+	// returns true every route except /api/live answers 503. Nil means ready.
+	Ready func() bool
 }
 
 type api struct {
@@ -83,6 +86,8 @@ func NewRouter(d Deps) http.Handler {
 		}))
 	}
 
+	r.Use(untilReady(d.Ready))
+
 	limited := func(limit int, window time.Duration) func(http.Handler) http.Handler {
 		return httprate.Limit(limit, window,
 			httprate.WithKeyFuncs(httprate.KeyByIP),
@@ -100,6 +105,9 @@ func NewRouter(d Deps) http.Handler {
 	body := maxBody(d.Config.MaxBodyBytes)
 
 	r.Route("/api", func(r chi.Router) {
+		// /live never touches the database: point uptime pingers and the
+		// platform health check here so they don't keep Neon awake.
+		r.Get("/live", live)
 		r.Get("/health", a.health)
 		r.With(body).Get("/config", a.config)
 		// Scheduled jobs (GitHub Actions cron) authenticate with a shared secret.

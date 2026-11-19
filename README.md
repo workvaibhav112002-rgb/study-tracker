@@ -154,9 +154,14 @@ Without the CLI: create a free project at <https://neon.tech> and copy the **dir
 3. Deploy. Migrations run automatically on boot. `GET /api/health` should return `{"status":"ok"}`.
 
 The free instance sleeps after 15 minutes idle and takes 30–60 s to wake. The frontend shows a banner and
-retries automatically. To keep it warm for free, add a 5-minute ping of `/api/health` at
+retries automatically. To keep it warm for free, add a 5-minute ping of `/api/live` at
 <https://cron-job.org> or <https://uptimerobot.com>. The GitHub Actions `keepalive` workflow does the same on a
 best-effort basis.
+
+Use `/api/live` (no database query) for keep-alives and Render's **Health Check Path**. `/api/health` also
+pings the database, so pinging it often keeps Neon's compute awake and can use up the Free plan's monthly
+compute hours, which suspends the database. If the database is unreachable the API stays up, retries
+migrations with backoff, and answers other routes with a retryable 503 until it recovers.
 
 ### 3. Frontend — Vercel
 Import the repo with **Root Directory = `frontend`**. No environment variables are required: production builds

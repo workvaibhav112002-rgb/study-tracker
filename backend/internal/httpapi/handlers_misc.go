@@ -13,6 +13,30 @@ import (
 	"study-tracker-backend/internal/store"
 )
 
+// live says the process is up. It must not touch the database, so frequent
+// keep-alive pings don't stop a scale-to-zero database from suspending.
+func live(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]string{"status": "live"})
+}
+
+// untilReady answers 503 for everything except /api/live while the database
+// is not yet usable (e.g. still waking up, or suspended over quota), so the
+// server stays up and clients get a clear, retryable error instead of a
+// crash-looping instance.
+func untilReady(ready func() bool) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if ready == nil || ready() || r.URL.Path == "/api/live" {
+				next.ServeHTTP(w, r)
+				return
+			}
+			w.Header().Set("Retry-After", "30")
+			writeError(w, r, http.StatusServiceUnavailable, "Granule can't reach its database right now. Your data is safe; please try again in a few minutes.")
+		})
+	}
+}
+
+// health checks the database too. Use it for real checks, not keep-alives.
 func (a *api) health(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
